@@ -169,6 +169,67 @@ Widget reportPage(){
   return ListView(padding:const EdgeInsets.all(14),children:rows);
 }
 Widget listPage(String title,List<Widget> rows,VoidCallback add,String label)=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text(title,style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton(onPressed:add,child:Text(label))]),if(rows.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),...rows]);
+Future<void> warehouseDialog({Warehouse? existing}) async {
+  final name = TextEditingController(text: existing?.name ?? '');
+  final manager = TextEditingController(text: existing?.manager ?? '');
+  final siteOptions = ['كل الشركة', ...sites.map((s) => s.name)];
+  String selectedSite = siteOptions.contains(existing?.site) ? existing!.site : 'كل الشركة';
+  bool isMain = existing?.main ?? false;
+  await showDialog(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setDialogState) => AlertDialog(
+        title: Text(existing == null ? 'إضافة مخزن' : 'تعديل المخزن'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            field(name, 'اسم المخزن'),
+            DropdownButtonFormField<String>(
+              value: selectedSite,
+              decoration: const InputDecoration(labelText: 'الموقع / نطاق المخزن'),
+              items: siteOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              onChanged: (v) { if (v != null) setDialogState(() => selectedSite = v); },
+            ),
+            field(manager, 'المسؤول'),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('مخزن رئيسي'),
+              value: isMain,
+              onChanged: (v) => setDialogState(() => isMain = v ?? false),
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          FilledButton(
+            onPressed: () {
+              if (name.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اكتب اسم المخزن')));
+                return;
+              }
+              if (isMain && warehouses.any((w) => w.main && w != existing)) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يوجد مخزن رئيسي بالفعل')));
+                return;
+              }
+              final updated = Warehouse(name.text.trim(), selectedSite, manager.text.trim(), isMain);
+              if (existing == null) {
+                warehouses.add(updated);
+              } else {
+                existing.name = updated.name;
+                existing.site = updated.site;
+                existing.manager = updated.manager;
+                existing.main = updated.main;
+              }
+              save();
+              setState(() {});
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 Future<void> siteDialog()async{final n=TextEditingController(),c=TextEditingController(),b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('عقد الموقع'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم الموقع'),field(c,'العميل'),field(b,'سعر الإفطار',numeric:true),field(l,'سعر الغداء',numeric:true),field(d,'سعر العشاء',numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;siteAdd(Site(n.text,c.text,double.tryParse(b.text)??0,double.tryParse(l.text)??0,double.tryParse(d.text)??0));Navigator.pop(x);},child:const Text('حفظ'))]));}
 Future<void> dayDialog()async{if(sites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سجل موقع وعقد أولاً')));return;}Site chosen=sites.first;final b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0'),e=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تسجيل الوجبات اليومية'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Site>(value:chosen,items:sites.map((s)=>DropdownMenuItem(value:s,child:Text(s.name))).toList(),onChanged:(v){if(v!=null)set(()=>chosen=v);}),field(b,'عدد الإفطار',numeric:true,decimal:false),field(l,'عدد الغداء',numeric:true,decimal:false),field(d,'عدد العشاء',numeric:true,decimal:false),field(e,'وجبات إضافية غير مسعرة',numeric:true,decimal:false),Text('أسعار العقد: '+cash(chosen.b)+' / '+cash(chosen.l)+' / '+cash(chosen.d))])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final nb=int.tryParse(b.text)??0,nl=int.tryParse(l.text)??0,nd=int.tryParse(d.text)??0,ne=int.tryParse(e.text)??0;final need=<Item,double>{};for(final r in recipes){final count=r.meal=='إفطار'?nb:r.meal=='غداء'?nl:r.meal=='عشاء'?nd:0;final found=items.where((i)=>i.n==r.item);if(found.isNotEmpty)need[found.first]=(need[found.first]??0)+count*r.qty;}final shortage=need.entries.where((e)=>e.value>e.key.q).toList();if(shortage.isNotEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('رصيد غير كافٍ: '+shortage.map((e)=>e.key.n).join('، '))));return;}dayAdd(Day(chosen.name,DateTime.now(),nb,nl,nd,ne));for(final e in need.entries){e.key.q-=e.value;movements.add(Movement(e.key.n,'استهلاك وجبات',e.value,'موقع: '+chosen.name,DateTime.now()));}save();Navigator.pop(x);},child:const Text('حفظ'))])));}
 Future<void> movementDialog(String type) async {
