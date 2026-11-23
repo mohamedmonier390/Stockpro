@@ -49,7 +49,58 @@ Widget reportPage(){
 Widget listPage(String title,List<Widget> rows,VoidCallback add,String label)=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text(title,style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton(onPressed:add,child:Text(label))]),if(rows.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),...rows]);
 Future<void> siteDialog()async{final n=TextEditingController(),c=TextEditingController(),b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('عقد الموقع'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم الموقع'),field(c,'العميل'),field(b,'سعر الإفطار'),field(l,'سعر الغداء'),field(d,'سعر العشاء')])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;siteAdd(Site(n.text,c.text,double.tryParse(b.text)??0,double.tryParse(l.text)??0,double.tryParse(d.text)??0));Navigator.pop(x);},child:const Text('حفظ'))]));}
 Future<void> dayDialog()async{if(sites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سجل موقع وعقد أولاً')));return;}Site chosen=sites.first;final b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0'),e=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تسجيل الوجبات اليومية'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Site>(value:chosen,items:sites.map((s)=>DropdownMenuItem(value:s,child:Text(s.name))).toList(),onChanged:(v){if(v!=null)set(()=>chosen=v);}),field(b,'عدد الإفطار'),field(l,'عدد الغداء'),field(d,'عدد العشاء'),field(e,'وجبات إضافية غير مسعرة'),Text('أسعار العقد: '+cash(chosen.b)+' / '+cash(chosen.l)+' / '+cash(chosen.d))])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final nb=int.tryParse(b.text)??0,nl=int.tryParse(l.text)??0,nd=int.tryParse(d.text)??0,ne=int.tryParse(e.text)??0;final need=<Item,int>{};for(final r in recipes){final count=r.meal=='إفطار'?nb:r.meal=='غداء'?nl:r.meal=='عشاء'?nd:0;final found=items.where((i)=>i.n==r.item);if(found.isNotEmpty)need[found.first]=(need[found.first]??0)+count*r.qty;}final shortage=need.entries.where((e)=>e.value>e.key.q).toList();if(shortage.isNotEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('رصيد غير كافٍ: '+shortage.map((e)=>e.key.n).join('، '))));return;}dayAdd(Day(chosen.name,DateTime.now(),nb,nl,nd,ne));for(final e in need.entries){e.key.q-=e.value;movements.add(Movement(e.key.n,'استهلاك وجبات',e.value,'موقع: '+chosen.name,DateTime.now()));}save();Navigator.pop(x);},child:const Text('حفظ'))])));}
-Future<void> movementDialog(String type)async{if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامة أولاً')));return;}Item selected=items.first;final qty=TextEditingController(),note=TextEditingController();await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:Text(type+' خامات'),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)set(()=>selected=v);}),field(qty,'الكمية بوحدة '+selected.unit),field(note,'ملاحظات'),Text('الرصيد الحالي: '+selected.q.toString())]),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final amount=int.tryParse(qty.text);if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل كمية صحيحة')));return;}if(type=='صرف'&&amount>selected.q){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('رصيد غير كافٍ')));return;}selected.q+=type=='استلام'?amount:-amount;movements.add(Movement(selected.n,type,amount,note.text.trim(),DateTime.now()));save();setState(()=>{});Navigator.pop(x);},child:const Text('تأكيد'))]));}
+Future<void> movementDialog(String type) async {
+  if (items.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أضف خامة أولاً')));
+    return;
+  }
+  Item selected = items.first;
+  final qty = TextEditingController();
+  final note = TextEditingController();
+  await showDialog(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setDialogState) => AlertDialog(
+        title: Text('$type خامات'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<Item>(
+              value: selected,
+              items: items.map((item) => DropdownMenuItem(value: item, child: Text(item.n))).toList(),
+              onChanged: (value) { if (value != null) setDialogState(() => selected = value); },
+            ),
+            field(qty, 'الكمية بوحدة '+selected.unit),
+            field(note, 'ملاحظات'),
+            Text('الرصيد الحالي: '+selected.q.toString()),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          FilledButton(
+            onPressed: () {
+              final amount = int.tryParse(qty.text);
+              if (amount == null || amount <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل كمية صحيحة')));
+                return;
+              }
+              if (type == 'صرف' && amount > selected.q) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رصيد غير كافٍ')));
+                return;
+              }
+              selected.q += type == 'استلام' ? amount : -amount;
+              movements.add(Movement(selected.n, type, amount, note.text.trim(), DateTime.now()));
+              save();
+              setDialogState(() {});
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامات أولاً')));return;}Item selected=items.first;String meal='إفطار';final q=TextEditingController(text:'1');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تحديد استهلاك الخامة لكل وجبة'),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)set(()=>selected=v);}),DropdownButtonFormField<String>(value:meal,items:['إفطار','غداء','عشاء'].map((m)=>DropdownMenuItem(value:m,child:Text(m))).toList(),onChanged:(v){if(v!=null)set(()=>meal=v);}),field(q,'الكمية لكل وجبة بوحدة المخزون'),const Text('عند تسجيل الوجبات سيتم خصم الاستهلاك تلقائيًا.')]),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final qty=int.tryParse(q.text);if(qty==null||qty<=0)return;final old=recipes.where((r)=>r.item==selected.n&&r.meal==meal);if(old.isNotEmpty){old.first.qty=qty;}else{recipes.add(Recipe(selected.n,meal,qty));}save();setState(()=>{});Navigator.pop(x);},child:const Text('حفظ الوصفة'))])));}
 Future<void> itemDialog()async{final n=TextEditingController(),code=TextEditingController(),u=TextEditingController(text:'كجم'),cost=TextEditingController(text:'0'),q=TextEditingController(text:'0'),min=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('بيانات الخامة'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم المادة'),field(code,'كود/باركود'),field(u,'وحدة القياس'),field(cost,'تكلفة الوحدة'),field(q,'الرصيد الحالي'),field(min,'حد التنبيه')])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;itemAdd(Item(n.text,code.text,u.text,double.tryParse(cost.text)??0,int.tryParse(q.text)??0,int.tryParse(min.text)??0));Navigator.pop(x);},child:const Text('حفظ'))]));}
 }
