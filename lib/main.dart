@@ -23,7 +23,26 @@ Widget dashboard()=>ListView(padding:const EdgeInsets.all(14),children:[Containe
 Widget sitePage()=>listPage('المواقع والعقود',sites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d))))).toList(),siteDialog,'إضافة موقع');
 Widget dayPage()=>listPage('سجل الوجبات',days.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Text(cash(rev(x)))))).toList(),dayDialog,'تسجيل وجبات');
 Widget itemPage()=>listPage('المخزون والخامات',items.map((x)=>Card(child:ListTile(title:Text(x.n),subtitle:Text(x.code+' | '+x.unit+' | حد التنبيه '+x.min.toString()),trailing:Text(x.q.toString()+' '+x.unit+'\n'+cash(x.q*x.cost))))).toList(),itemDialog,'إضافة خامة');
-Widget reportPage(){final n=DateTime.now();final m=days.where((x)=>x.date.year==n.year&&x.date.month==n.month);final q=m.fold<int>(0,(a,x)=>a+x.b+x.l+x.d+x.e);final r=m.fold<double>(0,(a,x)=>a+rev(x));return ListView(padding:const EdgeInsets.all(14),children:[const Text('تقرير الشهر الحالي',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),metric('إجمالي الوجبات',q.toString(),Icons.restaurant),metric('إيراد الشهر',cash(r),Icons.payments),...sites.map((s){final a=m.where((x)=>x.site==s.name);final count=a.fold<int>(0,(z,x)=>z+x.b+x.l+x.d+x.e);final value=a.fold<double>(0,(z,x)=>z+x.b*s.b+x.l*s.l+x.d*s.d);return Card(child:ListTile(title:Text(s.name),subtitle:Text(count.toString()+' وجبة'),trailing:Text(cash(value))));})];}
+Widget reportPage(){
+  final now=DateTime.now();
+  final monthDays=days.where((x)=>x.date.year==now.year&&x.date.month==now.month).toList();
+  int mealCount=0;
+  double revenue=0;
+  for(final entry in monthDays){mealCount+=entry.b+entry.l+entry.d+entry.e;revenue+=rev(entry);}
+  final rows=<Widget>[
+    const Text('تقرير الشهر الحالي',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
+    metric('إجمالي الوجبات',mealCount.toString(),Icons.restaurant),
+    metric('إيراد الشهر',cash(revenue),Icons.payments),
+  ];
+  for(final site in sites){
+    int count=0;double amount=0;
+    for(final entry in monthDays){
+      if(entry.site==site.name){count+=entry.b+entry.l+entry.d+entry.e;amount+=entry.b*site.b+entry.l*site.l+entry.d*site.d;}
+    }
+    rows.add(Card(child:ListTile(title:Text(site.name),subtitle:Text('$count وجبة'),trailing:Text(cash(amount)))));
+  }
+  return ListView(padding:const EdgeInsets.all(14),children:rows);
+}
 Widget listPage(String title,List<Widget> rows,VoidCallback add,String label)=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text(title,style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton(onPressed:add,child:Text(label))]),if(rows.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),...rows]);
 Future<void> siteDialog()async{final n=TextEditingController(),c=TextEditingController(),b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('عقد الموقع'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم الموقع'),field(c,'العميل'),field(b,'سعر الإفطار'),field(l,'سعر الغداء'),field(d,'سعر العشاء')])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;siteAdd(Site(n.text,c.text,double.tryParse(b.text)??0,double.tryParse(l.text)??0,double.tryParse(d.text)??0));Navigator.pop(x);},child:const Text('حفظ'))]));}
 Future<void> dayDialog()async{if(sites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سجل موقع وعقد أولاً')));return;}Site chosen=sites.first;final b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0'),e=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تسجيل الوجبات اليومية'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Site>(value:chosen,items:sites.map((s)=>DropdownMenuItem(value:s,child:Text(s.name))).toList(),onChanged:(v){if(v!=null)set(()=>chosen=v);}),field(b,'عدد الإفطار'),field(l,'عدد الغداء'),field(d,'عدد العشاء'),field(e,'وجبات إضافية غير مسعرة'),Text('أسعار العقد: '+cash(chosen.b)+' / '+cash(chosen.l)+' / '+cash(chosen.d))])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){dayAdd(Day(chosen.name,DateTime.now(),int.tryParse(b.text)??0,int.tryParse(l.text)??0,int.tryParse(d.text)??0,int.tryParse(e.text)??0));Navigator.pop(x);},child:const Text('حفظ'))])));}
