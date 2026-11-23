@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const StockProApp());
 
@@ -19,6 +21,18 @@ class Product {
   String name, code;
   double buy, sell;
   int qty, minQty;
+  Map<String, dynamic> toJson() => {'name': name, 'code': code, 'buy': buy, 'sell': sell, 'qty': qty, 'minQty': minQty};
+  factory Product.fromJson(Map<String, dynamic> j) => Product(name: j['name'] ?? '', code: j['code'] ?? '', buy: (j['buy'] as num? ?? 0).toDouble(), sell: (j['sell'] as num? ?? 0).toDouble(), qty: (j['qty'] as num? ?? 0).toInt(), minQty: (j['minQty'] as num? ?? 0).toInt());
+}
+
+class SaleRecord {
+  SaleRecord({required this.productName, required this.code, required this.quantity, required this.total, required this.profit, required this.date});
+  final String productName, code;
+  final int quantity;
+  final double total, profit;
+  final DateTime date;
+  Map<String, dynamic> toJson() => {'productName': productName, 'code': code, 'quantity': quantity, 'total': total, 'profit': profit, 'date': date.toIso8601String()};
+  factory SaleRecord.fromJson(Map<String, dynamic> j) => SaleRecord(productName: j['productName'] ?? '', code: j['code'] ?? '', quantity: (j['quantity'] as num? ?? 0).toInt(), total: (j['total'] as num? ?? 0).toDouble(), profit: (j['profit'] as num? ?? 0).toDouble(), date: DateTime.tryParse(j['date'] ?? '') ?? DateTime.now());
 }
 
 class MainShell extends StatefulWidget {
@@ -29,14 +43,35 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int tab = 0;
   final products = <Product>[];
-  double salesToday = 0, profitToday = 0;
-  void addProduct(Product p) => setState(() => products.add(p));
+  final saleRecords = <SaleRecord>[];
+  bool loading = true;
+  double get salesToday => saleRecords.where((s) => s.date.year == DateTime.now().year && s.date.month == DateTime.now().month && s.date.day == DateTime.now().day).fold(0, (sum, s) => sum + s.total);
+  double get profitToday => saleRecords.where((s) => s.date.year == DateTime.now().year && s.date.month == DateTime.now().month && s.date.day == DateTime.now().day).fold(0, (sum, s) => sum + s.profit);
+  @override
+  void initState() { super.initState(); loadData(); }
+  Future<void> loadData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pj = prefs.getString('stockpro_products'); final sj = prefs.getString('stockpro_sales');
+      if (pj != null) products.addAll((jsonDecode(pj) as List).map((e) => Product.fromJson(Map<String, dynamic>.from(e))));
+      if (sj != null) saleRecords.addAll((jsonDecode(sj) as List).map((e) => SaleRecord.fromJson(Map<String, dynamic>.from(e))));
+    } catch (_) {}
+    if (mounted) setState(() => loading = false);
+  }
+  Future<void> saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('stockpro_products', jsonEncode(products.map((p) => p.toJson()).toList()));
+    await prefs.setString('stockpro_sales', jsonEncode(saleRecords.map((s) => s.toJson()).toList()));
+  }
+  void addProduct(Product p) { setState(() => products.add(p)); saveData(); }
   void recordSale(Product p, int qty) {
     if (qty <= 0 || qty > p.qty) return;
-    setState(() { p.qty -= qty; salesToday += p.sell * qty; profitToday += (p.sell - p.buy) * qty; });
+    setState(() { p.qty -= qty; saleRecords.add(SaleRecord(productName: p.name, code: p.code, quantity: qty, total: p.sell * qty, profit: (p.sell - p.buy) * qty, date: DateTime.now())); });
+    saveData();
   }
   @override
   Widget build(BuildContext context) {
+    if (loading) return const Directionality(textDirection: TextDirection.rtl, child: Scaffold(body: Center(child: CircularProgressIndicator())));
     final pages = [
       Dashboard(products: products, sales: salesToday, profit: profitToday, onAdd: () => showProductDialog(context, addProduct), onSale: () => showSaleDialog(context, products, recordSale)),
       ProductsPage(products: products, onAdd: () => showProductDialog(context, addProduct)),
