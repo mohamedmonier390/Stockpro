@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,6 +13,10 @@ jobs:
         with:
           flutter-version: '3.24.5'
           channel: stable
+      # The repository initially contains Dart source only. Generate the Android
+      # platform scaffolding before attempting the APK build.
+      - name: Generate Android project files
+        run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
