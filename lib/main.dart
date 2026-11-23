@@ -106,7 +106,10 @@ Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context)
 Future<void> itemDialog()async{final n=TextEditingController(),code=TextEditingController(),u=TextEditingController(text:'كجم'),cost=TextEditingController(text:'0'),q=TextEditingController(text:'0'),min=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('بيانات الخامة'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم المادة'),field(code,'كود/باركود'),field(u,'وحدة القياس'),field(cost,'تكلفة الوحدة'),field(q,'الرصيد الحالي'),field(min,'حد التنبيه')])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;itemAdd(Item(n.text,code.text,u.text,double.tryParse(cost.text.trim().replaceAll(',', '.'))??0,double.tryParse(q.text.trim().replaceAll(',', '.'))??0,double.tryParse(min.text.trim().replaceAll(',', '.'))??0));Navigator.pop(x);},child:const Text('حفظ'))]));}
 }
 String cash(double n)=>n.toStringAsFixed(2)+' ج.م';
-String qtyText(double n){final value=n.toStringAsFixed(3);return value.replaceFirst(RegExp(r'\\.?0+
-Widget field(TextEditingController x,String label)=>Padding(padding:const EdgeInsets.only(bottom:8),child:TextField(controller:x,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
-),'');}
+String qtyText(double n){
+  var value=n.toStringAsFixed(3);
+  while(value.contains('.')&&value.endsWith('0')){value=value.substring(0,value.length-1);}
+  if(value.endsWith('.')){value=value.substring(0,value.length-1);}
+  return value;
+}
 Widget field(TextEditingController x,String label)=>Padding(padding:const EdgeInsets.only(bottom:8),child:TextField(controller:x,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
