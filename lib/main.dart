@@ -80,7 +80,7 @@ Widget warehousePage() => ListView(padding:const EdgeInsets.all(12),children:[
 Row(children:[const Expanded(child:Text('إدارة المخازن',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:warehouseDialog,icon:const Icon(Icons.add),label:const Text('مخزن جديد'))]),
 Wrap(spacing:6,children:[FilledButton.icon(onPressed:transferDialog,icon:const Icon(Icons.swap_horiz),label:const Text('تحويل مخزني')),OutlinedButton.icon(onPressed:movementHistoryDialog,icon:const Icon(Icons.history),label:const Text('سجل الحركات'))]),
 const Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text('رصيد مستقل لكل مخزن'),subtitle:Text('الاستلام والصرف والتحويلات تُسجل على المخزن المحدد.'))),
-  ...visibleWarehouses.map((w)=>Card(child:ListTile(leading:Icon(w.main?Icons.warehouse:Icons.store,color:Colors.teal),title:Text(w.name),subtitle:Text((w.main?'مخزن رئيسي':'مخزن فرعي')+' • '+w.site+'\\nقيمة الرصيد: '+cash(items.fold(0.0,(sum,it)=>sum+balance(it,w.name)*it.cost)),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>warehouseDialog(existing:w)))))
+  ...visibleWarehouses.map((w)=>Card(child:ListTile(leading:Icon(w.main?Icons.warehouse:Icons.store,color:Colors.teal),title:Text(w.name),subtitle:Text((w.main?'مخزن رئيسي':'مخزن فرعي')+' • '+w.site+'\nقيمة الرصيد: '+cash(items.fold(0.0,(sum,it)=>sum+balance(it,w.name)*it.cost))),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>warehouseDialog(existing:w)))))
 ]);
 Widget sitePage()=>listPage('المواقع والعقود',visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d))))).toList(),siteDialog,'إضافة موقع');
 Widget dayPage()=>listPage('سجل الوجبات',days.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Text(cash(rev(x)))))).toList(),dayDialog,'تسجيل وجبات');
@@ -199,11 +199,38 @@ setBalance(selected,source.name,balance(selected,source.name)-amount);setBalance
 final stamp=DateTime.now();final memo='تحويل إلى '+target.name+(note.text.trim().isEmpty?'':' | '+note.text.trim());movements.add(Movement(selected.n,'تحويل صادر',amount,memo,stamp,source.name));movements.add(Movement(selected.n,'تحويل وارد',amount,'من '+source.name+(note.text.trim().isEmpty?'':' | '+note.text.trim()),stamp,target.name));save();setState(()=>{});Navigator.pop(dc);
 },child:const Text('اعتماد التحويل'))])));
 }
-Future<void> movementHistoryDialog()async{
-final list=movements.reversed.toList();
-  await showDialog(context:context,builder:(dc)=>AlertDialog(title:const Text('سجل حركات المخزون'),content:SizedBox(width:450,height:450,child:list.isEmpty?const Center(child:Text('لا توجد حركات')):ListView(children:list.map((m)=>ListTile(leading:Icon(m.type.contains('وارد')||m.type=='استلام'?Icons.arrow_downward:m.type.contains('صادر')||m.type=='صرف'?Icons.arrow_upward:Icons.swap_horiz),title:Text(m.item+' • '+m.type+' • '+qtyText(m.qty)),subtitle:Text(m.warehouse+' | '+m.date.toString()+(m.note.isEmpty?'':'\\n'+m.note))).toList())),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]));
+Future<void> movementHistoryDialog() async {
+ final list=movements.reversed.toList();
+ await showDialog(context:context,builder:(dc)=>AlertDialog(title:const Text('سجل حركات المخزون'),content:SizedBox(width:450,height:450,child:list.isEmpty?const Center(child:Text('لا توجد حركات')):ListView(children:list.map((m)=>ListTile(leading:Icon(m.type.contains('وارد')||m.type=='استلام'?Icons.arrow_downward:m.type.contains('صادر')||m.type=='صرف'?Icons.arrow_upward:Icons.swap_horiz),title:Text(m.item+' • '+m.type+' • '+qtyText(m.qty)),subtitle:Text(m.warehouse+' | '+m.date.toString()+(m.note.isEmpty?'':'\\n'+m.note)))).toList()),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]));
 }
 Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامات أولاً')));return;}Item selected=items.first;String meal='إفطار';final q=TextEditingController(text:'1');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تحديد استهلاك الخامة لكل وجبة'),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)set(()=>selected=v);}),DropdownButtonFormField<String>(value:meal,items:['إفطار','غداء','عشاء'].map((m)=>DropdownMenuItem(value:m,child:Text(m))).toList(),onChanged:(v){if(v!=null)set(()=>meal=v);}),field(q,'الكمية لكل وجبة بوحدة المخزون',numeric:true),const Text('عند تسجيل الوجبات سيتم خصم الاستهلاك تلقائيًا.')]),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final qty=double.tryParse(q.text.trim().replaceAll(',', '.'));if(qty==null||qty<=0)return;final old=recipes.where((r)=>r.item==selected.n&&r.meal==meal);if(old.isNotEmpty){old.first.qty=qty;}else{recipes.add(Recipe(selected.n,meal,qty));}save();setState(()=>{});Navigator.pop(x);},child:const Text('حفظ الوصفة'))])));}
+Future<void> importExcel() async {
+ try {
+  final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['xlsx'],withData:true);
+  if(picked==null||picked.files.single.bytes==null)return;
+  final book=Excel.decodeBytes(picked.files.single.bytes!);
+  final sheet=book.tables.values.first;
+  if(sheet.rows.isEmpty)return;
+  final headers=sheet.rows.first.map((cell)=>(cell?.value?.toString()??'').trim()).toList();
+  int idx(String name)=>headers.indexWhere((h)=>h.toLowerCase()==name.toLowerCase());
+  final required=['ItemCode','ItemName','Unit','Warehouse'];
+  if(required.any((h)=>idx(h)<0)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('القالب لازم يحتوي الأعمدة: ItemCode, ItemName, Unit, Warehouse')));return;}
+  int imported=0,skipped=0;
+  for(final row in sheet.rows.skip(1)){
+   String val(String key)=>idx(key)>=0&&idx(key)<row.length?(row[idx(key)]?.value?.toString().trim()??''):'';
+   final code=val('ItemCode'),name=val('ItemName'),unit=val('Unit'),whName=val('Warehouse');
+   if(code.isEmpty||name.isEmpty||unit.isEmpty||whName.isEmpty||items.any((i)=>i.code==code)){skipped++;continue;}
+   final wh=warehouses.where((w)=>w.name==whName).firstOrNull;
+   if(wh==null){skipped++;continue;}
+   double numVal(String key){final s=val(key).replaceAll(',','.');return double.tryParse(s)??0;}
+   final item=Item(name,code,unit,numVal('AverageCost'),numVal('OpeningBalance'),numVal('MinimumStock'));
+   items.add(item);stockBalances.putIfAbsent(wh.name,()=>{});stockBalances[wh.name]![item.n]=item.q;
+   if(item.q>0)movements.add(Movement(item.n,'رصيد افتتاحي',item.q,'Import Excel',DateTime.now(),wh.name));imported++;
+  }
+  await save();if(mounted)setState((){});
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تم استيراد $imported خامة • تم تخطي $skipped')));
+ }catch(e){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل الاستيراد: $e')));}
+}
 Future<void> itemDialog()async{final n=TextEditingController(),code=TextEditingController(),u=TextEditingController(text:'كجم'),cost=TextEditingController(text:'0'),q=TextEditingController(text:'0'),min=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('بيانات الخامة'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم المادة'),field(code,'كود/باركود'),field(u,'وحدة القياس'),field(cost,'تكلفة الوحدة',numeric:true),field(q,'الرصيد الحالي',numeric:true),field(min,'حد التنبيه',numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;itemAdd(Item(n.text,code.text,u.text,double.tryParse(cost.text.trim().replaceAll(',', '.'))??0,double.tryParse(q.text.trim().replaceAll(',', '.'))??0,double.tryParse(min.text.trim().replaceAll(',', '.'))??0));Navigator.pop(x);},child:const Text('حفظ'))]));}
 }
 String cash(double n)=>n.toStringAsFixed(2)+' ج.م';
