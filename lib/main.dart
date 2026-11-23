@@ -11,8 +11,49 @@ class LoginState extends State<LoginScreen>{
   @override void initState(){super.initState();loadUsers();}
   Future<void> loadUsers()async{final p=await SharedPreferences.getInstance();try{users=(jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))).toList();}catch(_){}if(users.isEmpty){users=[AppUser('المدير','',true,Set<String>.from(AppUser.modules))];await p.setString('users',jsonEncode(users.map((u)=>u.j()).toList()));}selected=users.first;setState(()=>loading=false);}
   Future<void> enter()async{if(selected==null)return;if(pin.text!=selected!.pin){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PIN غير صحيح')));return;}final p=await SharedPreferences.getInstance();await p.setString('activeUser',selected!.name);if(!mounted)return;Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const Hub()));}
-  @override Widget build(BuildContext c) { if(loading)return const Scaffold(body:Center(child:CircularProgressIndicator())); return Scaffold(body:Center(child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:420),child:Padding(padding:const EdgeInsets.all(24),child:Column(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.inventory_2,size:70,color:Colors.teal),const Text('StockPro',style:TextStyle(fontSize:30,fontWeight:FontWeight.bold)),const SizedBox(height:22),DropdownButtonFormField<AppUser>(value:selected,decoration:const InputDecoration(labelText:'المستخدم',border:OutlineInputBorder()),items:users.map((u)=>DropdownMenuItem(value:u,child:Text(u.name))).toList(),onChanged:(u)=>setState(()=>selected=u)),const SizedBox(height:12),TextField(controller:pin,obscureText:true,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'PIN',border:OutlineInputBorder()),onSubmitted:(_)=>enter()),const SizedBox(height:16),SizedBox(width:double.infinity,child:FilledButton(onPressed:enter,child:const Text('دخول'))])))));}
-}
+  @override
+  Widget build(BuildContext c) {
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.inventory_2, size: 70, color: Colors.teal),
+                const Text('StockPro', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 22),
+                DropdownButtonFormField<AppUser>(
+                  value: selected,
+                  decoration: const InputDecoration(labelText: 'المستخدم', border: OutlineInputBorder()),
+                  items: users.map((u) => DropdownMenuItem(value: u, child: Text(u.name))).toList(),
+                  onChanged: (u) => setState(() => selected = u),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pin,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'PIN', border: OutlineInputBorder()),
+                  onSubmitted: (_) => enter(),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(onPressed: enter, child: const Text('دخول')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 class AnimatedSplash extends StatefulWidget {const AnimatedSplash({super.key});@override State<AnimatedSplash> createState()=>_AnimatedSplashState();}
 class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStateMixin {
   late final AnimationController _intro=AnimationController(vsync:this,duration:const Duration(milliseconds:900));
