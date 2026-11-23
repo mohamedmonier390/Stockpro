@@ -21,7 +21,33 @@ class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStat
   late final Animation<double> _fade=CurvedAnimation(parent:_intro,curve:Curves.easeOut);
   @override void initState(){super.initState();_intro.forward();_shine.repeat();}
   @override void dispose(){_intro.dispose();_shine.dispose();super.dispose();}
-  @override Widget build(BuildContext c) { return Scaffold(body:Container(width:double.infinity,height:double.infinity,decoration:const BoxDecoration(gradient:LinearGradient(colors:[Color(0xff063f36),Color(0xff006b5b),Color(0xff073d35)])),child:Center(child:FadeTransition(opacity:_fade,child:ScaleTransition(scale:_scale,child:const Column(mainAxisSize:MainAxisSize.min,children:[Icon(Icons.inventory_2_rounded,size:80,color:Colors.white),Text('StockPro',style:TextStyle(fontSize:38,fontWeight:FontWeight.bold,color:Colors.white)),Text('MONIER',style:TextStyle(color:Colors.white))])))));}
+  @override Widget build(BuildContext c) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(colors: [Color(0xff063f36), Color(0xff006b5b), Color(0xff073d35)]),
+        ),
+        child: Center(
+          child: FadeTransition(
+            opacity: _fade,
+            child: ScaleTransition(
+              scale: _scale,
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.inventory_2_rounded, size: 80, color: Colors.white),
+                  Text('StockPro', style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text('MONIER', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 class Site{String name,client;double b,l,d;Site(this.name,this.client,this.b,this.l,this.d);Map j()=>{'n':name,'c':client,'b':b,'l':l,'d':d};}
 class Day{String site;DateTime date;int b,l,d,e;Day(this.site,this.date,this.b,this.l,this.d,this.e);Map j()=>{'s':site,'t':date.toIso8601String(),'b':b,'l':l,'d':d,'e':e};}
@@ -200,8 +226,35 @@ final stamp=DateTime.now();final memo='تحويل إلى '+target.name+(note.tex
 },child:const Text('اعتماد التحويل'))])));
 }
 Future<void> movementHistoryDialog() async {
- final list=movements.reversed.toList();
- await showDialog(context:context,builder:(dc)=>AlertDialog(title:const Text('سجل حركات المخزون'),content:SizedBox(width:450,height:450,child:list.isEmpty?const Center(child:Text('لا توجد حركات')):ListView(children:list.map((m)=>ListTile(leading:Icon(m.type.contains('وارد')||m.type=='استلام'?Icons.arrow_downward:m.type.contains('صادر')||m.type=='صرف'?Icons.arrow_upward:Icons.swap_horiz),title:Text(m.item+' • '+m.type+' • '+qtyText(m.qty)),subtitle:Text(m.warehouse+' | '+m.date.toString()+(m.note.isEmpty?'':'\\n'+m.note)))).toList()),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]));
+  final list = movements.reversed.toList();
+  await showDialog(
+    context: context,
+    builder: (dc) => AlertDialog(
+      title: const Text('سجل حركات المخزون'),
+      content: SizedBox(
+        width: 450,
+        height: 450,
+        child: list.isEmpty
+          ? const Center(child: Text('لا توجد حركات'))
+          : ListView(
+              children: list.map((m) => ListTile(
+                leading: Icon(
+                  m.type.contains('وارد') || m.type == 'استلام'
+                    ? Icons.arrow_downward
+                    : m.type.contains('صادر') || m.type == 'صرف'
+                      ? Icons.arrow_upward
+                      : Icons.swap_horiz,
+                ),
+                title: Text('${m.item} • ${m.type} • ${qtyText(m.qty)}'),
+                subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\\n'+m.note}'),
+              )).toList(),
+            ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
+      ],
+    ),
+  );
 }
 Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامات أولاً')));return;}Item selected=items.first;String meal='إفطار';final q=TextEditingController(text:'1');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تحديد استهلاك الخامة لكل وجبة'),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)set(()=>selected=v);}),DropdownButtonFormField<String>(value:meal,items:['إفطار','غداء','عشاء'].map((m)=>DropdownMenuItem(value:m,child:Text(m))).toList(),onChanged:(v){if(v!=null)set(()=>meal=v);}),field(q,'الكمية لكل وجبة بوحدة المخزون',numeric:true),const Text('عند تسجيل الوجبات سيتم خصم الاستهلاك تلقائيًا.')]),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final qty=double.tryParse(q.text.trim().replaceAll(',', '.'));if(qty==null||qty<=0)return;final old=recipes.where((r)=>r.item==selected.n&&r.meal==meal);if(old.isNotEmpty){old.first.qty=qty;}else{recipes.add(Recipe(selected.n,meal,qty));}save();setState(()=>{});Navigator.pop(x);},child:const Text('حفظ الوصفة'))])));}
 Future<void> importExcel() async {
