@@ -54,6 +54,7 @@ class LoginState extends State<LoginScreen>{
       ),
     );
   }
+}
 class AnimatedSplash extends StatefulWidget {const AnimatedSplash({super.key});@override State<AnimatedSplash> createState()=>_AnimatedSplashState();}
 class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStateMixin {
   late final AnimationController _intro=AnimationController(vsync:this,duration:const Duration(milliseconds:900));
