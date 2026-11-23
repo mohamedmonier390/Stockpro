@@ -3,27 +3,105 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 void main()=>runApp(const App());
 class App extends StatelessWidget{const App({super.key});@override Widget build(BuildContext c)=>MaterialApp(debugShowCheckedModeBanner:false,theme:ThemeData(useMaterial3:true,colorScheme:ColorScheme.fromSeed(seedColor:Colors.teal)),home:const AnimatedSplash());}
-class AnimatedSplash extends StatefulWidget{const AnimatedSplash({super.key});@override State<AnimatedSplash> createState()=>_AnimatedSplashState();}
-class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStateMixin{
- late final AnimationController _intro=AnimationController(vsync:this,duration:const Duration(milliseconds:1100));
- late final AnimationController _shine=AnimationController(vsync:this,duration:const Duration(milliseconds:1250));
- late final Animation<double> _scale=CurvedAnimation(parent:_intro,curve:Curves.easeOutBack);
- late final Animation<double> _fade=CurvedAnimation(parent:_intro,curve:Curves.easeOut);
- @override void initState(){super.initState();_intro.forward();_shine.repeat();Future.delayed(const Duration(milliseconds:2600),(){if(mounted)Navigator.of(context).pushReplacement(PageRouteBuilder(pageBuilder:(_,__,___)=>const Hub(),transitionDuration:const Duration(milliseconds:500),transitionsBuilder:(_,a,__,child)=>FadeTransition(opacity:a,child:child)));});}
- @override void dispose(){_intro.dispose();_shine.dispose();super.dispose();}
- @override Widget build(BuildContext context)=>Scaffold(body:Container(width:double.infinity,height:double.infinity,decoration:const BoxDecoration(gradient:LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xff063f36),Color(0xff006b5b),Color(0xff073d35)])),child:SafeArea(child:Center(child:FadeTransition(opacity:_fade,child:Column(mainAxisSize:MainAxisSize.min,children:[
- ScaleTransition(scale:_scale,child:Container(width:104,height:104,decoration:BoxDecoration(color:Colors.white.withOpacity(.12),borderRadius:BorderRadius.circular(30),border:Border.all(color:Colors.white.withOpacity(.24),width:1.2)),child:const Center(child:Icon(Icons.inventory_2_rounded,size:53,color:Color(0xffc5eee4))))),
- const SizedBox(height:25),
- const Text('StockPro',style:TextStyle(fontSize:38,fontWeight:FontWeight.w800,color:Colors.white,letterSpacing:1.2)),
- const SizedBox(height:8),
- const Text('FOOD OPERATIONS MANAGEMENT',style:TextStyle(fontSize:11,color:Color(0xffb9ded5),letterSpacing:2.5,fontWeight:FontWeight.w500)),
- const SizedBox(height:22),
- SizedBox(width:155,height:2,child:AnimatedBuilder(animation:_shine,builder:(context,child)=>Container(decoration:BoxDecoration(gradient:LinearGradient(begin:Alignment(-1+2*_shine.value,0),end:Alignment(0+2*_shine.value,0),colors:[Colors.white.withOpacity(.12),const Color(0xffc5eee4),Colors.white.withOpacity(.12)]))))),
- const SizedBox(height:25),
- const Text('Designed and Built by Monier',style:TextStyle(color:Colors.white,fontSize:14,fontWeight:FontWeight.w500,letterSpacing:.7)),
- const SizedBox(height:7),
- const Text('MONIER',style:TextStyle(color:Color(0xffa8d8cd),fontSize:10,letterSpacing:4)),
- ]))))); 
+class AnimatedSplash extends StatefulWidget {
+  const AnimatedSplash({super.key});
+  @override
+  State<AnimatedSplash> createState() => _AnimatedSplashState();
+}
+class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStateMixin {
+  late final AnimationController _intro = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+  late final AnimationController _shine = AnimationController(vsync: this, duration: const Duration(milliseconds: 1250));
+  late final Animation<double> _scale = CurvedAnimation(parent: _intro, curve: Curves.easeOutBack);
+  late final Animation<double> _fade = CurvedAnimation(parent: _intro, curve: Curves.easeOut);
+
+  @override
+  void initState() {
+    super.initState();
+    _intro.forward();
+    _shine.repeat();
+    Future.delayed(const Duration(milliseconds: 2600), () {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const Hub(),
+        transitionDuration: const Duration(milliseconds: 500),
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(opacity: animation, child: child),
+      ));
+    });
+  }
+
+  @override
+  void dispose() {
+    _intro.dispose();
+    _shine.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xff063f36), Color(0xff006b5b), Color(0xff073d35)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: FadeTransition(
+              opacity: _fade,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ScaleTransition(
+                    scale: _scale,
+                    child: Container(
+                      width: 104,
+                      height: 104,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(.12),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.white.withOpacity(.24), width: 1.2),
+                      ),
+                      child: const Center(child: Icon(Icons.inventory_2_rounded, size: 53, color: Color(0xffc5eee4))),
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  const Text('StockPro', style: TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1.2)),
+                  const SizedBox(height: 8),
+                  const Text('FOOD OPERATIONS MANAGEMENT', style: TextStyle(fontSize: 11, color: Color(0xffb9ded5), letterSpacing: 2.5, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: 155,
+                    height: 2,
+                    child: AnimatedBuilder(
+                      animation: _shine,
+                      builder: (context, child) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment(-1 + 2 * _shine.value, 0),
+                            end: Alignment(2 * _shine.value, 0),
+                            colors: [Colors.white.withOpacity(.12), const Color(0xffc5eee4), Colors.white.withOpacity(.12)],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  const Text('Designed and Built by Monier', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: .7)),
+                  const SizedBox(height: 7),
+                  const Text('MONIER', style: TextStyle(color: Color(0xffa8d8cd), fontSize: 10, letterSpacing: 4)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 class Site{String name,client;double b,l,d;Site(this.name,this.client,this.b,this.l,this.d);Map j()=>{'n':name,'c':client,'b':b,'l':l,'d':d};}
 class Day{String site;DateTime date;int b,l,d,e;Day(this.site,this.date,this.b,this.l,this.d,this.e);Map j()=>{'s':site,'t':date.toIso8601String(),'b':b,'l':l,'d':d,'e':e};}
