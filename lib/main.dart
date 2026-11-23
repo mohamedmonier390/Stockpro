@@ -52,7 +52,7 @@ class _MainShellState extends State<MainShell> {
         NavigationDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: 'المبيعات'),
         NavigationDestination(icon: Icon(Icons.analytics_outlined), selectedIcon: Icon(Icons.analytics), label: 'التقارير'),
       ]),
-    );
+    ));
   }
 }
 
