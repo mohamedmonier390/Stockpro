@@ -161,6 +161,7 @@ Future<void> warehouseDialog({Warehouse? existing}) async {
               if (existing == null) {
                 warehouses.add(updated);
               } else {
+                if(existing.name!=updated.name){final oldName=existing.name;final oldBalances=stockBalances.remove(oldName);if(oldBalances!=null)stockBalances[updated.name]=oldBalances;for(final u in users){if(u.warehouses.remove(oldName))u.warehouses.add(updated.name);}for(final m in movements){if(m.warehouse==oldName)m.warehouse=updated.name;}}
                 existing.name = updated.name;
                 existing.site = updated.site;
                 existing.manager = updated.manager;
