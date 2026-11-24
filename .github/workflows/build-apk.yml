@@ -18,10 +18,53 @@ jobs:
         with:
           flutter-version: '3.24.5'
           channel: stable
-      # The repository initially contains Dart source only. Generate the Android
-      # platform scaffolding before attempting the APK build.
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
+      - name: Configure stable APK signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.STOCKPRO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.STOCKPRO_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Add STOCKPRO_KEYSTORE_BASE64 and STOCKPRO_KEYSTORE_PASSWORD in GitHub Actions secrets."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/stockpro-upload-key.jks
+          cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEYSTORE_PASSWORD
+          keyAlias=stockpro
+          storeFile=stockpro-upload-key.jks
+          EOF
+      - name: Apply release signing configuration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+          marker = "android {"
+          if marker not in s:
+              raise SystemExit("Could not find android block in generated build.gradle")
+          signing = """android {
+              signingConfigs {
+                  release {
+                      keyAlias keystoreProperties['keyAlias']
+                      keyPassword keystoreProperties['keyPassword']
+                      storeFile file(keystoreProperties['storeFile'])
+                      storePassword keystoreProperties['storePassword']
+                  }
+              }
+          """
+          s = s.replace(marker, """def keystoreProperties = new Properties()
+          def keystorePropertiesFile = rootProject.file('key.properties')
+          keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+          """ + signing, 1)
+          s = s.replace("signingConfig = signingConfigs.debug", "signingConfig = signingConfigs.release")
+          if "signingConfig = signingConfigs.release" not in s:
+              raise SystemExit("Could not apply release signing configuration")
+          p.write_text(s)
+          PY
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
