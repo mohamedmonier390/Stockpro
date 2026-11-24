@@ -6,7 +6,7 @@ import 'package:excel/excel.dart';
 void main()=>runApp(const App());
 class MonierBrand extends StatelessWidget{final double size;final bool light;const MonierBrand({super.key,this.size=70,this.light=false});@override Widget build(BuildContext c)=>Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:Stack(alignment:Alignment.center,children:[Text('M',style:TextStyle(fontSize:size*.82,fontWeight:FontWeight.w900,color:light?Colors.white:const Color(0xff092d50))),Positioned(right:size*.12,bottom:size*.12,child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[for(int i=1;i<=3;i++)Container(width:size*.09,height:size*.12*i,margin:EdgeInsets.only(left:size*.025),decoration:BoxDecoration(color:const Color(0xff21a447),borderRadius:BorderRadius.circular(size*.02)))]))])),Text('MONIER',style:TextStyle(fontSize:size*.23,fontWeight:FontWeight.w900,letterSpacing:size*.055,color:light?Colors.white:const Color(0xff092d50))),]);}
 
-class App extends StatelessWidget{const App({super.key});@override Widget build(BuildContext c)=>MaterialApp(debugShowCheckedModeBanner:false,theme:ThemeData(useMaterial3:true,colorScheme:ColorScheme.fromSeed(seedColor:Colors.teal)),home:const LoginScreen());}
+class App extends StatelessWidget{const App({super.key});@override Widget build(BuildContext c)=>MaterialApp(debugShowCheckedModeBanner:false,theme:ThemeData(useMaterial3:true,colorScheme:ColorScheme.fromSeed(seedColor:Colors.teal)),home:const AnimatedSplash());}
 class LoginScreen extends StatefulWidget{const LoginScreen({super.key});@override State<LoginScreen> createState()=>LoginState();}
 class LoginState extends State<LoginScreen>{
   final pin=TextEditingController();List<AppUser> users=[];AppUser? selected;bool loading=true;
@@ -63,7 +63,7 @@ class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStat
   late final AnimationController _shine=AnimationController(vsync:this,duration:const Duration(milliseconds:1000));
   late final Animation<double> _scale=CurvedAnimation(parent:_intro,curve:Curves.easeOutBack);
   late final Animation<double> _fade=CurvedAnimation(parent:_intro,curve:Curves.easeOut);
-  @override void initState(){super.initState();_intro.forward();_shine.repeat();}
+  @override void initState(){super.initState();_intro.forward();_shine.repeat();Future.delayed(const Duration(milliseconds:2200),(){if(!mounted)return;Navigator.of(context).pushReplacement(MaterialPageRoute(builder:(_)=>const LoginScreen()));});}
   @override void dispose(){_intro.dispose();_shine.dispose();super.dispose();}
   @override Widget build(BuildContext c) {
     return Scaffold(
