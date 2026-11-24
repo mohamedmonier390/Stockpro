@@ -372,29 +372,97 @@ Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context)
 Future<void> importExcel() async {
  try {
   final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['xlsx'],withData:true);
-  if(picked==null||picked.files.single.bytes==null)return;
-  final book=Excel.decodeBytes(picked.files.single.bytes!);
-  final sheet=book.tables.values.first;
-  if(sheet.rows.isEmpty)return;
-  final headers=sheet.rows.first.map((cell)=>(cell?.value?.toString()??'').trim()).toList();
-  int idx(String name)=>headers.indexWhere((h)=>h.toLowerCase()==name.toLowerCase());
+  if(picked==null)return;
+  final bytes=picked.files.single.bytes;
+  if(bytes==null||bytes.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أستطع قراءة الملف. احفظه بصيغة Excel .xlsx وحاول مرة أخرى.')));return;}
+  final book=Excel.decodeBytes(bytes);
+  const aliases=<String,List<String>>{
+   'ItemCode':['itemcode','code','item code','كودالصنف','كودالخامة','الكود'],
+   'ItemName':['itemname','name','item name','اسمالصنف','اسمالخامة','الصنف'],
+   'Unit':['unit','uom','وحدةالقياس','الوحدة'],
+   'Warehouse':['warehouse','storename','المخزن','اسمالمخزن'],
+   'OpeningBalance':['openingbalance','opening balance','openingstock','الرصيدالافتتاحي','رصيداولالمدة','رصيداولالمده'],
+   'MinimumStock':['minimumstock','minimum stock','minstock','الحدالادنى','حدالتنبيه'],
+   'AverageCost':['averagecost','average cost','unitcost','متوسطالتكلفة','تكلفةالوحدة'],
+   'Notes':['notes','ملاحظات']
+  };
+  String norm(String value)=>value.toLowerCase().replaceAll('\uFEFF','').replaceAll(RegExp(r'[\s_\-]+'),'').trim();
   final required=['ItemCode','ItemName','Unit','Warehouse'];
-  if(required.any((h)=>idx(h)<0)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('القالب لازم يحتوي الأعمدة: ItemCode, ItemName, Unit, Warehouse')));return;}
-  int imported=0,skipped=0;
-  for(final row in sheet.rows.skip(1)){
-   String val(String key)=>idx(key)>=0&&idx(key)<row.length?(row[idx(key)]?.value?.toString().trim()??''):'';
-   final code=val('ItemCode'),name=val('ItemName'),unit=val('Unit'),whName=val('Warehouse');
-   if(code.isEmpty||name.isEmpty||unit.isEmpty||whName.isEmpty||items.any((i)=>i.code==code)){skipped++;continue;}
-   final wh=visibleWarehouses.where((w)=>w.name==whName).firstOrNull;
-   if(wh==null){skipped++;continue;}
-   double numVal(String key){final s=val(key).replaceAll(',','.');return double.tryParse(s)??0;}
-   final item=Item(name,code,unit,numVal('AverageCost'),numVal('OpeningBalance'),numVal('MinimumStock'));
-   items.add(item);stockBalances.putIfAbsent(wh.name,()=>{});stockBalances[wh.name]![item.n]=item.q;
-   if(item.q>0)movements.add(Movement(item.n,'رصيد افتتاحي',item.q,'Import Excel',DateTime.now(),wh.name));imported++;
+  String chosenSheet='';
+  int headerRow=-1;
+  Map<String,int> columns={};
+  List<List<Data?>>? dataRows;
+  for(final entry in book.tables.entries){
+   final rows=entry.value.rows;
+   for(var r=0;r<rows.length&&r<25;r++){
+    final headers=rows[r].map((cell)=>cell?.value?.toString()??'').toList();
+    final found=<String,int>{};
+    for(final canonical in aliases.keys){
+     final names=aliases[canonical]!.map(norm).toSet();
+     final index=headers.indexWhere((h)=>names.contains(norm(h)));
+     if(index>=0)found[canonical]=index;
+    }
+    if(required.every(found.containsKey)){
+     chosenSheet=entry.key;headerRow=r;columns=found;dataRows=rows;break;
+    }
+   }
+   if(dataRows!=null)break;
   }
-  if(imported>0)addAudit('استيراد Excel','خامات',imported.toString()+' خامة جديدة • تم تخطي '+skipped.toString());await save();if(mounted)setState((){});
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تم استيراد $imported خامة • تم تخطي $skipped')));
- }catch(e){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل الاستيراد: $e')));}
+  if(dataRows==null){
+   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro ولا تغيّر الأعمدة الأساسية: ItemCode, ItemName, Unit, Warehouse.')));
+   return;
+  }
+  String number(String value){
+   var raw=value.trim().replaceAll('٬','').replaceAll('٫','.').replaceAll(' ','');
+   if(raw.contains(',')&&raw.contains('.')){raw=raw.replaceAll(',','');}
+   else if(raw.contains(',')){raw=raw.replaceAll(',','.');}
+   return raw;
+  }
+  int imported=0,skipped=0;
+  final unknownWarehouses=<String>{};
+  final duplicateCodes=<String>{};
+  for(final row in dataRows!.skip(headerRow+1)){
+   String val(String key){
+    final index=columns[key];
+    if(index==null||index>=row.length)return '';
+    return row[index]?.value?.toString().trim()??'';
+   }
+   final code=val('ItemCode'),name=val('ItemName'),unit=val('Unit'),warehouseName=val('Warehouse');
+   final note=val('Notes').toLowerCase();
+   if([code,name,unit,warehouseName].every((v)=>v.isEmpty))continue;
+   if(note.contains('delete this example row')||note.contains('مثال')){skipped++;continue;}
+   if(code.isEmpty||name.isEmpty||unit.isEmpty||warehouseName.isEmpty){skipped++;continue;}
+   if(items.any((item)=>item.code.trim().toLowerCase()==code.toLowerCase())){
+    skipped++;duplicateCodes.add(code);continue;
+   }
+   final wanted=norm(warehouseName);
+   Warehouse? warehouse;
+   for(final candidate in visibleWarehouses){
+    if(norm(candidate.name)==wanted){warehouse=candidate;break;}
+   }
+   if(warehouse==null&&['mainwarehouse','المخزنالرئيسي','المخزنالرئيسى'].contains(wanted)){
+    for(final candidate in visibleWarehouses){if(candidate.main){warehouse=candidate;break;}}
+   }
+   if(warehouse==null){skipped++;unknownWarehouses.add(warehouseName);continue;}
+   double numVal(String key)=>double.tryParse(number(val(key)))??0;
+   final item=Item(name,code,unit,numVal('AverageCost'),numVal('OpeningBalance'),numVal('MinimumStock'));
+   items.add(item);
+   stockBalances.putIfAbsent(warehouse.name,()=>{});
+   stockBalances[warehouse.name]![item.n]=item.q;
+   if(warehouse.main)item.q=stockBalances[warehouse.name]![item.n]??0;
+   if(item.q>0)movements.add(Movement(item.n,'رصيد افتتاحي',item.q,'Import Excel',DateTime.now(),warehouse.name));
+   imported++;
+  }
+  if(imported>0)addAudit('استيراد Excel','خامات',imported.toString()+' خامة جديدة من '+chosenSheet+' • تم تخطي '+skipped.toString());
+  await save();
+  if(mounted)setState((){});
+  final details=<String>['تم استيراد $imported خامة','تم تخطي $skipped'];
+  if(unknownWarehouses.isNotEmpty)details.add('مخازن غير مطابقة: '+unknownWarehouses.take(3).join('، '));
+  if(duplicateCodes.isNotEmpty)details.add('أكواد مكررة: '+duplicateCodes.take(3).join('، '));
+  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:Text(details.join(' | '))));
+ }catch(e){
+  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:Text('فشل الاستيراد: $e')));
+ }
 }
 Future<void> itemDialog()async{final n=TextEditingController(),code=TextEditingController(),u=TextEditingController(text:'كجم'),cost=TextEditingController(text:'0'),q=TextEditingController(text:'0'),min=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('بيانات الخامة'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم المادة'),field(code,'كود/باركود'),field(u,'وحدة القياس'),field(cost,'تكلفة الوحدة',numeric:true),field(q,'الرصيد الحالي',numeric:true),field(min,'حد التنبيه',numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;itemAdd(Item(n.text,code.text,u.text,double.tryParse(cost.text.trim().replaceAll(',', '.'))??0,double.tryParse(q.text.trim().replaceAll(',', '.'))??0,double.tryParse(min.text.trim().replaceAll(',', '.'))??0));addAudit('إضافة','خامة',n.text.trim()+' • كود '+code.text.trim());save();Navigator.pop(x);},child:const Text('حفظ'))]));}
 }
