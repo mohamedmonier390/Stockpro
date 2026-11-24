@@ -1,27 +1,24 @@
 # StockPro Cloud — initial backend setup
 
-This migration creates the first multi-company database foundation for Supabase/Postgres. It is **not yet connected to the Android app**.
+This migration creates a multi-company Supabase/Postgres foundation. It is **not yet connected to the Android app**.
 
-## Apply
-1. Open your Supabase project.
-2. Go to SQL Editor → New query.
-3. Copy all of `supabase/migrations/0001_stockpro_cloud.sql`, run it, and confirm there are no errors.
-4. Do not share your service-role key. For app integration we will use the project URL and public anon/publishable key only; server-side privileged operations must be done through trusted functions/Edge Functions.
+## Apply migrations
+1. Open your Supabase project → SQL Editor.
+2. Run `supabase/migrations/0001_stockpro_cloud.sql`.
+3. Then run `supabase/migrations/0002_permission_scope_rls.sql`.
+4. Check both complete without errors. Keep a copy of the SQL output.
 
-## Included
-- Companies and user membership/roles.
-- Sites, warehouses, inventory items and independent warehouse balances.
-- Stock movement ledger (receipt, issue, transfers, adjustments).
-- Meal records and expenses.
-- Audit trail.
-- Row-Level Security (RLS) policies for company/tenant isolation.
+## What is present
+- Company membership and roles.
+- Sites, warehouses, items, balances, movements, meals, expenses and audit records.
+- Row Level Security (RLS) and a second migration to replace the first broad member policy with module permission checks and site/warehouse scopes.
 
-## Important next implementation
-- Secure onboarding function that creates a company and owner membership atomically (not by exposing privileged keys).
-- Invitation/registration flow, membership and permission enforcement.
-- Offline-first sync with stable UUIDs, idempotency keys, conflict rules and a pending-sync queue.
-- Server-side plan enforcement, billing integration, subscription lifecycle.
-- Cloud export/restore and automated tests for cross-company isolation.
-- App configuration for Supabase URL + anon key and gradual migration of local data.
+## Permission names
+The permissions JSON array must use the same module labels as the app: `المواقع`, `المخازن`, `المخزون`, `الوجبات`, and `المصروفات`. Owners/admins bypass module permissions. Site/warehouse scopes are UUID arrays; empty scope currently means all within the company, so invitation setup must explicitly set scopes if the user is to be restricted.
 
-**Do not use this schema for production customer data until RLS policies and onboarding have been tested with separate accounts/companies.**
+## Not production-ready yet
+- Scope helper behavior and policies must be validated with separate test accounts, including negative tests for cross-company access and out-of-scope rows.
+- Stock transfer posting should be moved to a transactional database function that writes paired ledger entries and updates balances atomically; client-side writes must not be trusted for this.
+- Secure company-owner onboarding and invites must use a trusted server function (never expose service-role secrets).
+- App-side Supabase connection, authentication, company selection, offline sync, idempotency/conflict handling, data migration, subscription enforcement, and billing are still pending.
+- Do not load production customer data until policy tests are complete.
