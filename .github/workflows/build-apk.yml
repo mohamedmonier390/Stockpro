@@ -20,20 +20,19 @@ jobs:
         with:
           flutter-version: '3.29.3'
           channel: stable
-      - name: Require stable release signing secrets
+      - name: Validate permanent signing secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
-          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
-          test -n "$ANDROID_KEY_ALIAS" || (echo "Missing ANDROID_KEY_ALIAS" && exit 1)
-          test -n "$ANDROID_KEY_PASSWORD" || (echo "Missing ANDROID_KEY_PASSWORD" && exit 1)
+          for secret in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!secret}" ]; then echo "Missing secret: $secret"; exit 1; fi
+          done
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
-      - name: Set app label and configure permanent signing
+      - name: Configure label and release signing
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -45,7 +44,7 @@ jobs:
           storePassword=$ANDROID_KEYSTORE_PASSWORD
           keyPassword=$ANDROID_KEY_PASSWORD
           keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=stockpro-release-key.jks
+          storeFile=app/stockpro-release-key.jks
           EOF
           python3 - <<'PY'
           from pathlib import Path
@@ -59,32 +58,28 @@ jobs:
           if not gradle.exists(): raise SystemExit("Generated Groovy Gradle file missing")
           s = gradle.read_text()
           if "stockproReleaseSigning" not in s:
-              block = """
+              props = """
           def stockproSigningProperties = new Properties()
           def stockproSigningFile = rootProject.file('key.properties')
-          if (stockproSigningFile.exists()) {
-              stockproSigningProperties.load(new FileInputStream(stockproSigningFile))
-          }
+          stockproSigningProperties.load(new FileInputStream(stockproSigningFile))
 
           """
-              s = block + s
-              anchor = "android {"
-              signing = """android {
+              s = props + s
+              # Insert signingConfigs inside android {} and assign signing to release build.
+              s = s.replace("android {", """android {
               signingConfigs {
                   stockproReleaseSigning {
-                      storeFile file('stockpro-release-key.jks')
+                      storeFile file(stockproSigningProperties['storeFile'])
                       storePassword stockproSigningProperties['storePassword']
                       keyAlias stockproSigningProperties['keyAlias']
                       keyPassword stockproSigningProperties['keyPassword']
                   }
               }
-          """
-              if anchor not in s: raise SystemExit("Missing android block")
-              s = s.replace(anchor, signing, 1)
-              s = s.replace("release {\n", "release {\n            signingConfig signingConfigs.stockproReleaseSigning\n", 1)
+          """, 1)
+              s = s.replace("release {", "release {\n            signingConfig signingConfigs.stockproReleaseSigning", 1)
               gradle.write_text(s)
           PY
-      - name: Replace generated starter test with StockPro smoke test
+      - name: Replace starter test with smoke test
         run: |
           mkdir -p test
           cat > test/widget_test.dart <<'EOF'
@@ -107,11 +102,11 @@ jobs:
         run: flutter pub get
       - name: Static analysis
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - name: Run smoke tests
+      - name: Run smoke test
         run: flutter test
-      - name: Build signed APK with incrementing version code
+      - name: Build signed release APK
         run: flutter build apk --release --build-number ${{ github.run_number }}
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: stockpro-apk
