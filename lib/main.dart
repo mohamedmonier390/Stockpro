@@ -792,9 +792,9 @@ Future<void> exportImportTemplate() async {
   sheet.appendRow([TextCellValue('ITM-001'),TextCellValue('مثال: أرز'),TextCellValue('كجم'),TextCellValue('المخزن الرئيسي'),DoubleCellValue(0),DoubleCellValue(5),DoubleCellValue(0),TextCellValue('مثال - احذف الصف قبل الاستيراد')]);
   final guide=book['تعليمات'];
   guide.appendRow([TextCellValue('StockPro Business - قالب استيراد المخزون')]);
-  guide.appendRow([TextCellValue('1'),TextCellValue('لا تغير أسماء الأعمدة الأساسية: ItemCode, ItemName, Unit, Warehouse.')]);
+  guide.appendRow([TextCellValue('1'),TextCellValue('الأعمدة الأساسية المطلوبة: كود الصنف، اسم الصنف، وحدة القياس، المخزن. ويمكن استخدام الأسماء الإنجليزية البديلة أيضاً.')]);
   guide.appendRow([TextCellValue('2'),TextCellValue('كل صنف يجب أن يكون له كود فريد واسم ووحدة قياس ومخزن موجود داخل البرنامج.')]);
-  guide.appendRow([TextCellValue('3'),TextCellValue('OpeningBalance = الرصيد الافتتاحي، MinimumStock = حد التنبيه، AverageCost = متوسط تكلفة الوحدة.')]);
+  guide.appendRow([TextCellValue('3'),TextCellValue('الأعمدة الاختيارية: الرصيد الافتتاحي، حد التنبيه، متوسط التكلفة، ملاحظات. إذا تركتها فارغة فسيتم اعتبار الأرقام صفرًا.')]);
   guide.appendRow([TextCellValue('4'),TextCellValue('استخدم أسماء المخازن المطابقة تماماً للمخازن المسجلة. يمكنك استخدام المخزن الرئيسي.')]);
   guide.appendRow([TextCellValue('5'),TextCellValue('احذف صف المثال، ثم احفظ الملف بصيغة Excel .xlsx واستورده من شاشة المخزون.')]);
   final encoded=book.encode();
@@ -844,7 +844,7 @@ Future<void> importExcel() async {
    if(dataRows!=null)break;
   }
   if(dataRows==null){
-   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro ولا تغيّر الأعمدة الأساسية: ItemCode, ItemName, Unit, Warehouse.')));
+   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro وتأكد من وجود أعمدة كود الصنف واسم الصنف ووحدة القياس والمخزن.')));
    return;
   }
   String number(String value){
