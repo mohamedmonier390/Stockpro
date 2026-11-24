@@ -18,7 +18,7 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.29.3'
           channel: stable
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
@@ -73,6 +73,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path("android/app/build.gradle")
           s = p.read_text()
           marker = "android {"
@@ -96,7 +97,7 @@ jobs:
               }
           """
           s = s.replace(marker, props + signing, 1)
-          s = s.replace("signingConfig = signingConfigs.debug", "signingConfig = signingConfigs.release")
+          s = re.sub(r"signingConfig\\s*(?:=\\s*)?signingConfigs\\.debug", "signingConfig signingConfigs.release", s)
           if "signingConfig = signingConfigs.release" not in s:
               raise SystemExit("Could not apply release signing configuration")
           p.write_text(s)
