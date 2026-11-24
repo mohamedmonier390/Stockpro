@@ -253,18 +253,26 @@ setBalance(selected,wh.name,current+(type=='استلام'?amount:-amount));movem
 },child:const Text('تأكيد'))])));
 }
 Future<void> transferDialog()async{
-final mains=warehouses.where((w)=>w.main).toList();final targets=visibleWarehouses.where((w)=>!w.main).toList();
-if(mains.isEmpty||targets.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف مخزن رئيسي ومخزن فرعي أولاً')));return;}
-final source=mains.first;Warehouse target=targets.first;Item selected=items.isNotEmpty?items.first:Item('','','',0,0,0);final q=TextEditingController(),note=TextEditingController();
+final available=visibleWarehouses;
+if(available.length<2){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لازم يكون عندك مخزنان على الأقل لإجراء التحويل')));return;}
 if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامة أولاً')));return;}
-await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:const Text('إذن تحويل مخزني'),content:Column(mainAxisSize:MainAxisSize.min,children:[
-ListTile(title:const Text('من المخزن'),subtitle:Text(source.name)),DropdownButtonFormField<Warehouse>(value:target,items:targets.map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null)upd(()=>target=v);}),
-DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)upd(()=>selected=v);}),
-Text('رصيد المصدر: '+qtyText(balance(selected,source.name))+' '+selected.unit),field(q,'الكمية للتحويل',numeric:true),field(note,'ملاحظات / رقم الإذن')
-]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
-final amount=double.tryParse(q.text.trim().replaceAll(',','.'));if(amount==null||amount<=0||amount>balance(selected,source.name)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الكمية غير صحيحة أو رصيد المخزن الرئيسي غير كافٍ')));return;}
+Warehouse source=available.firstWhere((w)=>w.main,orElse:()=>available.first);
+Warehouse target=available.firstWhere((w)=>w!=source);
+Item selected=items.first;final q=TextEditingController(),note=TextEditingController();
+await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:const Text('إذن تحويل مخزني'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+DropdownButtonFormField<Warehouse>(value:source,decoration:const InputDecoration(labelText:'من المخزن'),items:available.map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null){upd(()=>source=v);if(target==source)upd(()=>target=available.firstWhere((w)=>w!=source));}}),
+DropdownButtonFormField<Warehouse>(value:target,decoration:const InputDecoration(labelText:'إلى المخزن'),items:available.where((w)=>w!=source).map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null)upd(()=>target=v);}),
+DropdownButtonFormField<Item>(value:selected,decoration:const InputDecoration(labelText:'الخامة'),items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)upd(()=>selected=v);}),
+Text('رصيد المصدر: '+qtyText(balance(selected,source.name))+' '+selected.unit),Text('رصيد الوجهة: '+qtyText(balance(selected,target.name))+' '+selected.unit),field(q,'الكمية للتحويل',numeric:true),field(note,'ملاحظات / رقم الإذن')
+])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
+final amount=double.tryParse(q.text.trim().replaceAll(',','.'));
+if(source==target){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اختار مخزنين مختلفين')));return;}
+if(amount==null||amount<=0||amount>balance(selected,source.name)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الكمية غير صحيحة أو رصيد المصدر غير كافٍ')));return;}
+final stamp=DateTime.now();final transferNo='TR-${stamp.year}${stamp.month.toString().padLeft(2,'0')}${stamp.day.toString().padLeft(2,'0')}-${stamp.hour.toString().padLeft(2,'0')}${stamp.minute.toString().padLeft(2,'0')}${stamp.second.toString().padLeft(2,'0')}';
+final memo=(note.text.trim().isEmpty?'':note.text.trim()+' | ')+'رقم التحويل: '+transferNo;
 setBalance(selected,source.name,balance(selected,source.name)-amount);setBalance(selected,target.name,balance(selected,target.name)+amount);
-final stamp=DateTime.now();final memo='تحويل إلى '+target.name+(note.text.trim().isEmpty?'':' | '+note.text.trim());movements.add(Movement(selected.n,'تحويل صادر',amount,memo,stamp,source.name));movements.add(Movement(selected.n,'تحويل وارد',amount,'من '+source.name+(note.text.trim().isEmpty?'':' | '+note.text.trim()),stamp,target.name));save();setState(()=>{});Navigator.pop(dc);
+movements.add(Movement(selected.n,'تحويل صادر',amount,'إلى '+target.name+' | '+memo,stamp,source.name));movements.add(Movement(selected.n,'تحويل وارد',amount,'من '+source.name+' | '+memo,stamp,target.name));
+save();setState(()=>{});Navigator.pop(dc);
 },child:const Text('اعتماد التحويل'))])));
 }
 Future<void> movementHistoryDialog() async {
