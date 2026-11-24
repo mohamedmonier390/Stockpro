@@ -27,6 +27,8 @@ class LoginState extends State<LoginScreen>{
               children: [
                 const Icon(Icons.inventory_2, size: 70, color: Colors.teal),
                 const Text('StockPro', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text('MONIER', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 4, color: Colors.teal)),
                 const SizedBox(height: 22),
                 DropdownButtonFormField<AppUser>(
                   value: selected,
