@@ -594,32 +594,5 @@ String qtyText(double n){
   if(value.endsWith('.')){value=value.substring(0,value.length-1);}
   return value;
 }
-Widget field(TextEditingController x,String label,{bool numeric=false,bool decimal=true})=>Padding(padding:const EdgeInsets.only(bottom:8),child:TextField(controller:x,keyboardType:numeric?TextInputType.numberWithOptions(decimal:decimal):TextInputType.text,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()))) Future<void> expenseDialog({Expense? existing}) async {
-  if (visibleSites.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سجل المواقع أولاً'))); return; }
-  final categories=['عمالة','نقل','إقامة','مصروفات الموقع','صيانة','أخرى'];
-  Site chosen=visibleSites.firstWhere((x)=>x.name==existing?.site,orElse:()=>visibleSites.first);
-  String category=categories.contains(existing?.category)?existing!.category:'أخرى';
-  DateTime date=existing?.date??DateTime.now();
-  final amount=TextEditingController(text:existing?.amount.toString()??'');
-  final note=TextEditingController(text:existing?.note??'');
-  await showDialog<void>(context:context,builder:(dialogContext)=>StatefulBuilder(builder:(dialogContext,refresh)=>AlertDialog(
-    title:Text(existing==null?'إضافة مصروف':'تعديل مصروف'),
-    content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-      DropdownButtonFormField<Site>(value:chosen,decoration:const InputDecoration(labelText:'الموقع'),items:visibleSites.map((s)=>DropdownMenuItem(value:s,child:Text(s.name))).toList(),onChanged:(v){if(v!=null)refresh(()=>chosen=v);}),
-      DropdownButtonFormField<String>(value:category,decoration:const InputDecoration(labelText:'نوع المصروف'),items:categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)refresh(()=>category=v);}),
-      OutlinedButton.icon(onPressed:()async{final picked=await showDatePicker(context:dialogContext,initialDate:date,firstDate:DateTime(2020),lastDate:DateTime(2100));if(picked!=null)refresh(()=>date=picked);},icon:const Icon(Icons.date_range),label:Text('التاريخ: ${reportDateText(date)}')),
-      field(amount,'المبلغ بالجنيه',numeric:true),field(note,'ملاحظات')
-    ])),
-    actions:[
-      TextButton(onPressed:()=>Navigator.pop(dialogContext),child:const Text('إلغاء')),
-      FilledButton(onPressed:(){
-        final value=double.tryParse(amount.text.trim().replaceAll(',','.'))??0;
-        if(value<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل مبلغ صحيح')));return;}
-        if(existing==null){expenses.add(Expense(DateTime.now().microsecondsSinceEpoch.toString(),chosen.name,category,note.text.trim(),date,value));addAudit('إضافة','مصروف',chosen.name+' • '+category+' • '+cash(value));}
-        else{existing.site=chosen.name;existing.category=category;existing.note=note.text.trim();existing.date=date;existing.amount=value;addAudit('تعديل','مصروف',chosen.name+' • '+category+' • '+cash(value));}
-        save();setState((){});Navigator.pop(dialogContext);
-      },child:const Text('حفظ'))
-    ]
-  )));
- }
+Widget field(TextEditingController x,String label,{bool numeric=false,bool decimal=true})=>Padding(padding:const EdgeInsets.only(bottom:8),child:TextField(controller:x,keyboardType:numeric?TextInputType.numberWithOptions(decimal:decimal):TextInputType.text,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
 ;
