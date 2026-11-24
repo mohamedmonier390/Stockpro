@@ -95,9 +95,9 @@ class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStat
   }
 }
 class Site{String name,client;double b,l,d;Site(this.name,this.client,this.b,this.l,this.d);Map j()=>{'n':name,'c':client,'b':b,'l':l,'d':d};}
-class Day{String site;DateTime date;int b,l,d,e;Day(this.site,this.date,this.b,this.l,this.d,this.e);Map j()=>{'s':site,'t':date.toIso8601String(),'b':b,'l':l,'d':d,'e':e};}
+class Day{String site;DateTime date;int b,l,d,e;String id;Day(this.site,this.date,this.b,this.l,this.d,this.e,{String? id}):id=id??DateTime.now().microsecondsSinceEpoch.toString();Map j()=>{'s':site,'t':date.toIso8601String(),'b':b,'l':l,'d':d,'e':e,'id':id};}
 class Item{String n,code,unit;double cost,q,min;Item(this.n,this.code,this.unit,this.cost,this.q,this.min);Map j()=>{'n':n,'c':code,'u':unit,'cost':cost,'q':q,'min':min};}
-class Movement{String item,type,note,warehouse;double qty;DateTime date;Movement(this.item,this.type,this.qty,this.note,this.date,[this.warehouse='']);Map j()=>{'i':item,'t':type,'q':qty,'n':note,'d':date.toIso8601String(),'w':warehouse};}
+class Movement{String item,type,note,warehouse,ref;double qty;DateTime date;Movement(this.item,this.type,this.qty,this.note,this.date,[this.warehouse='',this.ref='']);Map j()=>{'i':item,'t':type,'q':qty,'n':note,'d':date.toIso8601String(),'w':warehouse,'ref':ref};}
 class Recipe{String item,meal;double qty;Recipe(this.item,this.meal,this.qty);Map j()=>{'i':item,'m':meal,'q':qty};}
 class Warehouse{String name,site,manager;bool main;Warehouse(this.name,this.site,this.manager,this.main);Map j()=>{'n':name,'s':site,'m':manager,'main':main};}
 class AppUser {
@@ -110,7 +110,7 @@ class AppUser {
 }
 class Hub extends StatefulWidget{const Hub({super.key});@override State<Hub> createState()=>HState();}
 class HState extends State<Hub>{int tab=0;bool ready=false;final sites=<Site>[];final days=<Day>[];final items=<Item>[];final movements=<Movement>[];final recipes=<Recipe>[];final warehouses=<Warehouse>[];final users=<AppUser>[];final stockBalances=<String,Map<String,double>>{};String activeUser='المدير';AppUser get current=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{}));List<Site> get visibleSites=>current.admin?sites:sites.where((s)=>current.sites.contains(s.name)).toList();List<Warehouse> get visibleWarehouses=>current.admin?warehouses:warehouses.where((w)=>current.warehouses.contains(w.name)).toList();
-Future<void> load()async{final p=await SharedPreferences.getInstance();try{sites.addAll((jsonDecode(p.getString('sites')??'[]') as List).map((x)=>Site(x['n'],x['c'],(x['b'] as num).toDouble(),(x['l'] as num).toDouble(),(x['d'] as num).toDouble())));days.addAll((jsonDecode(p.getString('days')??'[]') as List).map((x)=>Day(x['s'],DateTime.parse(x['t']),x['b'],x['l'],x['d'],x['e'])));items.addAll((jsonDecode(p.getString('items')??'[]') as List).map((x)=>Item(x['n'],x['c'],x['u'],(x['cost'] as num).toDouble(),(x['q'] as num).toDouble(),(x['min'] as num).toDouble())));movements.addAll((jsonDecode(p.getString('movements')??'[]') as List).map((x)=>Movement(x['i'],x['t'],(x['q'] as num).toDouble(),x['n'],DateTime.parse(x['d']),x['w']??'')));recipes.addAll((jsonDecode(p.getString('recipes')??'[]') as List).map((x)=>Recipe(x['i'],x['m'],(x['q'] as num).toDouble())));warehouses.addAll((jsonDecode(p.getString('warehouses')??'[]') as List).map((x)=>Warehouse(x['n'],x['s']??'',x['m']??'',x['main']??false)));users.addAll((jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))));
+Future<void> load()async{final p=await SharedPreferences.getInstance();try{sites.addAll((jsonDecode(p.getString('sites')??'[]') as List).map((x)=>Site(x['n'],x['c'],(x['b'] as num).toDouble(),(x['l'] as num).toDouble(),(x['d'] as num).toDouble())));days.addAll((jsonDecode(p.getString('days')??'[]') as List).map((x)=>Day(x['s'],DateTime.parse(x['t']),x['b'],x['l'],x['d'],x['e'],id:x['id']??'')));items.addAll((jsonDecode(p.getString('items')??'[]') as List).map((x)=>Item(x['n'],x['c'],x['u'],(x['cost'] as num).toDouble(),(x['q'] as num).toDouble(),(x['min'] as num).toDouble())));movements.addAll((jsonDecode(p.getString('movements')??'[]') as List).map((x)=>Movement(x['i'],x['t'],(x['q'] as num).toDouble(),x['n'],DateTime.parse(x['d']),x['w']??'')));recipes.addAll((jsonDecode(p.getString('recipes')??'[]') as List).map((x)=>Recipe(x['i'],x['m'],(x['q'] as num).toDouble())));warehouses.addAll((jsonDecode(p.getString('warehouses')??'[]') as List).map((x)=>Warehouse(x['n'],x['s']??'',x['m']??'',x['main']??false)));users.addAll((jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))));
 activeUser=p.getString('activeUser')??'المدير';
 if(users.isEmpty){users.add(AppUser('المدير','',true,Set<String>.from(AppUser.modules)));}
 if(!users.any((u)=>u.name==activeUser))activeUser=users.first.name;
@@ -154,7 +154,7 @@ const Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text('رصيد 
   ...visibleWarehouses.map((w)=>Card(child:ListTile(leading:Icon(w.main?Icons.warehouse:Icons.store,color:Colors.teal),title:Text(w.name),subtitle:Text((w.main?'مخزن رئيسي':'مخزن فرعي')+' • '+w.site+'\nقيمة الرصيد: '+cash(items.fold(0.0,(sum,it)=>sum+balance(it,w.name)*it.cost))),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>warehouseDialog(existing:w)))))
 ]);
 Widget sitePage()=>listPage('المواقع والعقود',visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d))))).toList(),siteDialog,'إضافة موقع');
-Widget dayPage()=>listPage('سجل الوجبات',days.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Text(cash(rev(x)))))).toList(),dayDialog,'تسجيل وجبات');
+Widget dayPage()=>listPage('سجل الوجبات',days.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(rev(x))),IconButton(tooltip:'تعديل',icon:const Icon(Icons.edit),onPressed:()=>dayDialog(existing:x)),IconButton(tooltip:'حذف',icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteDay(x))])))).toList(),dayDialog,'تسجيل وجبات');
 Widget itemPage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('المخزون والخامات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton(onPressed:itemDialog,child:const Text('إضافة خامة'))]),Wrap(spacing:8,children:[OutlinedButton.icon(onPressed:importExcel,icon:const Icon(Icons.upload_file),label:const Text('Import Excel')),OutlinedButton.icon(onPressed:()=>movementDialog('استلام'),icon:const Icon(Icons.add_box),label:const Text('استلام خامات')),OutlinedButton.icon(onPressed:()=>movementDialog('صرف'),icon:const Icon(Icons.remove_circle),label:const Text('صرف خامات')),OutlinedButton.icon(onPressed:recipeDialog,icon:const Icon(Icons.menu_book),label:const Text('وصفات الوجبات'))]),if(items.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(18),child:Text('لا توجد خامات بعد'))),...items.map((x)=>Card(child:ListTile(title:Text(x.n),subtitle:Text(x.code+' | '+x.unit+' | حد التنبيه '+qtyText(x.min)+'\\n'+warehouses.map((w)=>w.name+': '+qtyText(balance(x,w.name))).join(' | ')),trailing:Text(qtyText(warehouses.fold(0.0,(sum,w)=>sum+balance(x,w.name)))+' '+x.unit+'\\n'+cash(warehouses.fold(0.0,(sum,w)=>sum+balance(x,w.name))*x.cost))))),const Padding(padding:EdgeInsets.only(top:12),child:Text('آخر حركات المخزون',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),if(movements.isEmpty)const Text('لا توجد حركات مسجلة'),...movements.reversed.take(30).map((m)=>Card(child:ListTile(leading:Icon(m.type=='استلام'?Icons.arrow_downward:Icons.arrow_upward,color:m.type=='استلام'?Colors.green:Colors.orange),title:Text(m.item+' — '+m.type+' '+qtyText(m.qty)),subtitle:Text(m.date.day.toString()+'/'+m.date.month.toString()+'/'+m.date.year.toString()+(m.note.isEmpty?'':'\\n'+m.note)))))]);
 double mealCost(Day x){double total=0;for(final r in recipes){final count=r.meal=='إفطار'?x.b:r.meal=='غداء'?x.l:r.meal=='عشاء'?x.d:0;final found=items.where((i)=>i.n==r.item);if(found.isNotEmpty)total+=count*r.qty*found.first.cost;}return total;}
 Widget reportPage(){
@@ -241,7 +241,63 @@ Future<void> warehouseDialog({Warehouse? existing}) async {
   );
 }
 Future<void> siteDialog()async{final n=TextEditingController(),c=TextEditingController(),b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>AlertDialog(title:const Text('عقد الموقع'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم الموقع'),field(c,'العميل'),field(b,'سعر الإفطار',numeric:true),field(l,'سعر الغداء',numeric:true),field(d,'سعر العشاء',numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){if(n.text.trim().isEmpty)return;siteAdd(Site(n.text,c.text,double.tryParse(b.text)??0,double.tryParse(l.text)??0,double.tryParse(d.text)??0));Navigator.pop(x);},child:const Text('حفظ'))]));}
-Future<void> dayDialog()async{if(visibleSites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سجل موقع وعقد أولاً')));return;}Site chosen=visibleSites.first;final b=TextEditingController(text:'0'),l=TextEditingController(text:'0'),d=TextEditingController(text:'0'),e=TextEditingController(text:'0');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تسجيل الوجبات اليومية'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Site>(value:chosen,items:visibleSites.map((s)=>DropdownMenuItem(value:s,child:Text(s.name))).toList(),onChanged:(v){if(v!=null)set(()=>chosen=v);}),field(b,'عدد الإفطار',numeric:true,decimal:false),field(l,'عدد الغداء',numeric:true,decimal:false),field(d,'عدد العشاء',numeric:true,decimal:false),field(e,'وجبات إضافية غير مسعرة',numeric:true,decimal:false),Text('أسعار العقد: '+cash(chosen.b)+' / '+cash(chosen.l)+' / '+cash(chosen.d))])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final nb=int.tryParse(b.text)??0,nl=int.tryParse(l.text)??0,nd=int.tryParse(d.text)??0,ne=int.tryParse(e.text)??0;final need=<Item,double>{};for(final r in recipes){final count=r.meal=='إفطار'?nb:r.meal=='غداء'?nl:r.meal=='عشاء'?nd:0;final found=items.where((i)=>i.n==r.item);if(found.isNotEmpty)need[found.first]=(need[found.first]??0)+count*r.qty;}final consumeWh=warehouses.where((w)=>!w.main&&w.site==chosen.name).firstOrNull??mainWarehouse;final shortage=need.entries.where((e)=>e.value>balance(e.key,consumeWh.name)).toList();if(shortage.isNotEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('رصيد غير كافٍ في '+consumeWh.name+': '+shortage.map((e)=>e.key.n+' (متاح '+qtyText(balance(e.key,consumeWh.name))+')').join('، '))));return;}dayAdd(Day(chosen.name,DateTime.now(),nb,nl,nd,ne));for(final e in need.entries){setBalance(e.key,consumeWh.name,balance(e.key,consumeWh.name)-e.value);movements.add(Movement(e.key.n,'استهلاك وجبات',e.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name));}save();Navigator.pop(x);},child:const Text('حفظ'))])));}
+Future<void> deleteDay(Day record)async{
+  final linked=movements.where((m)=>m.ref.isNotEmpty&&m.ref==record.id).toList();
+  if(record.id.isEmpty&&movements.any((m)=>m.type=='استهلاك وجبات')){
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لا يمكن حذف سجل قديم غير مرتبط بحركات الاستهلاك؛ حفاظاً على دقة أرصدة المخازن.')));
+    return;
+  }
+  final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف سجل الوجبات'),content:Text('هل تريد حذف تسجيل وجبات موقع ${record.site}؟ سيتم إرجاع الخامات التي استهلكها هذا التسجيل إلى المخزن.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));
+  if(ok!=true)return;
+  for(final m in linked){final item=items.where((i)=>i.n==m.item);if(item.isNotEmpty)setBalance(item.first,m.warehouse,balance(item.first,m.warehouse)+m.qty);}
+  movements.removeWhere((m)=>m.ref.isNotEmpty&&m.ref==record.id);
+  days.remove(record);
+  await save();
+  if(mounted)setState((){});
+}
+Future<void> dayDialog({Day? existing})async{
+  if(visibleSites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سجل موقع وعقد أولاً')));return;}
+  if(existing!=null&&existing.id.isEmpty&&movements.any((m)=>m.type=='استهلاك وجبات')){
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('هذا سجل قديم غير مرتبط بحركات الاستهلاك؛ لا يمكن تعديله بأمان. السجلات الجديدة تدعم التعديل والحذف.')));
+    return;
+  }
+  Site chosen=visibleSites.firstWhere((s)=>s.name==existing?.site,orElse:()=>visibleSites.first);
+  final b=TextEditingController(text:(existing?.b??0).toString()),l=TextEditingController(text:(existing?.l??0).toString()),d=TextEditingController(text:(existing?.d??0).toString()),e=TextEditingController(text:(existing?.e??0).toString());
+  final linked=existing==null? <Movement>[]:movements.where((m)=>m.ref.isNotEmpty&&m.ref==existing.id).toList();
+  await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:Text(existing==null?'تسجيل الوجبات اليومية':'تعديل تسجيل الوجبات'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+    DropdownButtonFormField<Site>(value:chosen,items:visibleSites.map((site)=>DropdownMenuItem(value:site,child:Text(site.name))).toList(),onChanged:(v){if(v!=null)set(()=>chosen=v);}),
+    field(b,'عدد الإفطار',numeric:true,decimal:false),field(l,'عدد الغداء',numeric:true,decimal:false),field(d,'عدد العشاء',numeric:true,decimal:false),field(e,'وجبات إضافية غير مسعرة',numeric:true,decimal:false),
+    Text('أسعار العقد: '+cash(chosen.b)+' / '+cash(chosen.l)+' / '+cash(chosen.d))
+  ])),actions:[
+    TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),
+    FilledButton(onPressed:(){
+      final nb=int.tryParse(b.text)??-1,nl=int.tryParse(l.text)??-1,nd=int.tryParse(d.text)??-1,ne=int.tryParse(e.text)??-1;
+      if([nb,nl,nd,ne].any((v)=>v<0)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل أعداداً صحيحة غير سالبة')));return;}
+      final need=<Item,double>{};
+      for(final recipe in recipes){
+        final count=recipe.meal=='إفطار'?nb:recipe.meal=='غداء'?nl:recipe.meal=='عشاء'?nd:0;
+        final found=items.where((i)=>i.n==recipe.item);
+        if(found.isNotEmpty)need[found.first]=(need[found.first]??0)+count*recipe.qty;
+      }
+      final consumeWh=existing!=null&&linked.isNotEmpty?warehouses.firstWhere((w)=>w.name==linked.first.warehouse,orElse:()=>mainWarehouse):(warehouses.where((w)=>!w.main&&w.site==chosen.name).firstOrNull??mainWarehouse);
+      final restored=<Item,double>{};
+      for(final movement in linked){final found=items.where((i)=>i.n==movement.item);if(found.isNotEmpty)restored[found.first]=(restored[found.first]??0)+movement.qty;}
+      final shortage=need.entries.where((entry)=>entry.value>balance(entry.key,consumeWh.name)+(restored[entry.key]??0)).toList();
+      if(shortage.isNotEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('رصيد غير كافٍ في '+consumeWh.name+': '+shortage.map((entry)=>entry.key.n+' (متاح '+qtyText(balance(entry.key,consumeWh.name)+(restored[entry.key]??0))+')').join('، '))));return;}
+      for(final movement in linked){final found=items.where((i)=>i.n==movement.item);if(found.isNotEmpty)setBalance(found.first,movement.warehouse,balance(found.first,movement.warehouse)+movement.qty);}
+      if(existing==null){
+        final record=Day(chosen.name,DateTime.now(),nb,nl,nd,ne);
+        days.add(record);
+        for(final entry in need.entries){setBalance(entry.key,consumeWh.name,balance(entry.key,consumeWh.name)-entry.value);movements.add(Movement(entry.key.n,'استهلاك وجبات',entry.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name,record.id));}
+      }else{
+        movements.removeWhere((m)=>m.ref.isNotEmpty&&m.ref==existing.id);
+        existing.site=chosen.name;existing.b=nb;existing.l=nl;existing.d=nd;existing.e=ne;
+        for(final entry in need.entries){setBalance(entry.key,consumeWh.name,balance(entry.key,consumeWh.name)-entry.value);movements.add(Movement(entry.key.n,'استهلاك وجبات',entry.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name,existing.id));}
+      }
+      save();setState((){});Navigator.pop(x);
+    },child:Text(existing==null?'حفظ':'حفظ التعديلات'))
+  ])));
+}
 Future<void> movementDialog(String type) async {
 if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامة أولاً')));return;}
 Item selected=items.first;Warehouse wh=visibleWarehouses.isNotEmpty?visibleWarehouses.first:mainWarehouse;final qty=TextEditingController(),note=TextEditingController();
