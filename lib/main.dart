@@ -85,7 +85,7 @@ class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStat
                   MonierBrand(size: 100, light: true),
                   SizedBox(height: 10),
                   Text('StockPro', style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text('Inventory • Operations • Better Control', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  Text('Catering • Inventory • Site Operations', style: TextStyle(color: Colors.white70, fontSize: 13)),
                 ],
               ),
             ),
@@ -127,7 +127,7 @@ int get mealTotal=>days.where((x)=>today(x.date)).fold(0,(a,x)=>a+x.b+x.l+x.d+x.
 double get revToday=>days.where((x)=>today(x.date)).fold(0.0,(a,x)=>a+rev(x));
 double get stock=>items.fold(0.0,(a,x)=>a+x.q*x.cost);
 bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin||users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).permissions.contains(module);void siteAdd(Site x){setState(()=>sites.add(x));save();}void dayAdd(Day x){setState(()=>days.add(x));save();}void itemAdd(Item x){stockBalances.putIfAbsent(mainWarehouse.name,()=>{});stockBalances[mainWarehouse.name]![x.n]=x.q;setState(()=>items.add(x));save();}Warehouse get mainWarehouse=>warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);double balance(Item item,String warehouse)=>stockBalances[warehouse]?[item.n]??0;void setBalance(Item item,String warehouse,double value){stockBalances.putIfAbsent(warehouse,()=>{});stockBalances[warehouse]![item.n]=value;if(warehouse==mainWarehouse.name)item.q=value;}
-@override Widget build(BuildContext c){if(!ready)return const Scaffold(body:Center(child:CircularProgressIndicator()));final views=<Widget Function()>[dashboard,sitePage,dayPage,itemPage,reportPage,warehousePage,userPage,expensePage];final allowedTabs=[0,1,2,3,4,5,6,7].where((i){if(i==6)return current.admin; if(i==7)return can('المصروفات'); return can(AppUser.modules[i]);}).toList();if(!allowedTabs.contains(tab))tab=allowedTabs.isEmpty?0:allowedTabs.first;final icons=[Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];final labels=['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Row(mainAxisSize:MainAxisSize.min,children:[MonierBrand(size:30),SizedBox(width:8),Text('StockPro | التغذية')]),actions:[IconButton(tooltip:'تسجيل الخروج',icon:const Icon(Icons.logout),onPressed:()=>Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const LoginScreen())))],),body:views[tab](),bottomNavigationBar:NavigationBar(selectedIndex:allowedTabs.isEmpty?0:allowedTabs.indexOf(tab),onDestinationSelected:(i)=>setState(()=>tab=allowedTabs[i]),destinations:allowedTabs.map((i)=>NavigationDestination(icon:Icon(icons[i]),label:labels[i])).toList())));}
+@override Widget build(BuildContext c){if(!ready)return const Scaffold(body:Center(child:CircularProgressIndicator()));final views=<Widget Function()>[dashboard,sitePage,dayPage,itemPage,reportPage,warehousePage,userPage,expensePage];final allowedTabs=[0,1,2,3,4,5,6,7].where((i){if(i==6)return current.admin; if(i==7)return can('المصروفات'); return can(AppUser.modules[i]);}).toList();if(!allowedTabs.contains(tab))tab=allowedTabs.isEmpty?0:allowedTabs.first;final icons=[Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];final labels=['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Row(mainAxisSize:MainAxisSize.min,children:[MonierBrand(size:30),SizedBox(width:8),Text('StockPro Business | التغذية')]),actions:[IconButton(tooltip:'حول StockPro',icon:const Icon(Icons.info_outline),onPressed:showStockProAbout),IconButton(tooltip:'تسجيل الخروج',icon:const Icon(Icons.logout),onPressed:()=>Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const LoginScreen())))],),body:views[tab](),bottomNavigationBar:NavigationBar(selectedIndex:allowedTabs.isEmpty?0:allowedTabs.indexOf(tab),onDestinationSelected:(i)=>setState(()=>tab=allowedTabs[i]),destinations:allowedTabs.map((i)=>NavigationDestination(icon:Icon(icons[i]),label:labels[i])).toList())));}
 Future<void> expenseDialog({Expense? existing}) async {
   if (visibleSites.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سجل المواقع أولاً')));
@@ -224,6 +224,40 @@ Future<void> userDialog({AppUser? existing})async{
     },child:const Text('حفظ'))])));
 }
 Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:const Text('سجل التدقيق'),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),const SizedBox(height:8),Expanded(child:list.isEmpty?const Center(child:Text('لا توجد سجلات')):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:const Icon(Icons.history),title:Text('${x.action} • ${x.entity}'),subtitle:Text('${x.user} | ${x.date.toLocal()}\\n${x.details}'));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]);}));}
+Future<void> showStockProAbout() async {
+  await showDialog<void>(
+    context: context,
+    builder: (dc) => AlertDialog(
+      title: const Text('StockPro Business'),
+      content: const SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('إدارة مواقع التغذية والمخازن والوجبات والمصروفات في مكان واحد.'),
+            SizedBox(height: 12),
+            Text('المميزات الحالية', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text('• إدارة المواقع والعقود وتسجيل الوجبات اليومية.'),
+            Text('• مخازن مستقلة وتحويلات وجرد وتسويات.'),
+            Text('• وصفات واستهلاك خامات وتقارير ومصروفات.'),
+            Text('• مستخدمون وصلاحيات وسجل تدقيق.'),
+            Text('• استيراد Excel ونسخ احتياطي واستعادة.'),
+            SizedBox(height: 12),
+            Text('حالة البيانات والخصوصية', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text('في هذه النسخة، البيانات محفوظة محليًا على الجهاز. لا توجد مزامنة سحابية أو مشاركة تلقائية بين الأجهزة. النسخ الاحتياطي مسؤولية المستخدم ويُنصح بإنشاء نسخة دورية وحفظها في مكان آمن.'),
+            SizedBox(height: 8),
+            Text('لا تستخدم بيانات تشغيل حساسة على أجهزة مشتركة غير مؤمنة. النسخة السحابية وتسجيل الدخول المركزي قيد التطوير ولم يتم تفعيلهما بعد.'),
+            SizedBox(height: 12),
+            Text('StockPro Business • إصدار تجهيز تجاري', style: TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق'))],
+    ),
+  );
+}
 Widget metric(String title,String val,IconData icon)=>Card(child:ListTile(leading:Icon(icon,color:Colors.teal),title:Text(title),subtitle:Text(val)));
 Widget dashboard()=>ListView(padding:const EdgeInsets.all(14),children:[Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(color:Colors.teal.shade900,borderRadius:BorderRadius.circular(16)),child:const Text('إدارة مواقع التغذية والعقود\nالوجبات • المخزون • الإيرادات',style:TextStyle(color:Colors.white,fontSize:21))),metric('إيراد اليوم',cash(days.where((x)=>today(x.date)&&(current.admin||current.sites.contains(x.site))).fold(0.0,(a,x)=>a+rev(x))),Icons.payments),metric('وجبات اليوم',days.where((x)=>today(x.date)&&(current.admin||current.sites.contains(x.site))).fold(0,(a,x)=>a+x.b+x.l+x.d+x.e).toString(),Icons.restaurant),metric('عدد المواقع',visibleSites.length.toString(),Icons.apartment),metric('عدد الخامات',visibleItems.length.toString(),Icons.inventory),metric('خامات وصلت حد التنبيه',visibleLowStockCount.toString(),Icons.warning),metric('قيمة المخزون',cash(visibleStock),Icons.warehouse),Wrap(spacing:8,children:[if(can('المواقع'))FilledButton(onPressed:()=>siteDialog(),child:const Text('إضافة موقع')),if(can('الوجبات'))FilledButton(onPressed:()=>dayDialog(),child:const Text('تسجيل وجبات')),if(can('المخزون')&&(current.admin||visibleWarehouses.any((w)=>w.main)))FilledButton(onPressed:()=>itemDialog(),child:const Text('إضافة خامة')),if(current.admin)OutlinedButton.icon(onPressed:exportBackup,icon:const Icon(Icons.backup),label:const Text('نسخة احتياطية')),if(current.admin)OutlinedButton.icon(onPressed:restoreBackup,icon:const Icon(Icons.restore),label:const Text('استعادة نسخة'))])]);
 
