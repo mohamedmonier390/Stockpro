@@ -97,8 +97,8 @@ jobs:
               }
           """
           s = s.replace(marker, props + signing, 1)
-          s = re.sub(r"signingConfig\\s*(?:=\\s*)?signingConfigs\\.debug", "signingConfig signingConfigs.release", s)
-          if "signingConfig = signingConfigs.release" not in s:
+          s = re.sub(r"signingConfig\s*(?:=\s*)?signingConfigs\.debug", "signingConfig signingConfigs.release", s)
+          if "signingConfig signingConfigs.release" not in s and "signingConfig = signingConfigs.release" not in s:
               raise SystemExit("Could not apply release signing configuration")
           p.write_text(s)
           PY
