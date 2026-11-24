@@ -1,7 +1,7 @@
 name: stockpro
 description: StockPro Business - catering sites, warehouse inventory, meal operations and reporting
 publish_to: 'none'
-version: 1.0.0+76
+version: 1.0.0+97
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -13,6 +13,7 @@ dependencies:
   shared_preferences: ^2.3.2
   file_picker: ^8.1.2
   excel: ^4.0.6
+  supabase_flutter: ^2.8.4
 
 dev_dependencies:
   flutter_test:
