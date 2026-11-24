@@ -54,19 +54,20 @@ jobs:
           s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
           if n != 1: raise SystemExit("Could not set app label")
           manifest.write_text(s)
-          gradle = Path("android/app/build.gradle")
-          if not gradle.exists(): raise SystemExit("Generated Groovy Gradle file missing")
-          s = gradle.read_text()
-          if "stockproReleaseSigning" not in s:
-              props = """
+          gradle_groovy = Path("android/app/build.gradle")
+          gradle_kotlin = Path("android/app/build.gradle.kts")
+          if gradle_groovy.exists():
+              gradle = gradle_groovy
+              s = gradle.read_text()
+              if "stockproReleaseSigning" not in s:
+                  props = """
           def stockproSigningProperties = new Properties()
           def stockproSigningFile = rootProject.file('key.properties')
           stockproSigningProperties.load(new FileInputStream(stockproSigningFile))
 
           """
-              s = props + s
-              # Insert signingConfigs inside android {} and assign signing to release build.
-              s = s.replace("android {", """android {
+                  s = props + s
+                  s = s.replace("android {", """android {
               signingConfigs {
                   stockproReleaseSigning {
                       storeFile file(stockproSigningProperties['storeFile'])
@@ -76,8 +77,36 @@ jobs:
                   }
               }
           """, 1)
-              s = s.replace("release {", "release {\n            signingConfig signingConfigs.stockproReleaseSigning", 1)
-              gradle.write_text(s)
+                  s = s.replace("release {", "release {\n            signingConfig signingConfigs.stockproReleaseSigning", 1)
+                  gradle.write_text(s)
+          elif gradle_kotlin.exists():
+              gradle = gradle_kotlin
+              s = gradle.read_text()
+              if "stockproReleaseSigning" not in s:
+                  imports = "import java.util.Properties\\nimport java.io.FileInputStream\\n"
+                  s = imports + s
+                  props = """
+          val stockproSigningProperties = Properties()
+          val stockproSigningFile = rootProject.file("key.properties")
+          stockproSigningProperties.load(FileInputStream(stockproSigningFile))
+
+          """
+                  s = props + s
+                  signing = """
+              signingConfigs {
+                  create("stockproReleaseSigning") {
+                      storeFile = file(stockproSigningProperties["storeFile"] as String)
+                      storePassword = stockproSigningProperties["storePassword"] as String
+                      keyAlias = stockproSigningProperties["keyAlias"] as String
+                      keyPassword = stockproSigningProperties["keyPassword"] as String
+                  }
+              }
+          """
+                  s = s.replace("android {", "android {\\n" + signing, 1)
+                  s = re.sub(r'release\\s*\\{', 'release {\\n            signingConfig = signingConfigs.getByName("stockproReleaseSigning")', s, count=1)
+                  gradle.write_text(s)
+          else:
+              raise SystemExit("Generated Gradle build file not found")
           PY
       - name: Replace starter test with smoke test
         run: |
