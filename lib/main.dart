@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 import 'cloud_connection.dart';
+import 'cloud_account_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await CloudConnection.initialize(); // Cloud errors never prevent offline use.
@@ -329,6 +330,7 @@ Future<void> showStockProAbout() async {
       ),
       actions: [
         TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) { await showDialog<void>(context: context, builder: (x) => AlertDialog(title: const Text('فحص الكلاود'), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: const Text('تمام'))])); } }, child: const Text('فحص الاتصال')),
+        FilledButton.icon(onPressed: () { Navigator.pop(dc); Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudAccountScreen())); }, icon: const Icon(Icons.cloud), label: const Text('حساب الكلاود')),
         TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
       ],
     ),
