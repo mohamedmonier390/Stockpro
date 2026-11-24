@@ -123,7 +123,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           const SizedBox(height: 10),
           TextField(controller: company, decoration: const InputDecoration(labelText: 'اسم الشركة')),
           const SizedBox(height: 12),
-          FilledButton.icon(onPressed: busy || user == null || hasCompanyLink ? null : createCompany, icon: const Icon(Icons.business), label: const Text(hasCompanyLink?'الشركة مرتبطة بالفعل':'إنشاء الشركة')),
+          FilledButton.icon(onPressed: busy || user == null || hasCompanyLink ? null : createCompany, icon: const Icon(Icons.business), label: Text(hasCompanyLink?'الشركة مرتبطة بالفعل':'إنشاء الشركة')),
           if (user != null) TextButton.icon(onPressed: busy ? null : logout, icon: const Icon(Icons.logout), label: const Text('تسجيل الخروج')),
           if (hasCompanyLink) Padding(padding: const EdgeInsets.only(top:12),child:Text('الشركة المرتبطة: $cloudCompanyId',style:const TextStyle(fontSize:12))),
         ]))),
