@@ -239,7 +239,48 @@ if(visibleSites.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),chil
 ...visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d)),trailing:IconButton(tooltip:'تعديل الموقع والعقد',icon:const Icon(Icons.edit),onPressed:()=>siteDialog(existing:s))))),
 ]);
 Widget dayPage()=>listPage('سجل الوجبات',visibleDays.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(rev(x))),IconButton(tooltip:'تعديل',icon:const Icon(Icons.edit),onPressed:()=>dayDialog(existing:x)),IconButton(tooltip:'حذف',icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteDay(x))])))).toList(),dayDialog,'تسجيل وجبات');
-Widget itemPage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('المخزون والخامات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(current.admin||visibleWarehouses.any((w)=>w.main))FilledButton(onPressed:itemDialog,child:const Text('إضافة خامة'))]),if(visibleWarehouses.isNotEmpty)Wrap(spacing:8,children:[OutlinedButton.icon(onPressed:importExcel,icon:const Icon(Icons.upload_file),label:const Text('Import Excel')),OutlinedButton.icon(onPressed:()=>movementDialog('استلام'),icon:const Icon(Icons.add_box),label:const Text('استلام خامات')),OutlinedButton.icon(onPressed:()=>movementDialog('صرف'),icon:const Icon(Icons.remove_circle),label:const Text('صرف خامات')),OutlinedButton.icon(onPressed:recipeDialog,icon:const Icon(Icons.menu_book),label:const Text('وصفات الوجبات'))]),if(visibleItems.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(18),child:Text('لا توجد خامات أو لا توجد مخازن مسموح بها'))),...visibleItems.map((x)=>Card(child:ListTile(title:Text(x.n),subtitle:Text(x.code+' | '+x.unit+' | حد التنبيه '+qtyText(x.min)+'\\n'+visibleWarehouses.map((w)=>w.name+': '+qtyText(balance(x,w.name))).join(' | ')),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Column(mainAxisSize:MainAxisSize.min,children:[Text(qtyText(visibleWarehouses.fold(0.0,(sum,w)=>sum+balance(x,w.name)))+' '+x.unit),Text(cash(visibleWarehouses.fold(0.0,(sum,w)=>sum+balance(x,w.name))*x.cost),style:const TextStyle(fontSize:11))]),IconButton(tooltip:'تعديل الخامة',icon:const Icon(Icons.edit),onPressed:()=>itemDialog(existing:x)),IconButton(tooltip:'حذف الخامة',icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteItem(x))]))))),const Padding(padding:EdgeInsets.only(top:12),child:Text('آخر حركات المخزون',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),if(visibleMovements.isEmpty)const Text('لا توجد حركات مسجلة'),...visibleMovements.reversed.take(30).map((m)=>Card(child:ListTile(leading:Icon(m.type=='استلام'?Icons.arrow_downward:Icons.arrow_upward,color:m.type=='استلام'?Colors.green:Colors.orange),title:Text(m.item+' — '+m.type+' '+qtyText(m.qty)),subtitle:Text(m.date.day.toString()+'/'+m.date.month.toString()+'/'+m.date.year.toString()+(m.note.isEmpty?'':'\\n'+m.note)))))]);
+Widget itemPage() => ListView(
+  padding: const EdgeInsets.all(12),
+  children: [
+    Row(children: [
+      const Expanded(child: Text('المخزون والخامات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+      if (current.admin || visibleWarehouses.any((w) => w.main))
+        FilledButton(onPressed: itemDialog, child: const Text('إضافة خامة')),
+    ]),
+    if (visibleWarehouses.isNotEmpty)
+      Wrap(spacing: 8, children: [
+        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('Import Excel')),
+        OutlinedButton.icon(onPressed: () => movementDialog('استلام'), icon: const Icon(Icons.add_box), label: const Text('استلام خامات')),
+        OutlinedButton.icon(onPressed: () => movementDialog('صرف'), icon: const Icon(Icons.remove_circle), label: const Text('صرف خامات')),
+        OutlinedButton.icon(onPressed: recipeDialog, icon: const Icon(Icons.menu_book), label: const Text('وصفات الوجبات')),
+      ]),
+    if (visibleItems.isEmpty)
+      const Card(child: Padding(padding: EdgeInsets.all(18), child: Text('لا توجد خامات أو لا توجد مخازن مسموح بها'))),
+    ...visibleItems.map((x) => Card(
+      child: ListTile(
+        title: Text(x.n),
+        subtitle: Text(x.code + ' | ' + x.unit + ' | حد التنبيه ' + qtyText(x.min) + '\\n' + visibleWarehouses.map((w) => w.name + ': ' + qtyText(balance(x, w.name))).join(' | ')),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(qtyText(visibleWarehouses.fold(0.0, (sum, w) => sum + balance(x, w.name))) + ' ' + x.unit),
+            Text(cash(visibleWarehouses.fold(0.0, (sum, w) => sum + balance(x, w.name)) * x.cost), style: const TextStyle(fontSize: 11)),
+          ]),
+          IconButton(tooltip: 'تعديل الخامة', icon: const Icon(Icons.edit), onPressed: () => itemDialog(existing: x)),
+          IconButton(tooltip: 'حذف الخامة', icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => deleteItem(x)),
+        ]),
+      ),
+    )),
+    const Padding(padding: EdgeInsets.only(top: 12), child: Text('آخر حركات المخزون', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+    if (visibleMovements.isEmpty) const Text('لا توجد حركات مسجلة'),
+    ...visibleMovements.reversed.take(30).map((m) => Card(
+      child: ListTile(
+        leading: Icon(m.type == 'استلام' ? Icons.arrow_downward : Icons.arrow_upward, color: m.type == 'استلام' ? Colors.green : Colors.orange),
+        title: Text(m.item + ' — ' + m.type + ' ' + qtyText(m.qty)),
+        subtitle: Text(m.date.day.toString() + '/' + m.date.month.toString() + '/' + m.date.year.toString() + (m.note.isEmpty ? '' : '\\n' + m.note)),
+      ),
+    )),
+  ],
+);
 double mealCost(Day x){double total=0;for(final r in recipes){final count=r.meal=='إفطار'?x.b:r.meal=='غداء'?x.l:r.meal=='عشاء'?x.d:0;final found=items.where((i)=>i.n==r.item);if(found.isNotEmpty)total+=count*r.qty*found.first.cost;}return total;}
 String reportDateText(DateTime date)=>'${date.day.toString().padLeft(2,'0')}/${date.month.toString().padLeft(2,'0')}/${date.year}';
 Future<void> pickReportDate(bool start)async{
