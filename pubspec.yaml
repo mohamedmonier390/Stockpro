@@ -1,7 +1,7 @@
 name: stockpro
 description: StockPro Business - catering sites, warehouse inventory, meal operations and reporting
 publish_to: 'none'
-version: 1.0.0+97
+version: 1.0.0+98
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
