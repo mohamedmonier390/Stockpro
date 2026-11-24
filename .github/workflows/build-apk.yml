@@ -22,6 +22,20 @@ jobs:
           channel: stable
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
+      - name: Replace generated starter test with StockPro smoke test
+        run: |
+          mkdir -p test
+          cat > test/widget_test.dart <<'EOF'
+          import 'package:flutter_test/flutter_test.dart';
+          import 'package:stockpro/main.dart';
+
+          void main() {
+            testWidgets('StockPro splash screen renders', (tester) async {
+              await tester.pumpWidget(const App());
+              expect(find.text('StockPro'), findsOneWidget);
+            });
+          }
+          EOF
       - name: Configure stable release signing
         env:
           KEYSTORE_BASE64: ${{ secrets.STOCKPRO_KEYSTORE_BASE64 }}
@@ -71,6 +85,8 @@ jobs:
         run: flutter pub get
       - name: Static analysis
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run smoke tests
+        run: flutter test
       - name: Build signed APK
         run: flutter build apk --release
       - name: Build signed Play Store App Bundle
