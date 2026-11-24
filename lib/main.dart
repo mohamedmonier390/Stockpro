@@ -225,7 +225,7 @@ Future<void> userDialog({AppUser? existing})async{
 }
 Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:const Text('سجل التدقيق'),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),const SizedBox(height:8),Expanded(child:list.isEmpty?const Center(child:Text('لا توجد سجلات')):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:const Icon(Icons.history),title:Text('${x.action} • ${x.entity}'),subtitle:Text('${x.user} | ${x.date.toLocal()}\\n${x.details}'));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]);}));}
 Widget metric(String title,String val,IconData icon)=>Card(child:ListTile(leading:Icon(icon,color:Colors.teal),title:Text(title),subtitle:Text(val)));
-Widget dashboard()=>ListView(padding:const EdgeInsets.all(14),children:[Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(color:Colors.teal.shade900,borderRadius:BorderRadius.circular(16)),child:const Text('إدارة مواقع التغذية والعقود\nالوجبات • المخزون • الإيرادات',style:TextStyle(color:Colors.white,fontSize:21))),metric('إيراد اليوم',cash(days.where((x)=>today(x.date)&&(current.admin||current.sites.contains(x.site))).fold(0.0,(a,x)=>a+rev(x))),Icons.payments),metric('وجبات اليوم',days.where((x)=>today(x.date)&&(current.admin||current.sites.contains(x.site))).fold(0,(a,x)=>a+x.b+x.l+x.d+x.e).toString(),Icons.restaurant),metric('عدد المواقع',visibleSites.length.toString(),Icons.apartment),metric('عدد الخامات',visibleItems.length.toString(),Icons.inventory),metric('خامات وصلت حد التنبيه',visibleLowStockCount.toString(),Icons.warning),metric('قيمة المخزون',cash(visibleStock),Icons.warehouse),Wrap(spacing:8,children:[if(can('المواقع'))FilledButton(onPressed:()=>siteDialog(),child:const Text('إضافة موقع')),if(can('الوجبات'))FilledButton(onPressed:()=>dayDialog(),child:const Text('تسجيل وجبات')),if(can('المخزون')&&(current.admin||visibleWarehouses.any((w)=>w.main)))FilledButton(onPressed:()=>itemDialog(),child:const Text('إضافة خامة'))])]);
+Widget dashboard()=>ListView(padding:const EdgeInsets.all(14),children:[Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(color:Colors.teal.shade900,borderRadius:BorderRadius.circular(16)),child:const Text('إدارة مواقع التغذية والعقود\nالوجبات • المخزون • الإيرادات',style:TextStyle(color:Colors.white,fontSize:21))),metric('إيراد اليوم',cash(days.where((x)=>today(x.date)&&(current.admin||current.sites.contains(x.site))).fold(0.0,(a,x)=>a+rev(x))),Icons.payments),metric('وجبات اليوم',days.where((x)=>today(x.date)&&(current.admin||current.sites.contains(x.site))).fold(0,(a,x)=>a+x.b+x.l+x.d+x.e).toString(),Icons.restaurant),metric('عدد المواقع',visibleSites.length.toString(),Icons.apartment),metric('عدد الخامات',visibleItems.length.toString(),Icons.inventory),metric('خامات وصلت حد التنبيه',visibleLowStockCount.toString(),Icons.warning),metric('قيمة المخزون',cash(visibleStock),Icons.warehouse),Wrap(spacing:8,children:[if(can('المواقع'))FilledButton(onPressed:()=>siteDialog(),child:const Text('إضافة موقع')),if(can('الوجبات'))FilledButton(onPressed:()=>dayDialog(),child:const Text('تسجيل وجبات')),if(can('المخزون')&&(current.admin||visibleWarehouses.any((w)=>w.main)))FilledButton(onPressed:()=>itemDialog(),child:const Text('إضافة خامة')),if(current.admin)OutlinedButton.icon(onPressed:exportBackup,icon:const Icon(Icons.backup),label:const Text('نسخة احتياطية')),if(current.admin)OutlinedButton.icon(onPressed:restoreBackup,icon:const Icon(Icons.restore),label:const Text('استعادة نسخة'))])]);
 
 Widget warehousePage() => ListView(padding:const EdgeInsets.all(12),children:[
 Row(children:[const Expanded(child:Text('إدارة المخازن',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:warehouseDialog,icon:const Icon(Icons.add),label:const Text('مخزن جديد'))]),
@@ -715,5 +715,41 @@ String qtyText(double n){
   return value;
 }
 Widget field(TextEditingController x,String label,{bool numeric=false,bool decimal=true})=>Padding(padding:const EdgeInsets.only(bottom:8),child:TextField(controller:x,keyboardType:numeric?TextInputType.numberWithOptions(decimal:decimal):TextInputType.text,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
+
+Future<void> exportBackup() async {
+  try {
+    final p=await SharedPreferences.getInstance();
+    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+    final data=<String,dynamic>{'app':'StockPro','schema':1,'createdAt':DateTime.now().toIso8601String()};
+    for(final key in keys){data[key]=p.get(key);}
+    final bytes=Uint8List.fromList(utf8.encode(jsonEncode(data)));
+    final name='StockPro_Backup_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}.json';
+    final path=await FilePicker.platform.saveFile(fileName:name,bytes:bytes,type:FileType.custom,allowedExtensions:['json']);
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(path==null?'تم إلغاء حفظ النسخة':'تم إنشاء النسخة الاحتياطية بنجاح')));
+  }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل إنشاء النسخة الاحتياطية: $e')));}
+}
+Future<void> restoreBackup() async {
+  if(!current.admin){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الاستعادة متاحة للمدير فقط')));return;}
+  try{
+    final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['json'],withData:true);
+    if(picked==null)return;
+    final bytes=picked.files.single.bytes;
+    if(bytes==null||bytes.isEmpty)throw Exception('الملف فارغ أو غير قابل للقراءة');
+    final parsed=jsonDecode(utf8.decode(bytes));
+    if(parsed is! Map||parsed['app']!='StockPro'||parsed['schema']!=1)throw Exception('الملف ليس نسخة StockPro معتمدة');
+    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+    for(final key in ['sites','days','items','movements','recipes','warehouses','users','auditLogs','expenses']){
+      if(parsed[key]!=null&&parsed[key] is! List)throw Exception('بيانات غير سليمة في $key');
+    }
+    if(parsed['stockBalances']!=null&&parsed['stockBalances'] is! Map)throw Exception('أرصدة المخازن غير سليمة');
+    final confirm=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('استعادة نسخة احتياطية'),content:Text('سيتم استبدال البيانات الحالية بالنسخة من ${parsed['createdAt']??'تاريخ غير معروف'}. يفضل تصدير نسخة من بياناتك الحالية أولاً.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('استعادة'))]));
+    if(confirm!=true)return;
+    final p=await SharedPreferences.getInstance();
+    for(final key in keys){if(parsed.containsKey(key)){final value=parsed[key];if(value is String)await p.setString(key,value);else await p.setString(key,jsonEncode(value));}}
+    if(!mounted)return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تمت الاستعادة. سيتم إعادة فتح البرنامج بالبيانات المستعادة.')));
+    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder:(_)=>const Hub()),(route)=>false);
+  }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:Text('تعذر استعادة النسخة: $e')));}
+}
 
 }
