@@ -49,25 +49,27 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           s = manifest.read_text()
           s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
-          if n != 1: raise SystemExit("Could not set app label")
+          if n != 1:
+              raise SystemExit("Could not set app label")
           manifest.write_text(s)
-          gradle_groovy = Path("android/app/build.gradle")
-          gradle_kotlin = Path("android/app/build.gradle.kts")
-          if gradle_groovy.exists():
-              gradle = gradle_groovy
-              s = gradle.read_text()
+
+          groovy = Path("android/app/build.gradle")
+          kotlin = Path("android/app/build.gradle.kts")
+          if groovy.exists():
+              p = groovy
+              s = p.read_text()
               if "stockproReleaseSigning" not in s:
                   props = """
           def stockproSigningProperties = new Properties()
           def stockproSigningFile = rootProject.file('key.properties')
           stockproSigningProperties.load(new FileInputStream(stockproSigningFile))
-
           """
                   s = props + s
-                  s = s.replace("android {", """android {
+                  signing = """
               signingConfigs {
                   stockproReleaseSigning {
                       storeFile file(stockproSigningProperties['storeFile'])
@@ -76,21 +78,23 @@ jobs:
                       keyPassword stockproSigningProperties['keyPassword']
                   }
               }
-          """, 1)
+          """
+                  s = s.replace("android {", "android {\n" + signing, 1)
                   s = s.replace("release {", "release {\n            signingConfig signingConfigs.stockproReleaseSigning", 1)
-                  gradle.write_text(s)
-          elif gradle_kotlin.exists():
-              gradle = gradle_kotlin
-              s = gradle.read_text()
+                  p.write_text(s)
+          elif kotlin.exists():
+              p = kotlin
+              s = p.read_text()
               if "stockproReleaseSigning" not in s:
-                          imports = "import java.util.Properties" + chr(10) + "import java.io.FileInputStream" + chr(10)
+                  imports = "import java.util.Properties\nimport java.io.FileInputStream\n"
+                  # Remove any imports from the original so all imports precede declarations.
+                  body = "\n".join(line for line in s.splitlines() if not line.startswith("import "))
                   props = """
           val stockproSigningProperties = Properties()
           val stockproSigningFile = rootProject.file("key.properties")
           stockproSigningProperties.load(FileInputStream(stockproSigningFile))
           """
-                  body = chr(10).join(line for line in s.splitlines() if not line.startswith("import "))
-                  s = imports + props + body + chr(10)
+                  s = imports + props + body + "\n"
                   signing = """
               signingConfigs {
                   create("stockproReleaseSigning") {
@@ -101,9 +105,9 @@ jobs:
                   }
               }
           """
-                  s = s.replace("android {", "android {" + chr(10) + signing, 1)
-                  s = s.replace("release {", "release {" + chr(10) + "            signingConfig = signingConfigs.getByName(\\"stockproReleaseSigning\\")", 1)
-                  gradle.write_text(s)
+                  s = s.replace("android {", "android {\n" + signing, 1)
+                  s = s.replace("release {", "release {\n            signingConfig = signingConfigs.getByName(\"stockproReleaseSigning\")", 1)
+                  p.write_text(s)
           else:
               raise SystemExit("Generated Gradle build file not found")
           PY
