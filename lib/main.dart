@@ -788,7 +788,7 @@ Future<void> exportImportTemplate() async {
   final book=Excel.createExcel();
   book.rename('Sheet1','بيانات المخزون');
   final sheet=book['بيانات المخزون'];
-  sheet.appendRow([TextCellValue('ItemCode'),TextCellValue('ItemName'),TextCellValue('Unit'),TextCellValue('Warehouse'),TextCellValue('OpeningBalance'),TextCellValue('MinimumStock'),TextCellValue('AverageCost'),TextCellValue('Notes')]);
+  sheet.appendRow([TextCellValue('كود الصنف'),TextCellValue('اسم الصنف'),TextCellValue('وحدة القياس'),TextCellValue('المخزن'),TextCellValue('الرصيد الافتتاحي'),TextCellValue('حد التنبيه'),TextCellValue('متوسط التكلفة'),TextCellValue('ملاحظات')]);
   sheet.appendRow([TextCellValue('ITM-001'),TextCellValue('مثال: أرز'),TextCellValue('كجم'),TextCellValue('المخزن الرئيسي'),DoubleCellValue(0),DoubleCellValue(5),DoubleCellValue(0),TextCellValue('مثال - احذف الصف قبل الاستيراد')]);
   final guide=book['تعليمات'];
   guide.appendRow([TextCellValue('StockPro Business - قالب استيراد المخزون')]);
