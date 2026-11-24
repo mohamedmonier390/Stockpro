@@ -4,7 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
-void main()=>runApp(const App());
+import 'cloud_connection.dart';
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await CloudConnection.initialize(); // Cloud errors never prevent offline use.
+  runApp(const App());
+}
 class MonierBrand extends StatelessWidget{final double size;final bool light;const MonierBrand({super.key,this.size=70,this.light=false});@override Widget build(BuildContext c)=>Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:Stack(alignment:Alignment.center,children:[Text('M',style:TextStyle(fontSize:size*.82,fontWeight:FontWeight.w900,color:light?Colors.white:const Color(0xff092d50))),Positioned(right:size*.12,bottom:size*.12,child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[for(int i=1;i<=3;i++)Container(width:size*.09,height:size*.12*i,margin:EdgeInsets.only(left:size*.025),decoration:BoxDecoration(color:const Color(0xff21a447),borderRadius:BorderRadius.circular(size*.02)))]))])),Text('MONIER',style:TextStyle(fontSize:size*.23,fontWeight:FontWeight.w900,letterSpacing:size*.055,color:light?Colors.white:const Color(0xff092d50))),]);}
 
 class App extends StatelessWidget {
@@ -312,7 +317,11 @@ Future<void> showStockProAbout() async {
             SizedBox(height: 6),
             Text('في هذه النسخة، البيانات محفوظة محليًا على الجهاز. لا توجد مزامنة سحابية أو مشاركة تلقائية بين الأجهزة. النسخ الاحتياطي مسؤولية المستخدم ويُنصح بإنشاء نسخة دورية وحفظها في مكان آمن.'),
             SizedBox(height: 8),
-            Text('حسابات المستخدمين وPIN محلية على الجهاز، وليست نظام هوية سحابي. النسخة السحابية وتسجيل الدخول المركزي قيد التطوير ولم يتم تفعيلهما بعد.'),
+            Text('حسابات المستخدمين وPIN محلية على الجهاز. تم تجهيز اتصال Supabase تجريبي، لكن مزامنة البيانات وتسجيل الدخول السحابي لم يتم تفعيلهما بعد.'),
+            SizedBox(height: 12),
+            Text('إعداد الكلاود', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text('زر فحص الاتصال يتحقق من الوصول إلى قاعدة StockPro فقط، ولا ينقل أو يرفع بيانات الجهاز.'),
             SizedBox(height: 12),
             Text('StockPro Business • إصدار تجهيز تجاري', style: TextStyle(fontWeight: FontWeight.w600)),
           ],
@@ -761,6 +770,7 @@ Future<void> movementHistoryDialog() async {
             ),
       ),
       actions: [
+        TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) showDialog<void>(context: context, builder: (x) => AlertDialog(title: const Text('فحص الكلاود'), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: const Text('تمام'))])); }, child: const Text('فحص الاتصال')),
         TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
       ],
     ),
