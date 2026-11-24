@@ -440,7 +440,8 @@ Widget itemPage() => ListView(
     ]),
     if (visibleWarehouses.isNotEmpty)
       Wrap(spacing: 8, children: [
-        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('استيراد بيانات المخزون')),\n        OutlinedButton.icon(onPressed: exportImportTemplate, icon: const Icon(Icons.download), label: const Text('تحميل قالب الاستيراد')),
+        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('استيراد بيانات المخزون')),
+        OutlinedButton.icon(onPressed: exportImportTemplate, icon: const Icon(Icons.download), label: const Text('تحميل قالب الاستيراد')),
         OutlinedButton.icon(onPressed: () => movementDialog('استلام'), icon: const Icon(Icons.add_box), label: const Text('استلام خامات')),
         OutlinedButton.icon(onPressed: () => movementDialog('صرف'), icon: const Icon(Icons.remove_circle), label: const Text('صرف خامات')),
         OutlinedButton.icon(onPressed: recipeDialog, icon: const Icon(Icons.menu_book), label: const Text('وصفات الوجبات')),
