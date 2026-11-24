@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'cloud_connection.dart';
 import 'cloud_account_screen.dart';
 Future<void> main() async {
@@ -197,7 +197,64 @@ int get mealTotal=>days.where((x)=>today(x.date)).fold(0,(a,x)=>a+x.b+x.l+x.d+x.
 double get revToday=>days.where((x)=>today(x.date)).fold(0.0,(a,x)=>a+rev(x));
 double get stock=>items.fold(0.0,(a,x)=>a+x.q*x.cost);
 bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin||users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).permissions.contains(module);void siteAdd(Site x){setState(()=>sites.add(x));save();}void dayAdd(Day x){setState(()=>days.add(x));save();}void itemAdd(Item x){stockBalances.putIfAbsent(mainWarehouse.name,()=>{});stockBalances[mainWarehouse.name]![x.n]=x.q;setState(()=>items.add(x));save();}Warehouse get mainWarehouse=>warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);double balance(Item item,String warehouse)=>stockBalances[warehouse]?[item.n]??0;void setBalance(Item item,String warehouse,double value){stockBalances.putIfAbsent(warehouse,()=>{});stockBalances[warehouse]![item.n]=value;if(warehouse==mainWarehouse.name)item.q=value;}
-@override Widget build(BuildContext c){if(!ready)return const Scaffold(body:Center(child:CircularProgressIndicator()));final views=<Widget Function()>[dashboard,sitePage,dayPage,itemPage,reportPage,warehousePage,userPage,expensePage];final allowedTabs=[0,1,2,3,4,5,6,7].where((i){if(i==6)return current.admin; if(i==7)return can('المصروفات'); return can(AppUser.modules[i]);}).toList();if(!allowedTabs.contains(tab))tab=allowedTabs.isEmpty?0:allowedTabs.first;final icons=[Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];final labels=['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:Row(mainAxisSize:MainAxisSize.min,children:[const MonierBrand(size:27),const SizedBox(width:6),Flexible(child:Text('StockPro | التغذية',maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:17,fontWeight:FontWeight.w700)))]),actions:[IconButton(tooltip:'حول StockPro',icon:const Icon(Icons.info_outline),onPressed:showStockProAbout),IconButton(tooltip:'تسجيل الخروج',icon:const Icon(Icons.logout),onPressed:()=>Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const LoginScreen())))],),body:views[tab](),bottomNavigationBar:allowedTabs.isEmpty?const SizedBox.shrink():SafeArea(top:false,child:Container(height:70,decoration:const BoxDecoration(color:Colors.white,border:Border(top:BorderSide(color:Color(0xffe5eceb)))),child:SingleChildScrollView(scrollDirection:Axis.horizontal,reverse:true,child:Row(children:allowedTabs.map((i){final selected=i==tab;return InkWell(onTap:()=>setState(()=>tab=i),child:Container(width:78,height:66,margin:const EdgeInsets.symmetric(horizontal:2,vertical:2),padding:const EdgeInsets.symmetric(vertical:5),decoration:BoxDecoration(color:selected?scheme.primaryContainer:Colors.transparent,borderRadius:BorderRadius.circular(18)),child:Column(mainAxisAlignment:MainAxisAlignment.center,mainAxisSize:MainAxisSize.min,children:[Icon(icons[i],size:23,color:selected?scheme.primary:const Color(0xff455453)),const SizedBox(height:3),Text(labels[i],maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:11,fontWeight:selected?FontWeight.w700:FontWeight.w500,color:selected?scheme.primary:const Color(0xff455453))) ])));}).toList())))));}
+@override
+Widget build(BuildContext c) {
+  if (!ready) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  final views = <Widget Function()>[dashboard, sitePage, dayPage, itemPage, reportPage, warehousePage, userPage, expensePage];
+  final allowedTabs = [0,1,2,3,4,5,6,7].where((i) {
+    if (i == 6) return current.admin;
+    if (i == 7) return can('المصروفات');
+    return can(AppUser.modules[i]);
+  }).toList();
+  if (!allowedTabs.contains(tab)) tab = allowedTabs.isEmpty ? 0 : allowedTabs.first;
+  final icons = [Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];
+  final labels = ['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];
+  final colors = Theme.of(c).colorScheme;
+  return Directionality(
+    textDirection: TextDirection.rtl,
+    child: Scaffold(
+      appBar: AppBar(
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          const MonierBrand(size: 27), const SizedBox(width: 6),
+          const Flexible(child: Text('StockPro | التغذية', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+        ]),
+        actions: [
+          IconButton(tooltip: 'حول StockPro', icon: const Icon(Icons.info_outline), onPressed: showStockProAbout),
+          IconButton(tooltip: 'تسجيل الخروج', icon: const Icon(Icons.logout), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()))),
+        ],
+      ),
+      body: views[tab](),
+      bottomNavigationBar: allowedTabs.isEmpty ? const SizedBox.shrink() : SafeArea(
+        top: false,
+        child: Container(
+          height: 72,
+          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xffe5eceb)))),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: Row(children: allowedTabs.map((i) {
+              final selected = i == tab;
+              return InkWell(
+                onTap: () => setState(() => tab = i),
+                child: Container(
+                  width: 78, height: 68,
+                  margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  decoration: BoxDecoration(color: selected ? colors.primaryContainer : Colors.transparent, borderRadius: BorderRadius.circular(16)),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+                    Icon(icons[i], size: 23, color: selected ? colors.primary : const Color(0xff455453)),
+                    const SizedBox(height: 3),
+                    Text(labels[i], maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : const Color(0xff455453))),
+                  ]),
+                ),
+              );
+            }).toList()),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 Future<void> expenseDialog({Expense? existing}) async {
   if (visibleSites.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سجل المواقع أولاً')));
