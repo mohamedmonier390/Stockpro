@@ -86,15 +86,20 @@ jobs:
               p = kotlin
               s = p.read_text()
               if "stockproReleaseSigning" not in s:
-                  imports = "import java.util.Properties\nimport java.io.FileInputStream\n"
-                  # Remove any imports from the original so all imports precede declarations.
-                  body = "\n".join(line for line in s.splitlines() if not line.startswith("import "))
+                  imports = "import java.util.Properties" + chr(10) + "import java.io.FileInputStream" + chr(10)
+                  body = chr(10).join(line for line in s.splitlines() if not line.startswith("import "))
+                  s = imports + body + chr(10)
                   props = """
           val stockproSigningProperties = Properties()
           val stockproSigningFile = rootProject.file("key.properties")
           stockproSigningProperties.load(FileInputStream(stockproSigningFile))
           """
-                  s = imports + props + body + "\n"
+                  # Kotlin Gradle DSL requires the plugins block before top-level declarations.
+                  plugin_end = s.find("plugins {")
+                  if plugin_end < 0:
+                      raise SystemExit("Kotlin Gradle plugins block missing")
+                  plugin_end = s.find("}", plugin_end) + 1
+                  s = s[:plugin_end] + chr(10) + props + s[plugin_end:]
                   signing = """
               signingConfigs {
                   create("stockproReleaseSigning") {
@@ -105,8 +110,8 @@ jobs:
                   }
               }
           """
-                  s = s.replace("android {", "android {\n" + signing, 1)
-                  s = s.replace("release {", "release {\n            signingConfig = signingConfigs.getByName(\"stockproReleaseSigning\")", 1)
+                  s = s.replace("android {", "android {" + chr(10) + signing, 1)
+                  s = s.replace("release {", "release {" + chr(10) + "            signingConfig = signingConfigs.getByName(" + chr(34) + "stockproReleaseSigning" + chr(34) + ")", 1)
                   p.write_text(s)
           else:
               raise SystemExit("Generated Gradle build file not found")
