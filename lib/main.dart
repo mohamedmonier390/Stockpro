@@ -163,21 +163,58 @@ double mealCost(Day x){double total=0;for(final r in recipes){final count=r.meal
 Widget reportPage(){
   final now=DateTime.now();
   final monthDays=days.where((x)=>x.date.year==now.year&&x.date.month==now.month&&(current.admin||current.sites.contains(x.site))).toList();
-  int mealCount=0;
-  double revenue=0;
-  for(final entry in monthDays){mealCount+=entry.b+entry.l+entry.d+entry.e;revenue+=rev(entry);}
+  int breakfast=0,lunch=0,dinner=0,extra=0;
+  double revenue=0,rawCost=0;
+  for(final entry in monthDays){
+    breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;
+    revenue+=rev(entry);rawCost+=mealCost(entry);
+  }
+  final regularMeals=breakfast+lunch+dinner;
+  final allMeals=regularMeals+extra;
   final rows=<Widget>[
     const Text('تقرير الشهر الحالي',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
-    metric('إجمالي الوجبات',mealCount.toString(),Icons.restaurant),
-    metric('إيراد الشهر',cash(revenue),Icons.payments),metric('تكلفة الخامات حسب الوصفات',cash(monthDays.fold(0.0,(a,x)=>a+mealCost(x))),Icons.calculate),metric('هامش بعد تكلفة الخامات',cash(revenue-monthDays.fold(0.0,(a,x)=>a+mealCost(x))),Icons.trending_up),
+    Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('الفترة: 1 / ${now.month} / ${now.year} حتى اليوم',style:const TextStyle(fontWeight:FontWeight.bold)),
+      const SizedBox(height:10),
+      Wrap(spacing:8,runSpacing:8,children:[
+        Chip(label:Text('إفطار: $breakfast')),
+        Chip(label:Text('غداء: $lunch')),
+        Chip(label:Text('عشاء: $dinner')),
+        Chip(label:Text('إضافية: $extra')),
+      ]),
+    ]))),
+    metric('إجمالي الوجبات',allMeals.toString(),Icons.restaurant),
+    metric('إيراد الوجبات المسعّرة',cash(revenue),Icons.payments),
+    metric('تكلفة الخامات حسب الوصفات',cash(rawCost),Icons.calculate),
+    metric('الفائض بعد تكلفة الخامات',cash(revenue-rawCost),Icons.trending_up),
+    Card(child:ListTile(leading:const Icon(Icons.info_outline),title:const Text('ملاحظة محاسبية'),subtitle:Text('الوجبات الإضافية: $extra وجبة. لا تدخل في الإيراد أو تكلفة الوصفات حاليًا لعدم وجود سعر تعاقدي ووصفة محددة لها. الفائض المعروض لا يشمل العمالة أو النقل أو المصروفات التشغيلية.'))),
+    const Padding(padding:EdgeInsets.only(top:12,bottom:6),child:Text('تفصيل الأداء حسب الموقع',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
   ];
   for(final site in visibleSites){
-    int count=0;double amount=0;
+    int b=0,l=0,d=0,e=0;double amount=0,cost=0;
     for(final entry in monthDays){
-      if(entry.site==site.name){count+=entry.b+entry.l+entry.d+entry.e;amount+=entry.b*site.b+entry.l*site.l+entry.d*site.d;}
+      if(entry.site==site.name){
+        b+=entry.b;l+=entry.l;d+=entry.d;e+=entry.e;
+        amount+=rev(entry);cost+=mealCost(entry);
+      }
     }
-    rows.add(Card(child:ListTile(title:Text(site.name),subtitle:Text('$count وجبة'),trailing:Text(cash(amount)))));
+    final count=b+l+d+e;
+    rows.add(Card(child:ExpansionTile(
+      leading:const Icon(Icons.apartment,color:Colors.teal),
+      title:Text(site.name,style:const TextStyle(fontWeight:FontWeight.bold)),
+      subtitle:Text('$count وجبة • إيراد ${cash(amount)}'),
+      children:[
+        ListTile(dense:true,title:const Text('إفطار'),trailing:Text('$b وجبة × ${cash(site.b)} = ${cash(b*site.b)}')),
+        ListTile(dense:true,title:const Text('غداء'),trailing:Text('$l وجبة × ${cash(site.l)} = ${cash(l*site.l)}')),
+        ListTile(dense:true,title:const Text('عشاء'),trailing:Text('$d وجبة × ${cash(site.d)} = ${cash(d*site.d)}')),
+        ListTile(dense:true,title:const Text('وجبات إضافية'),trailing:Text('$e وجبة • غير مسعّرة')),
+        const Divider(),
+        ListTile(dense:true,title:const Text('تكلفة الخامات'),trailing:Text(cash(cost))),
+        ListTile(dense:true,title:const Text('الفائض بعد تكلفة الخامات'),trailing:Text(cash(amount-cost),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.teal))),
+      ],
+    )));
   }
+  if(monthDays.isEmpty)rows.add(const Card(child:Padding(padding:EdgeInsets.all(16),child:Text('لا توجد وجبات مسجلة خلال الشهر الحالي للمواقع المسموح بها.'))));
   return ListView(padding:const EdgeInsets.all(14),children:rows);
 }
 Widget listPage(String title,List<Widget> rows,VoidCallback add,String label)=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text(title,style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton(onPressed:add,child:Text(label))]),if(rows.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),...rows]);
