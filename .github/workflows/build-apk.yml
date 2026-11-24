@@ -43,13 +43,13 @@ jobs:
           import 'package:stockpro/main.dart';
 
           void main() {
-            testWidgets('StockPro first launch requests manager PIN', (tester) async {
+            testWidgets('StockPro splash navigates to login', (tester) async {
               SharedPreferences.setMockInitialValues({});
               await tester.pumpWidget(const App());
               expect(find.text('StockPro Business'), findsOneWidget);
               await tester.pump(const Duration(milliseconds: 2300));
               await tester.pumpAndSettle();
-              expect(find.text('تأمين حساب المدير'), findsOneWidget);
+              expect(find.text('دخول'), findsOneWidget);
             });
           }
           EOF
