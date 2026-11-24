@@ -229,7 +229,7 @@ Widget dashboard()=>ListView(padding:const EdgeInsets.all(14),children:[Containe
 
 Widget warehousePage() => ListView(padding:const EdgeInsets.all(12),children:[
 Row(children:[const Expanded(child:Text('إدارة المخازن',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:warehouseDialog,icon:const Icon(Icons.add),label:const Text('مخزن جديد'))]),
-Wrap(spacing:6,children:[FilledButton.icon(onPressed:transferDialog,icon:const Icon(Icons.swap_horiz),label:const Text('تحويل مخزني')),OutlinedButton.icon(onPressed:movementHistoryDialog,icon:const Icon(Icons.history),label:const Text('سجل الحركات'))]),
+Wrap(spacing:6,children:[FilledButton.icon(onPressed:transferDialog,icon:const Icon(Icons.swap_horiz),label:const Text('تحويل مخزني')),OutlinedButton.icon(onPressed:stockCountDialog,icon:const Icon(Icons.fact_check),label:const Text('جرد وتسوية')),OutlinedButton.icon(onPressed:movementHistoryDialog,icon:const Icon(Icons.history),label:const Text('سجل الحركات'))]),
 const Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text('رصيد مستقل لكل مخزن'),subtitle:Text('الاستلام والصرف والتحويلات تُسجل على المخزن المحدد.'))),
   ...visibleWarehouses.map((w)=>Card(child:ListTile(leading:Icon(w.main?Icons.warehouse:Icons.store,color:Colors.teal),title:Text(w.name),subtitle:Text((w.main?'مخزن رئيسي':'مخزن فرعي')+' • '+w.site+'\nقيمة الرصيد: '+cash(items.fold(0.0,(sum,it)=>sum+balance(it,w.name)*it.cost))),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>warehouseDialog(existing:w)))))
 ]);
@@ -750,6 +750,23 @@ Future<void> restoreBackup() async {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تمت الاستعادة. سيتم إعادة فتح البرنامج بالبيانات المستعادة.')));
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder:(_)=>const Hub()),(route)=>false);
   }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:Text('تعذر استعادة النسخة: $e')));}
+}
+
+Future<void> stockCountDialog()async{
+ if(items.isEmpty||visibleWarehouses.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لا توجد خامات أو مخازن متاحة')));return;}
+ Warehouse wh=visibleWarehouses.first;Item item=items.first;final actual=TextEditingController(text:qtyText(balance(item,wh.name)));final note=TextEditingController();
+ await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:const Text('جرد وتسوية مخزنية'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+ DropdownButtonFormField<Warehouse>(value:wh,decoration:const InputDecoration(labelText:'المخزن'),items:visibleWarehouses.map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null){upd(()=>wh=v);actual.text=qtyText(balance(item,wh.name));}}),
+ DropdownButtonFormField<Item>(value:item,decoration:const InputDecoration(labelText:'الخامة'),items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null){upd(()=>item=v);actual.text=qtyText(balance(item,wh.name));}}),
+ Text('الرصيد الدفتري: '+qtyText(balance(item,wh.name))+' '+item.unit),field(actual,'الرصيد الفعلي بعد الجرد',numeric:true),field(note,'ملاحظات / رقم محضر الجرد')
+ ])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
+  final counted=double.tryParse(actual.text.trim().replaceAll(',','.'));
+  if(counted==null||counted<0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل رصيدًا فعليًا صحيحًا')));return;}
+  final book=balance(item,wh.name),delta=counted-book;if(delta.abs()<0.000001){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الرصيد الفعلي مطابق للرصيد الدفتري')));return;}
+  final type=delta>0?'تسوية زيادة':'تسوية عجز';setBalance(item,wh.name,counted);
+  movements.add(Movement(item.n,type,delta.abs(),(note.text.trim().isEmpty?'':note.text.trim()+' • ')+'دفترى '+qtyText(book)+' / فعلي '+qtyText(counted),DateTime.now(),wh.name));
+  addAudit('جرد','تسوية مخزون',item.n+' • '+wh.name+' • '+type+' '+qtyText(delta.abs())+' '+item.unit);save();setState(()=>{});Navigator.pop(dc);
+ },child:const Text('اعتماد الجرد'))]));
 }
 
 }
