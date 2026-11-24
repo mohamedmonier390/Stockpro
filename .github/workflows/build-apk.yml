@@ -20,7 +20,7 @@ jobs:
           channel: stable
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
-      - name: Configure stable APK signing
+      - name: Configure stable APK signing # verify repository secrets on fresh run
         env:
           KEYSTORE_BASE64: ${{ secrets.STOCKPRO_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.STOCKPRO_KEYSTORE_PASSWORD }}
