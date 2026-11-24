@@ -39,12 +39,17 @@ jobs:
           mkdir -p test
           cat > test/widget_test.dart <<'EOF'
           import 'package:flutter_test/flutter_test.dart';
+          import 'package:shared_preferences/shared_preferences.dart';
           import 'package:stockpro/main.dart';
 
           void main() {
-            testWidgets('StockPro splash screen renders', (tester) async {
+            testWidgets('StockPro first launch requests manager PIN', (tester) async {
+              SharedPreferences.setMockInitialValues({});
               await tester.pumpWidget(const App());
-              expect(find.text('StockPro'), findsOneWidget);
+              expect(find.text('StockPro Business'), findsOneWidget);
+              await tester.pump(const Duration(milliseconds: 2300));
+              await tester.pumpAndSettle();
+              expect(find.text('تأمين حساب المدير'), findsOneWidget);
             });
           }
           EOF
