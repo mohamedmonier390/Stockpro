@@ -228,7 +228,9 @@ Future<void> exportReportExcel(List<Day> periodDays,DateTime from,DateTime to)as
   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل تصدير التقرير: $e')));
  }
 }
-Widget reportPage(){\n  final periodExpenses=expenses.where((x){final date=DateTime(x.date.year,x.date.month,x.date.day);return !date.isBefore(DateTime(reportFrom.year,reportFrom.month,reportFrom.day))&&!date.isAfter(DateTime(reportTo.year,reportTo.month,reportTo.day))&&(current.admin||current.sites.contains(x.site));}).toList();
+Widget reportPage(){
+  final periodExpenses=expenses.where((x){final date=DateTime(x.date.year,x.date.month,x.date.day);return !date.isBefore(DateTime(reportFrom.year,reportFrom.month,reportFrom.day))&&!date.isAfter(DateTime(reportTo.year,reportTo.month,reportTo.day))&&(current.admin||current.sites.contains(x.site));}).toList();
+  final expensesTotal=periodExpenses.fold<double>(0.0,(sum,x)=>sum+x.amount);
   final now=DateTime.now();
   final from=DateTime(reportFrom.year,reportFrom.month,reportFrom.day);
   final to=DateTime(reportTo.year,reportTo.month,reportTo.day);
