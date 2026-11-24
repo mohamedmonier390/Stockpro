@@ -79,7 +79,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         if(yes==true){
           final prefs=await SharedPreferences.getInstance();
           const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
-          for(final key in keys){if(payload.containsKey(key)){final v=payload[key];if(v is String)await prefs.setString(key,v);else await prefs.setString(key,jsonEncode(v));}}
+          for(final key in keys){if(payload.containsKey(key)){final v=payload[key];if(v==null){await prefs.remove(key);}else if(v is String){await prefs.setString(key,v);}else{await prefs.setString(key,jsonEncode(v));}}}
           message='تم تنزيل البيانات. أغلق StockPro وافتحه مرة أخرى لتحديث الشاشة.';
         } else {message='تم إلغاء الاستعادة.';}
       }
@@ -123,7 +123,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           const SizedBox(height: 10),
           TextField(controller: company, decoration: const InputDecoration(labelText: 'اسم الشركة')),
           const SizedBox(height: 12),
-          FilledButton.icon(onPressed: busy || user == null ? null : createCompany, icon: const Icon(Icons.business), label: const Text('إنشاء الشركة')),
+          FilledButton.icon(onPressed: busy || user == null || hasCompanyLink ? null : createCompany, icon: const Icon(Icons.business), label: const Text(hasCompanyLink?'الشركة مرتبطة بالفعل':'إنشاء الشركة')),
           if (user != null) TextButton.icon(onPressed: busy ? null : logout, icon: const Icon(Icons.logout), label: const Text('تسجيل الخروج')),
           if (hasCompanyLink) Padding(padding: const EdgeInsets.only(top:12),child:Text('الشركة المرتبطة: $cloudCompanyId',style:const TextStyle(fontSize:12))),
         ]))),
