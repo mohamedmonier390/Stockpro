@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
@@ -169,6 +170,44 @@ Future<void> pickReportDate(bool start)async{
     else{reportTo=DateTime(picked.year,picked.month,picked.day);if(reportTo.isBefore(reportFrom))reportFrom=reportTo;}
   });
 }
+Future<void> exportReportExcel(List<Day> periodDays,DateTime from,DateTime to)async{
+ try{
+  final book=Excel.createExcel();
+  book.rename('Sheet1','ملخص التقرير');
+  final summary=book['ملخص التقرير'];
+  summary.appendRow([TextCellValue('تقرير StockPro'),TextCellValue('من'),TextCellValue(reportDateText(from)),TextCellValue('إلى'),TextCellValue(reportDateText(to))]);
+  summary.appendRow([TextCellValue('المؤشر'),TextCellValue('القيمة')]);
+  int breakfast=0,lunch=0,dinner=0,extra=0;double revenue=0,rawCost=0;
+  for(final entry in periodDays){breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;revenue+=rev(entry);rawCost+=mealCost(entry);}
+  summary.appendRow([TextCellValue('إفطار'),IntCellValue(breakfast)]);
+  summary.appendRow([TextCellValue('غداء'),IntCellValue(lunch)]);
+  summary.appendRow([TextCellValue('عشاء'),IntCellValue(dinner)]);
+  summary.appendRow([TextCellValue('وجبات إضافية'),IntCellValue(extra)]);
+  summary.appendRow([TextCellValue('إجمالي الوجبات'),IntCellValue(breakfast+lunch+dinner+extra)]);
+  summary.appendRow([TextCellValue('إيراد الوجبات المسعّرة'),DoubleCellValue(revenue)]);
+  summary.appendRow([TextCellValue('تكلفة الخامات حسب الوصفات'),DoubleCellValue(rawCost)]);
+  summary.appendRow([TextCellValue('الفائض بعد تكلفة الخامات'),DoubleCellValue(revenue-rawCost)]);
+  final bySite=book['تفصيل المواقع'];
+  bySite.appendRow([TextCellValue('الموقع'),TextCellValue('إفطار'),TextCellValue('غداء'),TextCellValue('عشاء'),TextCellValue('إضافية'),TextCellValue('الإجمالي'),TextCellValue('الإيراد'),TextCellValue('تكلفة الخامات'),TextCellValue('الفائض')]);
+  for(final site in visibleSites){
+   int b=0,l=0,d=0,e=0;double amount=0,cost=0;
+   for(final entry in periodDays){if(entry.site==site.name){b+=entry.b;l+=entry.l;d+=entry.d;e+=entry.e;amount+=rev(entry);cost+=mealCost(entry);}}
+   bySite.appendRow([TextCellValue(site.name),IntCellValue(b),IntCellValue(l),IntCellValue(d),IntCellValue(e),IntCellValue(b+l+d+e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost)]);
+  }
+  final daily=book['تفصيل التسجيلات'];
+  daily.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('إفطار'),TextCellValue('غداء'),TextCellValue('عشاء'),TextCellValue('إضافية'),TextCellValue('الإجمالي'),TextCellValue('الإيراد'),TextCellValue('تكلفة الخامات'),TextCellValue('الفائض')]);
+  final ordered=List<Day>.from(periodDays)..sort((a,b)=>a.date.compareTo(b.date));
+  for(final entry in ordered){final amount=rev(entry),cost=mealCost(entry);daily.appendRow([TextCellValue(reportDateText(entry.date)),TextCellValue(entry.site),IntCellValue(entry.b),IntCellValue(entry.l),IntCellValue(entry.d),IntCellValue(entry.e),IntCellValue(entry.b+entry.l+entry.d+entry.e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost)]);}
+  final encoded=book.encode();
+  if(encoded==null)throw Exception('تعذر إنشاء ملف Excel');
+  final fileName='StockPro_Report_${from.year}${from.month.toString().padLeft(2,'0')}${from.day.toString().padLeft(2,'0')}_to_${to.year}${to.month.toString().padLeft(2,'0')}${to.day.toString().padLeft(2,'0')}.xlsx';
+  final saved=await FilePicker.platform.saveFile(fileName:fileName,bytes:Uint8List.fromList(encoded),type:FileType.custom,allowedExtensions:['xlsx']);
+  if(!mounted)return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(saved==null?'تم إلغاء حفظ التقرير':'تم تصدير التقرير بنجاح')));
+ }catch(e){
+  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل تصدير التقرير: $e')));
+ }
+}
 Widget reportPage(){
   final now=DateTime.now();
   final from=DateTime(reportFrom.year,reportFrom.month,reportFrom.day);
@@ -196,6 +235,8 @@ Widget reportPage(){
         TextButton(onPressed:()=>setState((){reportTo=DateTime(now.year,now.month,now.day);reportFrom=DateTime(now.year,now.month,now.day).subtract(const Duration(days:29));}),child:const Text('آخر 30 يوم')),
       ]),
       Text('الفترة المختارة: ${reportDateText(from)} — ${reportDateText(to)}',style:const TextStyle(color:Colors.teal,fontWeight:FontWeight.w600)),
+      const SizedBox(height:10),
+      FilledButton.icon(onPressed:()=>exportReportExcel(periodDays,from,to),icon:const Icon(Icons.file_download),label:const Text('تصدير التقرير إلى Excel'),),
     ]))),
     Card(child:Padding(padding:const EdgeInsets.all(14),child:Wrap(spacing:8,runSpacing:8,children:[
       Chip(label:Text('إفطار: $breakfast')),
