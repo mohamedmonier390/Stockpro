@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 void main()=>runApp(const App());
+class MonierBrand extends StatelessWidget{final double size;final bool light;const MonierBrand({super.key,this.size=70,this.light=false});@override Widget build(BuildContext c)=>Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:Stack(alignment:Alignment.center,children:[Text('M',style:TextStyle(fontSize:size*.82,fontWeight:FontWeight.w900,color:light?Colors.white:const Color(0xff092d50))),Positioned(right:size*.12,bottom:size*.12,child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[for(int i=1;i<=3;i++)Container(width:size*.09,height:size*.12*i,margin:EdgeInsets.only(left:size*.025),decoration:BoxDecoration(color:const Color(0xff21a447),borderRadius:BorderRadius.circular(size*.02)))]))])),Text('MONIER',style:TextStyle(fontSize:size*.23,fontWeight:FontWeight.w900,letterSpacing:size*.055,color:light?Colors.white:const Color(0xff092d50))),]);}
+
 class App extends StatelessWidget{const App({super.key});@override Widget build(BuildContext c)=>MaterialApp(debugShowCheckedModeBanner:false,theme:ThemeData(useMaterial3:true,colorScheme:ColorScheme.fromSeed(seedColor:Colors.teal)),home:const LoginScreen());}
 class LoginScreen extends StatefulWidget{const LoginScreen({super.key});@override State<LoginScreen> createState()=>LoginState();}
 class LoginState extends State<LoginScreen>{
@@ -25,10 +27,8 @@ class LoginState extends State<LoginScreen>{
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.inventory_2, size: 70, color: Colors.teal),
-                const Text('StockPro', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                const Text('MONIER', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 4, color: Colors.teal)),
+                const MonierBrand(size: 82),
+                const Text('StockPro', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xff092d50))),
                 const SizedBox(height: 22),
                 DropdownButtonFormField<AppUser>(
                   value: selected,
@@ -81,9 +81,10 @@ class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStat
               child: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.inventory_2_rounded, size: 80, color: Colors.white),
+                  MonierBrand(size: 100, light: true),
+                  SizedBox(height: 10),
                   Text('StockPro', style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text('MONIER', style: TextStyle(color: Colors.white)),
+                  Text('Inventory • Operations • Better Control', style: TextStyle(color: Colors.white70, fontSize: 13)),
                 ],
               ),
             ),
@@ -122,7 +123,7 @@ int get mealTotal=>days.where((x)=>today(x.date)).fold(0,(a,x)=>a+x.b+x.l+x.d+x.
 double get revToday=>days.where((x)=>today(x.date)).fold(0.0,(a,x)=>a+rev(x));
 double get stock=>items.fold(0.0,(a,x)=>a+x.q*x.cost);
 bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin||users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).permissions.contains(module);void siteAdd(Site x){setState(()=>sites.add(x));save();}void dayAdd(Day x){setState(()=>days.add(x));save();}void itemAdd(Item x){stockBalances.putIfAbsent(mainWarehouse.name,()=>{});stockBalances[mainWarehouse.name]![x.n]=x.q;setState(()=>items.add(x));save();}Warehouse get mainWarehouse=>warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);double balance(Item item,String warehouse)=>stockBalances[warehouse]?[item.n]??0;void setBalance(Item item,String warehouse,double value){stockBalances.putIfAbsent(warehouse,()=>{});stockBalances[warehouse]![item.n]=value;if(warehouse==mainWarehouse.name)item.q=value;}
-@override Widget build(BuildContext c){if(!ready)return const Scaffold(body:Center(child:CircularProgressIndicator()));final views=[dashboard(),sitePage(),dayPage(),itemPage(),reportPage(),warehousePage(),userPage()];final allowedTabs=[0,1,2,3,4,5,6].where((i)=>i==6?users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin:can(AppUser.modules[i])).toList();if(!allowedTabs.contains(tab))tab=allowedTabs.isEmpty?0:allowedTabs.first;final icons=[Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people];final labels=['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون'];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('StockPro | التغذية')),body:views[tab],bottomNavigationBar:NavigationBar(selectedIndex:allowedTabs.indexOf(tab),onDestinationSelected:(i)=>setState(()=>tab=allowedTabs[i]),destinations:allowedTabs.map((i)=>NavigationDestination(icon:Icon(icons[i]),label:labels[i])).toList())));}
+@override Widget build(BuildContext c){if(!ready)return const Scaffold(body:Center(child:CircularProgressIndicator()));final views=[dashboard(),sitePage(),dayPage(),itemPage(),reportPage(),warehousePage(),userPage()];final allowedTabs=[0,1,2,3,4,5,6].where((i)=>i==6?users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin:can(AppUser.modules[i])).toList();if(!allowedTabs.contains(tab))tab=allowedTabs.isEmpty?0:allowedTabs.first;final icons=[Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people];final labels=['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون'];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Row(mainAxisSize:MainAxisSize.min,children:[MonierBrand(size:30),SizedBox(width:8),Text('StockPro | التغذية')])),body:views[tab],bottomNavigationBar:NavigationBar(selectedIndex:allowedTabs.indexOf(tab),onDestinationSelected:(i)=>setState(()=>tab=allowedTabs[i]),destinations:allowedTabs.map((i)=>NavigationDestination(icon:Icon(icons[i]),label:labels[i])).toList())));}
 Widget userPage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('المستخدمون والصلاحيات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:userDialog,icon:const Icon(Icons.person_add),label:const Text('إضافة مستخدم'))]),Card(child:ListTile(leading:const Icon(Icons.account_circle),title:const Text('المستخدم الحالي'),subtitle:Text(activeUser),trailing:DropdownButton<String>(value:activeUser,items:users.map((u)=>DropdownMenuItem(value:u.name,child:Text(u.name))).toList(),onChanged:(v){if(v!=null){setState(()=>activeUser=v);save();}}))),const Card(child:ListTile(title:Text('تنبيه أمان'),subtitle:Text('الصلاحيات محفوظة على نفس الجهاز. اختيار المستخدم هنا للتجربة فقط وليس تسجيل دخول آمنًا؛ سنضيف شاشة دخول ورقم PIN في خطوة تالية.'))),...users.map((u)=>Card(child:ListTile(leading:Icon(u.admin?Icons.admin_panel_settings:Icons.person),title:Text(u.name),subtitle:Text(u.admin?'مدير — صلاحيات كاملة':'صلاحيات: '+u.permissions.join('، ')),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>userDialog(existing:u)))))]); 
 Future<void> userDialog({AppUser? existing})async{
   final name=TextEditingController(text:existing?.name??'');final pin=TextEditingController(text:existing?.pin??'');bool admin=existing?.admin??false;
