@@ -22,6 +22,18 @@ jobs:
           channel: stable
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
+      - name: Set Android launcher label
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
+          if n != 1:
+              raise SystemExit("Could not set Android app label")
+          p.write_text(s)
+          PY
       - name: Replace generated starter test with StockPro smoke test
         run: |
           mkdir -p test
