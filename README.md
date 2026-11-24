@@ -16,25 +16,21 @@ Flutter Android app for catering operations across multiple sites, with Arabic R
 
 ## Current release-candidate status
 
-This branch prepares the commercial release candidate. The current app is still **local-only**:
-- Data is stored on the device with SharedPreferences.
-- No cloud database, multi-device synchronization, online account system, subscription enforcement, or remote backup is active.
-- Local PIN/user permissions are convenience controls, not enterprise-grade identity/security.
+This branch prepares the commercial release candidate. The **operational business data remains local-only**, while a separate optional Supabase account/onboarding screen is available:
+- Site contracts, meal records, recipes, items, warehouse balances and movements, expenses, local users, and audit records are stored on the device with SharedPreferences.
+- The optional Cloud Account screen supports Supabase email/password sign-up/sign-in and first-company creation through the authenticated `create_company_for_current_user` RPC, after the three database migrations are applied.
+- Cloud account identity is separate from local PIN users. Creating a cloud account/company does not migrate or synchronize the device's operating records.
+- Operational cloud sync, multi-device synchronization, remote operational-data backup, and subscription/payment enforcement are not active.
+- Local PIN/user permissions remain device-local convenience controls, not centralized enterprise identity/security.
 - Uninstalling or clearing app data can remove records. Export backups regularly and store them securely.
 
-Do not describe cloud synchronization or subscription features as available until implemented, tested, and deployed.
+Do not describe operational cloud synchronization or subscription/payment features as available until implemented, security-tested, and deployed.
 
 ## Release artifacts
 
-The GitHub Actions workflow builds:
-- Signed APK for direct Android installation.
-- Signed Android App Bundle (AAB) for Google Play submission.
+The current main-branch GitHub Actions workflow (`.github/workflows/build-apk.yml`) generates the Android project files and uploads an installable release-mode APK named `stockpro-apk`. It currently uses CI/debug signing and **does not build a Play Store AAB or use the stable upload keystore**. Treat this as a CI/test artifact only; do not submit it to Google Play or use it as a production upgrade package.
 
-The Android application ID and release signing key must remain unchanged for upgrades to existing installations. The workflow depends on repository secrets:
-- `STOCKPRO_KEYSTORE_BASE64`
-- `STOCKPRO_KEYSTORE_PASSWORD`
-
-**Never rotate or replace the signing key casually.** Back up the upload keystore and its password securely.
+Before a store release, confirm the permanent Android application ID and the original upload key, restore a protected signing configuration, build both APK/AAB as required, and verify the artifacts from a clean run. **Never rotate or replace the signing key casually.** Keep the keystore and password out of Git and back them up securely.
 
 ## Build locally
 
