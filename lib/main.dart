@@ -128,23 +128,78 @@ double get revToday=>days.where((x)=>today(x.date)).fold(0.0,(a,x)=>a+rev(x));
 double get stock=>items.fold(0.0,(a,x)=>a+x.q*x.cost);
 bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin||users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).permissions.contains(module);void siteAdd(Site x){setState(()=>sites.add(x));save();}void dayAdd(Day x){setState(()=>days.add(x));save();}void itemAdd(Item x){stockBalances.putIfAbsent(mainWarehouse.name,()=>{});stockBalances[mainWarehouse.name]![x.n]=x.q;setState(()=>items.add(x));save();}Warehouse get mainWarehouse=>warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);double balance(Item item,String warehouse)=>stockBalances[warehouse]?[item.n]??0;void setBalance(Item item,String warehouse,double value){stockBalances.putIfAbsent(warehouse,()=>{});stockBalances[warehouse]![item.n]=value;if(warehouse==mainWarehouse.name)item.q=value;}
 @override Widget build(BuildContext c){if(!ready)return const Scaffold(body:Center(child:CircularProgressIndicator()));final views=[dashboard(),sitePage(),dayPage(),itemPage(),reportPage(),warehousePage(),userPage(),expensePage()];final allowedTabs=[0,1,2,3,4,5,6,7].where((i)=>i==6?users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin:can(AppUser.modules[i])).toList();if(!allowedTabs.contains(tab))tab=allowedTabs.isEmpty?0:allowedTabs.first;final icons=[Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];final labels=['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Row(mainAxisSize:MainAxisSize.min,children:[MonierBrand(size:30),SizedBox(width:8),Text('StockPro | التغذية')])),body:views[tab],bottomNavigationBar:NavigationBar(selectedIndex:allowedTabs.indexOf(tab),onDestinationSelected:(i)=>setState(()=>tab=allowedTabs[i]),destinations:allowedTabs.map((i)=>NavigationDestination(icon:Icon(icons[i]),label:labels[i])).toList())));}
-Future<void> expenseDialog({Expense? existing})async{
- if(visibleSites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سجل المواقع أولاً')));return;}
- final categories=['عمالة','نقل','إقامة','مصروفات الموقع','صيانة','أخرى'];
- Site chosen=visibleSites.firstWhere((x)=>x.name==existing?.site,orElse:()=>visibleSites.first);
- String category=categories.contains(existing?.category)?existing!.category:'أخرى';DateTime date=existing?.date??DateTime.now();
- final amount=TextEditingController(text:existing?.amount.toString()??'');final note=TextEditingController(text:existing?.note??'');
- await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh)=>AlertDialog(title:Text(existing==null?'إضافة مصروف':'تعديل مصروف'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
- DropdownButtonFormField<Site>(value:chosen,decoration:const InputDecoration(labelText:'الموقع'),items:visibleSites.map((s)=>DropdownMenuItem(value:s,child:Text(s.name))).toList(),onChanged:(v){if(v!=null)refresh(()=>chosen=v);}),
- DropdownButtonFormField<String>(value:category,decoration:const InputDecoration(labelText:'نوع المصروف'),items:categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)refresh(()=>category=v);}),
- OutlinedButton.icon(onPressed:()async{final p=await showDatePicker(context:dc,initialDate:date,firstDate:DateTime(2020),lastDate:DateTime(2100));if(p!=null)refresh(()=>date=p);},icon:const Icon(Icons.date_range),label:Text('التاريخ: ${reportDateText(date)}')),
- field(amount,'المبلغ بالجنيه',numeric:true),field(note,'ملاحظات')
- ])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
- final value=double.tryParse(amount.text.trim().replaceAll(',','.'))??0;if(value<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل مبلغ صحيح')));return;}
- if(existing==null){expenses.add(Expense(DateTime.now().microsecondsSinceEpoch.toString(),chosen.name,category,note.text.trim(),date,value));addAudit('إضافة','مصروف',chosen.name+' • '+category+' • '+cash(value));}
- else{existing.site=chosen.name;existing.category=category;existing.note=note.text.trim();existing.date=date;existing.amount=value;addAudit('تعديل','مصروف',chosen.name+' • '+category+' • '+cash(value));}
- save();setState((){});Navigator.pop(dc);
- },child:const Text('حفظ'))]));
+Future<void> expenseDialog({Expense? existing}) async {
+  if (visibleSites.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سجل المواقع أولاً')));
+    return;
+  }
+  final categories = ['عمالة', 'نقل', 'إقامة', 'مصروفات الموقع', 'صيانة', 'أخرى'];
+  Site chosen = visibleSites.firstWhere((s) => s.name == existing?.site, orElse: () => visibleSites.first);
+  String category = categories.contains(existing?.category) ? existing!.category : 'أخرى';
+  DateTime date = existing?.date ?? DateTime.now();
+  final amount = TextEditingController(text: existing?.amount.toString() ?? '');
+  final note = TextEditingController(text: existing?.note ?? '');
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, refresh) => AlertDialog(
+        title: Text(existing == null ? 'إضافة مصروف' : 'تعديل مصروف'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            DropdownButtonFormField<Site>(
+              value: chosen,
+              decoration: const InputDecoration(labelText: 'الموقع'),
+              items: visibleSites.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+              onChanged: (v) { if (v != null) refresh(() => chosen = v); },
+            ),
+            DropdownButtonFormField<String>(
+              value: category,
+              decoration: const InputDecoration(labelText: 'نوع المصروف'),
+              items: categories.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
+              onChanged: (v) { if (v != null) refresh(() => category = v); },
+            ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final picked = await showDatePicker(context: dialogContext, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
+                if (picked != null) refresh(() => date = picked);
+              },
+              icon: const Icon(Icons.date_range),
+              label: Text('التاريخ: ${reportDateText(date)}'),
+            ),
+            field(amount, 'المبلغ بالجنيه', numeric: true),
+            field(note, 'ملاحظات'),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(amount.text.trim().replaceAll(',', '.')) ?? 0;
+              if (value <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل مبلغ صحيح')));
+                return;
+              }
+              if (existing == null) {
+                expenses.add(Expense(DateTime.now().microsecondsSinceEpoch.toString(), chosen.name, category, note.text.trim(), date, value));
+                addAudit('إضافة', 'مصروف', chosen.name + ' • ' + category + ' • ' + cash(value));
+              } else {
+                existing.site = chosen.name;
+                existing.category = category;
+                existing.note = note.text.trim();
+                existing.date = date;
+                existing.amount = value;
+                addAudit('تعديل', 'مصروف', chosen.name + ' • ' + category + ' • ' + cash(value));
+              }
+              save();
+              setState(() {});
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 Future<void> deleteExpense(Expense x)async{final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف المصروف'),content:Text('حذف مصروف ${cash(x.amount)} — ${x.site}؟'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));if(ok==true){expenses.remove(x);addAudit('حذف','مصروف',x.site+' • '+cash(x.amount));await save();if(mounted)setState((){});}}
 Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'\\n'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
