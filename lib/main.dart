@@ -100,7 +100,8 @@ class Day{String site;DateTime date;int b,l,d,e;String id;Day(this.site,this.dat
 class Item{String n,code,unit;double cost,q,min;Item(this.n,this.code,this.unit,this.cost,this.q,this.min);Map j()=>{'n':n,'c':code,'u':unit,'cost':cost,'q':q,'min':min};}
 class Movement{String item,type,note,warehouse,ref;double qty;DateTime date;Movement(this.item,this.type,this.qty,this.note,this.date,[this.warehouse='',this.ref='']);Map j()=>{'i':item,'t':type,'q':qty,'n':note,'d':date.toIso8601String(),'w':warehouse,'ref':ref};}
 class Recipe{String item,meal;double qty;Recipe(this.item,this.meal,this.qty);Map j()=>{'i':item,'m':meal,'q':qty};}
-class Warehouse{String name,site,manager;bool main;Warehouse(this.name,this.site,this.manager,this.main);Map j()=>{'n':name,'s':site,'m':manager,'main':main};}\nclass Expense{String id,site,category,note;DateTime date;double amount;Expense(this.id,this.site,this.category,this.note,this.date,this.amount);Map j()=>{'id':id,'s':site,'c':category,'n':note,'d':date.toIso8601String(),'a':amount};factory Expense.fromMap(dynamic x)=>Expense(x['id']??DateTime.now().microsecondsSinceEpoch.toString(),x['s']??'',x['c']??'أخرى',x['n']??'',DateTime.tryParse(x['d']??'')??DateTime.now(),(x['a'] as num?)?.toDouble()??0);}
+class Warehouse{String name,site,manager;bool main;Warehouse(this.name,this.site,this.manager,this.main);Map j()=>{'n':name,'s':site,'m':manager,'main':main};}
+class Expense{String id,site,category,note;DateTime date;double amount;Expense(this.id,this.site,this.category,this.note,this.date,this.amount);Map j()=>{'id':id,'s':site,'c':category,'n':note,'d':date.toIso8601String(),'a':amount};factory Expense.fromMap(dynamic x)=>Expense(x['id']??DateTime.now().microsecondsSinceEpoch.toString(),x['s']??'',x['c']??'أخرى',x['n']??'',DateTime.tryParse(x['d']??'')??DateTime.now(),(x['a'] as num?)?.toDouble()??0);}
 class AppUser {
   String name, pin;
   bool admin;
