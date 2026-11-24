@@ -49,72 +49,63 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           s = manifest.read_text()
           s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
-          if n != 1:
-              raise SystemExit("Could not set app label")
+          if n != 1: raise SystemExit("Could not set app label")
           manifest.write_text(s)
+          # Use a known Groovy Gradle script to avoid brittle Kotlin-DSL editing.
+          Path("android/app/build.gradle.kts").unlink(missing_ok=True)
+          Path("android/app/build.gradle").write_text("""import java.util.Properties
+import java.io.FileInputStream
 
-          groovy = Path("android/app/build.gradle")
-          kotlin = Path("android/app/build.gradle.kts")
-          if groovy.exists():
-              p = groovy
-              s = p.read_text()
-              if "stockproReleaseSigning" not in s:
-                  props = """
-          def stockproSigningProperties = new Properties()
-          def stockproSigningFile = rootProject.file('key.properties')
-          stockproSigningProperties.load(new FileInputStream(stockproSigningFile))
-          """
-                  s = props + s
-                  signing = """
-              signingConfigs {
-                  stockproReleaseSigning {
-                      storeFile file(stockproSigningProperties['storeFile'])
-                      storePassword stockproSigningProperties['storePassword']
-                      keyAlias stockproSigningProperties['keyAlias']
-                      keyPassword stockproSigningProperties['keyPassword']
-                  }
-              }
-          """
-                  s = s.replace("android {", "android {\n" + signing, 1)
-                  s = s.replace("release {", "release {\n            signingConfig signingConfigs.stockproReleaseSigning", 1)
-                  p.write_text(s)
-          elif kotlin.exists():
-              p = kotlin
-              s = p.read_text()
-              if "stockproReleaseSigning" not in s:
-                  imports = "import java.util.Properties" + chr(10) + "import java.io.FileInputStream" + chr(10)
-                  body = chr(10).join(line for line in s.splitlines() if not line.startswith("import "))
-                  s = imports + body + chr(10)
-                  props = """
-          val stockproSigningProperties = Properties()
-          val stockproSigningFile = rootProject.file("key.properties")
-          stockproSigningProperties.load(FileInputStream(stockproSigningFile))
-          """
-                  # Kotlin Gradle DSL requires the plugins block before top-level declarations.
-                  plugin_end = s.find("plugins {")
-                  if plugin_end < 0:
-                      raise SystemExit("Kotlin Gradle plugins block missing")
-                  plugin_end = s.find("}", plugin_end) + 1
-                  s = s[:plugin_end] + chr(10) + props + s[plugin_end:]
-                  signing = """
-              signingConfigs {
-                  create("stockproReleaseSigning") {
-                      storeFile = file(stockproSigningProperties["storeFile"] as String)
-                      storePassword = stockproSigningProperties["storePassword"] as String
-                      keyAlias = stockproSigningProperties["keyAlias"] as String
-                      keyPassword = stockproSigningProperties["keyPassword"] as String
-                  }
-              }
-          """
-                  s = s.replace("android {", "android {" + chr(10) + signing, 1)
-                  s = s.replace("release {", "release {" + chr(10) + "            signingConfig = signingConfigs.getByName(" + chr(34) + "stockproReleaseSigning" + chr(34) + ")", 1)
-                  p.write_text(s)
-          else:
-              raise SystemExit("Generated Gradle build file not found")
+def signingProps = new Properties()
+def signingFile = rootProject.file('key.properties')
+signingProps.load(new FileInputStream(signingFile))
+
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'dev.flutter.flutter-gradle-plugin'
+}
+
+android {
+    namespace 'com.stockpro.stockpro'
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
+    defaultConfig {
+        applicationId 'com.stockpro.stockpro'
+        minSdk flutter.minSdkVersion
+        targetSdk flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+    signingConfigs {
+        stockproReleaseSigning {
+            storeFile file(signingProps['storeFile'])
+            storePassword signingProps['storePassword']
+            keyAlias signingProps['keyAlias']
+            keyPassword signingProps['keyPassword']
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.stockproReleaseSigning
+        }
+    }
+}
+flutter {
+    source '../..'
+}
+""")
           PY
       - name: Replace starter test with smoke test
         run: |
