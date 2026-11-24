@@ -83,15 +83,15 @@ jobs:
               gradle = gradle_kotlin
               s = gradle.read_text()
               if "stockproReleaseSigning" not in s:
-                  imports = "import java.util.Properties\\nimport java.io.FileInputStream\\n"
-                  s = imports + s
+                      imports = "import java.util.Properties\\nimport java.io.FileInputStream\\n"
                   props = """
           val stockproSigningProperties = Properties()
           val stockproSigningFile = rootProject.file("key.properties")
           stockproSigningProperties.load(FileInputStream(stockproSigningFile))
 
           """
-                  s = props + s
+                  body = "\\n".join(line for line in s.splitlines() if not line.startswith("import "))
+                  s = imports + props + body + "\\n"
                   signing = """
               signingConfigs {
                   create("stockproReleaseSigning") {
