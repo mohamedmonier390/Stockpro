@@ -1,4 +1,4 @@
-name: Build StockPro Release Candidate
+name: Build StockPro Android
 on:
   workflow_dispatch:
   push:
@@ -11,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
@@ -34,6 +33,50 @@ jobs:
               raise SystemExit("Could not set Android app label")
           p.write_text(s)
           PY
+      - name: Configure persistent release signing (when secrets are present)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.STOCKPRO_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.STOCKPRO_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.STOCKPRO_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.STOCKPRO_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/stockpro-release.jks
+            cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=stockpro-release.jks
+          EOF
+            python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+          if "stockpro-release.jks" not in s:
+              s = s.replace("android {", """def keystoreProperties = new Properties()
+          def keystorePropertiesFile = rootProject.file('key.properties')
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+          }
+
+          android {""", 1)
+              s = s.replace("    buildTypes {", """    signingConfigs {
+              release {
+                  keyAlias keystoreProperties['keyAlias']
+                  keyPassword keystoreProperties['keyPassword']
+                  storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+                  storePassword keystoreProperties['storePassword']
+              }
+          }
+          buildTypes {""", 1)
+              s = s.replace("            signingConfig signingConfigs.debug", "            signingConfig signingConfigs.release", 1)
+          p.write_text(s)
+          PY
+            echo "RELEASE_SIGNING=enabled" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_SIGNING=disabled" >> "$GITHUB_ENV"
+            echo "::warning::Persistent signing secrets not configured; building debug-signed test APK only. It cannot update an existing install."
+          fi
       - name: Replace generated starter test with StockPro smoke test
         run: |
           mkdir -p test
@@ -41,7 +84,6 @@ jobs:
           import 'package:flutter_test/flutter_test.dart';
           import 'package:shared_preferences/shared_preferences.dart';
           import 'package:stockpro/main.dart';
-
           void main() {
             testWidgets('StockPro splash navigates to login', (tester) async {
               SharedPreferences.setMockInitialValues({});
@@ -59,11 +101,27 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Run smoke tests
         run: flutter test
-      - name: Build installable APK (CI debug signing)
-        run: flutter build apk --release
-      - name: Upload APK
+      - name: Build signed release APK and AAB
+        if: env.RELEASE_SIGNING == 'enabled'
+        run: |
+          flutter build apk --release
+          flutter build appbundle --release
+      - name: Build debug test APK only
+        if: env.RELEASE_SIGNING != 'enabled'
+        run: flutter build apk --debug
+      - name: Upload release artifacts
+        if: env.RELEASE_SIGNING == 'enabled'
         uses: actions/upload-artifact@v4
         with:
-          name: stockpro-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: stockpro-release-apk-and-aab
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
           retention-days: 90
+      - name: Upload test artifact
+        if: env.RELEASE_SIGNING != 'enabled'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockpro-debug-test-apk-not-for-upgrade
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
