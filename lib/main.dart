@@ -327,7 +327,10 @@ Future<void> showStockProAbout() async {
           ],
         ),
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق'))],
+      actions: [
+        TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) { await showDialog<void>(context: context, builder: (x) => AlertDialog(title: const Text('فحص الكلاود'), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: const Text('تمام'))])); } }, child: const Text('فحص الاتصال')),
+        TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
+      ],
     ),
   );
 }
