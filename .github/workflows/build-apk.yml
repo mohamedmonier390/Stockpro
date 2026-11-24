@@ -1,7 +1,9 @@
-name: Build StockPro APK
+name: Build StockPro Release Candidate
 on:
   workflow_dispatch:
   push:
+    branches: [ main, 'commercial/**' ]
+  pull_request:
     branches: [ main ]
 
 jobs:
@@ -20,13 +22,44 @@ jobs:
           channel: stable
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
-      - name: Configure stable APK signing # verify repository secrets on fresh run
+      - name: Set Android launcher label
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
+          if n != 1:
+              raise SystemExit("Could not set Android app label")
+          p.write_text(s)
+          PY
+      - name: Replace generated starter test with StockPro smoke test
+        run: |
+          mkdir -p test
+          cat > test/widget_test.dart <<'EOF'
+          import 'package:flutter_test/flutter_test.dart';
+          import 'package:shared_preferences/shared_preferences.dart';
+          import 'package:stockpro/main.dart';
+
+          void main() {
+            testWidgets('StockPro splash navigates to login', (tester) async {
+              SharedPreferences.setMockInitialValues({});
+              await tester.pumpWidget(const App());
+              expect(find.text('StockPro Business'), findsOneWidget);
+              await tester.pump(const Duration(milliseconds: 2300));
+              await tester.pumpAndSettle();
+              expect(find.text('دخول'), findsOneWidget);
+            });
+          }
+          EOF
+      - name: Configure stable release signing
         env:
           KEYSTORE_BASE64: ${{ secrets.STOCKPRO_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.STOCKPRO_KEYSTORE_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "::error::Add STOCKPRO_KEYSTORE_BASE64 and STOCKPRO_KEYSTORE_PASSWORD in GitHub Actions secrets."
+            echo "::error::Missing STOCKPRO_KEYSTORE_BASE64 or STOCKPRO_KEYSTORE_PASSWORD repository secret."
             exit 1
           fi
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/stockpro-upload-key.jks
@@ -65,9 +98,25 @@ jobs:
               raise SystemExit("Could not apply release signing configuration")
           p.write_text(s)
           PY
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Static analysis
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run smoke tests
+        run: flutter test
+      - name: Build signed APK
+        run: flutter build apk --release
+      - name: Build signed Play Store App Bundle
+        run: flutter build appbundle --release
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: stockpro-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 90
+      - name: Upload Play Store AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockpro-play-store-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 90

@@ -1,32 +1,60 @@
-# StockPro — Site Catering & Inventory (Flutter)
+# StockPro Business
 
-Arabic RTL Android prototype for managing a catering company that serves multiple remote sites.
+Flutter Android app for catering operations across multiple sites, with Arabic RTL interface.
 
-## Current features
+## Product scope
 
-- **Sites & contracts:** create a site, client, and contracted breakfast/lunch/dinner prices.
-- **Daily meal counts:** record variable meal quantities per site and calculate revenue using the contract prices. Extra unpriced meals are tracked separately.
-- **Ingredients:** create stock items with a code, unit, unit cost, current balance, and low-stock threshold.
-- **Stock movements:** receive and issue ingredients, keep a movement history, and prevent an issue larger than the available balance.
-- **Meal recipes:** configure ingredient quantity per breakfast, lunch, or dinner. Saving a daily meal record deducts the calculated quantities and records the consumption against the site.
-- **Monthly summary:** show meal count, revenue, recipe-based ingredient cost, and an estimated margin after ingredient cost.
+- Site/client contracts and meal-price records.
+- Daily breakfast, lunch, dinner, and extra meal counts.
+- Ingredient catalog, unit/cost/opening balances, and low-stock thresholds.
+- Separate balances by warehouse.
+- Receipts, issues, transfer-out/transfer-in, stocktake adjustments, and movement history.
+- Recipe-based ingredient consumption when meal counts are recorded.
+- Site expenses and reporting.
+- Local users, PIN login, permissions, and audit log.
+- Excel import and local JSON backup/restore.
 
-## Data and calculation limits
+## Current release-candidate status
 
-- Data is stored locally on the device with shared_preferences; there is **no cloud sync or multi-user sharing** yet. Uninstalling the app or clearing its data may remove the records. Export and backup are not implemented.
-- Stock and recipe quantities support fractional values (up to three displayed decimal places), in the unit entered for each ingredient.
-- Recipe-based monthly costs are estimates based on the **current** recipe setup and current ingredient unit costs. Historical recipe/cost snapshots, labor, transport, overhead, taxes, and wastage are not yet included. Do not treat the margin as a final accounting profit.
-- Barcode camera scanning, supplier purchase invoices, approval workflows, and central reporting are not implemented.
-- The app is a prototype. Validate it with sample data before operational use.
+This branch prepares the commercial release candidate. The current app is still **local-only**:
+- Data is stored on the device with SharedPreferences.
+- No cloud database, multi-device synchronization, online account system, subscription enforcement, or remote backup is active.
+- Local PIN/user permissions are convenience controls, not enterprise-grade identity/security.
+- Uninstalling or clearing app data can remove records. Export backups regularly and store them securely.
+
+Do not describe cloud synchronization or subscription features as available until implemented, tested, and deployed.
+
+## Release artifacts
+
+The GitHub Actions workflow builds:
+- Signed APK for direct Android installation.
+- Signed Android App Bundle (AAB) for Google Play submission.
+
+The Android application ID and release signing key must remain unchanged for upgrades to existing installations. The workflow depends on repository secrets:
+- `STOCKPRO_KEYSTORE_BASE64`
+- `STOCKPRO_KEYSTORE_PASSWORD`
+
+**Never rotate or replace the signing key casually.** Back up the upload keystore and its password securely.
 
 ## Build locally
 
-    flutter pub get
-    flutter run
-    flutter build apk --release
+```bash
+flutter pub get
+flutter analyze
+flutter build apk --release
+flutter build appbundle --release
+```
 
-APK output: build/app/outputs/flutter-apk/app-release.apk
+## Proposed pricing (not yet enabled in-app)
 
-## Build on GitHub
+Pricing is a market-entry hypothesis for Egypt, to validate with customers:
+- Starter: EGP 149/month — one site/warehouse.
+- Business: EGP 299/month — small team, up to a few locations.
+- Pro: EGP 499/month — multi-site operations.
+- Enterprise: custom quotation.
 
-Open Actions → Build StockPro APK. A push to main or a manual Run workflow starts the build. After a successful run, download the stockpro-apk artifact.
+These prices are not active plans or payments. Cloud hosting, support level, storage, user/site limits, and payment method must be finalized before sales.
+
+## Commercial release checklist
+
+See `docs/PLAY_STORE_RELEASE_CHECKLIST.md`, `docs/PRIVACY_POLICY_DRAFT.md`, and `docs/COMMERCIAL_PLAN.md`.
