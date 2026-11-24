@@ -1,6 +1,6 @@
 # StockPro Cloud — initial backend setup
 
-This migration creates the multi-company Supabase/Postgres foundation. The Android app currently initializes the Supabase client and offers a database connectivity check, but cloud authentication, data sync, and company onboarding UI are not yet enabled.
+These migrations create the multi-company Supabase/Postgres foundation. The Android app initializes the Supabase client and exposes an optional Cloud Account screen with email/password sign-up, sign-in, a database connectivity check, and first-company creation through the authenticated onboarding RPC. This is account/company setup only: the operational records already stored on the device are not migrated, uploaded, or synchronized to Supabase. The cloud account is separate from the local PIN login.
 
 ## Apply migrations
 In Supabase Dashboard → SQL Editor, run in order:
@@ -23,5 +23,7 @@ The permissions JSON array uses module labels: `المواقع`, `المخازن
 - Validate policies with multiple test users and negative tests for cross-company/out-of-scope data.
 - Move stock transfer posting to a transactional DB function writing paired ledger entries and balances atomically.
 - Secure invitations/member provisioning through trusted server functions; never expose service-role secrets.
-- Android-side authentication, company selection, cloud sync, idempotency/conflict handling, migration of local data, subscription enforcement, and billing.
+- Company selection and linking the authenticated cloud membership to the operational screens.
+- Cloud sync, idempotency/conflict handling, migration of local data, remote backup, subscription enforcement, and billing.
+- A customer-facing privacy notice covering the optional Supabase account/company setup before commercial distribution.
 - Do not load real customer data until security tests pass.
