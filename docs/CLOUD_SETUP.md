@@ -1,24 +1,27 @@
 # StockPro Cloud — initial backend setup
 
-This migration creates a multi-company Supabase/Postgres foundation. It is **not yet connected to the Android app**.
+This migration creates the multi-company Supabase/Postgres foundation. The Android app currently initializes the Supabase client and offers a database connectivity check, but cloud authentication, data sync, and company onboarding UI are not yet enabled.
 
 ## Apply migrations
-1. Open your Supabase project → SQL Editor.
-2. Run `supabase/migrations/0001_stockpro_cloud.sql`.
-3. Then run `supabase/migrations/0002_permission_scope_rls.sql`.
-4. Check both complete without errors. Keep a copy of the SQL output.
+In Supabase Dashboard → SQL Editor, run in order:
+1. `supabase/migrations/0001_stockpro_cloud.sql`
+2. `supabase/migrations/0002_permission_scope_rls.sql`
+3. `supabase/migrations/0003_secure_company_onboarding.sql`
 
-## What is present
+Confirm each finishes without errors. Keep a copy of the results.
+
+## What exists
 - Company membership and roles.
 - Sites, warehouses, items, balances, movements, meals, expenses and audit records.
-- Row Level Security (RLS) and a second migration to replace the first broad member policy with module permission checks and site/warehouse scopes.
+- Row Level Security (RLS) tenant isolation and module/site/warehouse scope policies.
+- Secure RPC `create_company_for_current_user(company_name)`: requires a signed-in Supabase user, creates a trial company and adds that user as owner. It is executable by authenticated users only; no service-role key is used in the app.
 
 ## Permission names
-The permissions JSON array must use the same module labels as the app: `المواقع`, `المخازن`, `المخزون`, `الوجبات`, and `المصروفات`. Owners/admins bypass module permissions. Site/warehouse scopes are UUID arrays; empty scope currently means all within the company, so invitation setup must explicitly set scopes if the user is to be restricted.
+The permissions JSON array uses module labels: `المواقع`, `المخازن`, `المخزون`, `الوجبات`, and `المصروفات`. Owners/admins bypass module permissions. Site/warehouse scopes are UUID arrays; empty scope currently means all within the company, so onboarding/invite logic must explicitly set scopes when restrictions are required.
 
-## Not production-ready yet
-- Scope helper behavior and policies must be validated with separate test accounts, including negative tests for cross-company access and out-of-scope rows.
-- Stock transfer posting should be moved to a transactional database function that writes paired ledger entries and updates balances atomically; client-side writes must not be trusted for this.
-- Secure company-owner onboarding and invites must use a trusted server function (never expose service-role secrets).
-- App-side Supabase connection, authentication, company selection, offline sync, idempotency/conflict handling, data migration, subscription enforcement, and billing are still pending.
-- Do not load production customer data until policy tests are complete.
+## Production readiness still pending
+- Validate policies with multiple test users and negative tests for cross-company/out-of-scope data.
+- Move stock transfer posting to a transactional DB function writing paired ledger entries and balances atomically.
+- Secure invitations/member provisioning through trusted server functions; never expose service-role secrets.
+- Android-side authentication, company selection, cloud sync, idempotency/conflict handling, migration of local data, subscription enforcement, and billing.
+- Do not load real customer data until security tests pass.
