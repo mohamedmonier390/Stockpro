@@ -78,6 +78,13 @@ jobs:
           marker = "android {"
           if marker not in s:
               raise SystemExit("Could not find android block in generated build.gradle")
+          if "signingConfigs {" in s:
+              raise SystemExit("Generated Gradle already has signingConfigs; refusing duplicate injection")
+          props = """def keystoreProperties = new Properties()
+          def keystorePropertiesFile = rootProject.file('key.properties')
+          keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+          """
           signing = """android {
               signingConfigs {
                   release {
@@ -88,11 +95,7 @@ jobs:
                   }
               }
           """
-          s = s.replace(marker, """def keystoreProperties = new Properties()
-          def keystorePropertiesFile = rootProject.file('key.properties')
-          keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-
-          """ + signing, 1)
+          s = s.replace(marker, props + signing, 1)
           s = s.replace("signingConfig = signingConfigs.debug", "signingConfig = signingConfigs.release")
           if "signingConfig = signingConfigs.release" not in s:
               raise SystemExit("Could not apply release signing configuration")
