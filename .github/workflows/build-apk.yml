@@ -59,8 +59,57 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Run smoke tests
         run: flutter test
-      - name: Build installable APK (CI debug signing)
-        run: flutter build apk --release
+      - name: Configure permanent Android release signing (when secrets are set)
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "SIGNING_MODE=debug" >> "$GITHUB_ENV"
+            echo "Permanent signing secrets not configured; this build is debug-signed."
+            exit 0
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/stockpro-release-key.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=stockpro-release-key.jks
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle")
+          if not p.exists():
+              raise SystemExit("Generated Groovy Gradle file missing.")
+          s = p.read_text()
+          if "stockproRelease" not in s:
+              anchor = "    buildTypes {"
+              if anchor not in s:
+                  raise SystemExit("Could not locate buildTypes block.")
+              signing = """    signingConfigs {
+                stockproRelease {
+                    def keystoreProperties = new Properties()
+                    def keystorePropertiesFile = rootProject.file('key.properties')
+                    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                    storeFile file(keystoreProperties['storeFile'])
+                    storePassword keystoreProperties['storePassword']
+                    keyAlias keystoreProperties['keyAlias']
+                    keyPassword keystoreProperties['keyPassword']
+                }
+            }
+
+            """
+              s = s.replace(anchor, signing + anchor, 1)
+              s = s.replace("buildTypes {\n        release {", "buildTypes {\n        release {\n            signingConfig signingConfigs.stockproRelease", 1)
+              p.write_text(s)
+          PY
+          echo "SIGNING_MODE=release" >> "$GITHUB_ENV"
+      - name: Build installable APK
+        run: flutter build apk --release --build-number ${{ github.run_number }}
+      - name: Report signing mode
+        run: echo "APK signing mode is ${SIGNING_MODE:-debug (secrets not configured)}"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
