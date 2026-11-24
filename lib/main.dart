@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 void main()=>runApp(const App());
+bool validPin(String value)=>value.length>=4&&value.length<=8&&value.codeUnits.every((code)=>code>=48&&code<=57);
 class MonierBrand extends StatelessWidget{final double size;final bool light;const MonierBrand({super.key,this.size=70,this.light=false});@override Widget build(BuildContext c)=>Column(mainAxisSize:MainAxisSize.min,children:[SizedBox(width:size,height:size,child:Stack(alignment:Alignment.center,children:[Text('M',style:TextStyle(fontSize:size*.82,fontWeight:FontWeight.w900,color:light?Colors.white:const Color(0xff092d50))),Positioned(right:size*.12,bottom:size*.12,child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[for(int i=1;i<=3;i++)Container(width:size*.09,height:size*.12*i,margin:EdgeInsets.only(left:size*.025),decoration:BoxDecoration(color:const Color(0xff21a447),borderRadius:BorderRadius.circular(size*.02)))]))])),Text('MONIER',style:TextStyle(fontSize:size*.23,fontWeight:FontWeight.w900,letterSpacing:size*.055,color:light?Colors.white:const Color(0xff092d50))),]);}
 
 class App extends StatelessWidget{const App({super.key});@override Widget build(BuildContext c)=>MaterialApp(title:'StockPro Business',debugShowCheckedModeBanner:false,theme:ThemeData(useMaterial3:true,colorScheme:ColorScheme.fromSeed(seedColor:Colors.teal)),home:const AnimatedSplash());}
@@ -48,18 +49,41 @@ class LoginState extends State<LoginScreen>{
           onWillPop: () async => false,
           child: AlertDialog(
             title: const Text('تأمين حساب المدير'),
-            content: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('قبل بدء استخدام StockPro، أنشئ رقم PIN للمدير (4 إلى 8 أرقام).'),
-              const SizedBox(height: 12),
-              TextField(controller: first, obscureText: true, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'PIN المدير')),
-              TextField(controller: confirm, obscureText: true, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تأكيد PIN')),
-              if (error.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error, style: const TextStyle(color: Colors.red))),
-            ]),
+            content: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('قبل بدء استخدام StockPro، أنشئ رقم PIN للمدير (4 إلى 8 أرقام).'),
+                const SizedBox(height: 12),
+                TextField(controller: first, obscureText: true, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'PIN المدير')),
+                TextField(controller: confirm, obscureText: true, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'تأكيد PIN')),
+                if (error.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error, style: const TextStyle(color: Colors.red))),
+              ]),
+            ),
             actions: [
               FilledButton(
                 onPressed: () async {
                   final a = first.text.trim(), b = confirm.text.trim();
-                  if (!RegExp(r'^\\d{4,8}
+                  if (!validPin(a)) {
+                    refresh(() => error = 'PIN يجب أن يكون من 4 إلى 8 أرقام.');
+                    return;
+                  }
+                  if (a != b) {
+                    refresh(() => error = 'الرقمان غير متطابقين.');
+                    return;
+                  }
+                  selected!.pin = a;
+                  await prefs.setString('users', jsonEncode(users.map((u) => u.j()).toList()));
+                  if (dc.mounted) Navigator.pop(dc);
+                },
+                child: const Text('حفظ PIN وبدء الاستخدام'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    first.dispose();
+    confirm.dispose();
+  }
   Future<void> enter()async{if(selected==null)return;if(pin.text!=selected!.pin){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PIN غير صحيح')));return;}final p=await SharedPreferences.getInstance();await p.setString('activeUser',selected!.name);if(!mounted)return;Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const Hub()));}
   @override
   Widget build(BuildContext c) {
@@ -264,7 +288,7 @@ Future<void> userDialog({AppUser? existing})async{
       const Text('المخازن المسموح بها'),...warehouses.map((wh)=>CheckboxListTile(dense:true,value:warehouseScope.contains(wh.name),title:Text(wh.name),onChanged:(v)=>set(()=>v==true?warehouseScope.add(wh.name):warehouseScope.remove(wh.name))))
     ])),
     actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){
-      if(name.text.trim().isEmpty||!RegExp(r'^\\d{4,8}
+      if(name.text.trim().isEmpty||!validPin(pin.text.trim())){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اسم المستخدم مطلوب والـ PIN يجب أن يكون من 4 إلى 8 أرقام')));return;}
       if(existing==null){if(users.any((u)=>u.name==name.text.trim())){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اسم المستخدم موجود بالفعل')));return;}users.add(AppUser(name.text.trim(),pin.text.trim(),admin,Set<String>.from(perms),Set<String>.from(siteScope),Set<String>.from(warehouseScope)));}
       else{existing.name=name.text.trim();existing.pin=pin.text.trim();existing.admin=admin;existing.permissions=Set<String>.from(perms);existing.sites=Set<String>.from(siteScope);existing.warehouses=Set<String>.from(warehouseScope);}
       addAudit(existing==null?'إضافة':'تعديل','مستخدم',name.text.trim());save();setState((){});Navigator.pop(x);
