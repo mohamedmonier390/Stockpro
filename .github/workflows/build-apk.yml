@@ -52,6 +52,11 @@ jobs:
           s=s.replace('android:icon="@mipmap/ic_launcher"', 'android:icon="@mipmap/ic_launcher"')
           if 'android:icon="@mipmap/ic_launcher"' not in s: raise SystemExit("Launcher icon entry missing")
           manifest.write_text(s)
+          # Remove Flutter starter adaptive icons so the custom PNGs are used on all Android versions.
+          for density in ("anydpi-v26",):
+              folder=Path(f"android/app/src/main/res/mipmap-{density}")
+              for name in ("ic_launcher.xml","ic_launcher_round.xml"):
+                  (folder/name).unlink(missing_ok=True)
           PY
       - name: Configure label and release signing
         env:
