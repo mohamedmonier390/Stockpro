@@ -604,6 +604,7 @@ Widget itemPage() => ListView(
         OutlinedButton.icon(onPressed: () => movementDialog('صرف'), icon: const Icon(Icons.remove_circle), label: const Text('صرف خامات')),
         OutlinedButton.icon(onPressed: recipeDialog, icon: const Icon(Icons.menu_book), label: const Text('وصفات الوجبات')),
       ]),
+    const Card(child:ListTile(leading:Icon(Icons.info_outline,color:Colors.teal),title:Text('تكلفة الموقع من الصرف الفعلي'),subtitle:Text('التحويل بين المخازن لا يُحسب تكلفة. صرف الخامات للاستهلاك من مخزن الموقع يُضاف تلقائيًا لتكلفة الموقع، مع حفظ تكلفة الوحدة وقت الصرف.'))),
     if (visibleItems.isEmpty)
       const Card(child: Padding(padding: EdgeInsets.all(18), child: Text('لا توجد خامات أو لا توجد مخازن مسموح بها'))),
     ...visibleItems.map((x) => Card(
