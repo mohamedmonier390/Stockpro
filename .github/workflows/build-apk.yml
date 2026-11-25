@@ -123,7 +123,7 @@ jobs:
               expect(find.text('StockPro Business'), findsOneWidget);
               await tester.pump(const Duration(milliseconds: 2300));
               await tester.pumpAndSettle();
-              expect(find.text('دخول'), findsOneWidget);
+              expect(find.text('Login'), findsOneWidget);
             });
           }
           EOF
