@@ -59,15 +59,15 @@ jobs:
           Path("android/app/build.gradle").write_text("""import java.util.Properties
 import java.io.FileInputStream
 
-def signingProps = new Properties()
-def signingFile = rootProject.file('key.properties')
-signingProps.load(new FileInputStream(signingFile))
-
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'dev.flutter.flutter-gradle-plugin'
 }
+
+def signingProps = new Properties()
+def signingFile = rootProject.file('key.properties')
+signingProps.load(new FileInputStream(signingFile))
 
 android {
     namespace 'com.stockpro.stockpro'
