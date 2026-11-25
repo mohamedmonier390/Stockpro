@@ -14,8 +14,8 @@ create policy company_snapshot_member_read on public.company_data_snapshots
 drop policy if exists company_snapshot_member_write on public.company_data_snapshots;
 create policy company_snapshot_member_write on public.company_data_snapshots
   for all to authenticated
-  using (public.is_company_member(company_id))
-  with check (public.is_company_member(company_id));
+  using (public.is_company_member(company_id) and public.has_company_permission(company_id,'المزامنة'))
+  with check (public.is_company_member(company_id) and public.has_company_permission(company_id,'المزامنة'));
 
 create or replace function public.get_company_snapshot(target_company uuid)
 returns table(payload jsonb, revision bigint, updated_at timestamptz, updated_by uuid)
