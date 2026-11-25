@@ -134,7 +134,7 @@ jobs:
       - name: Run smoke test
         run: flutter test
       - name: Build signed release APK
-        run: flutter build apk --release --build-number ${{ github.run_number }}
+        run: flutter build apk --release --build-number ${{ github.run_number }} --dart-define=dart.library.io.force_staggered_ipv6_lookup=true
       - name: Verify APK package and permanent signing certificate
         run: |
           APK=build/app/outputs/flutter-apk/app-release.apk
