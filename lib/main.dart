@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:archive/archive.dart' as zip;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
@@ -965,7 +966,39 @@ Future<void> importExcel() async {
   if(picked==null)return;
   final bytes=picked.files.single.bytes;
   if(bytes==null||bytes.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أستطع قراءة الملف. احفظه بصيغة Excel .xlsx وحاول مرة أخرى.')));return;}
-  final book=Excel.decodeBytes(bytes);
+  // Normalize OpenXML workbook relationship targets before decoding.
+  // Some valid XLSX writers (including OpenPyXL) use absolute /xl/... targets.
+  // excel 4.0.6 prefixes every target with "xl/" and crashes on those paths.
+  List<int> excelBytes = bytes;
+  final sourceArchive = zip.ZipDecoder().decodeBytes(bytes);
+  final relationships = sourceArchive.findFile('xl/_rels/workbook.xml.rels');
+  if (relationships != null) {
+   final originalXml = utf8.decode(relationships.content);
+   final normalizedXml = originalXml.replaceAllMapped(
+    RegExp(r'(Target\\s*=\\s*["\\'])([^"\\']+)(["\\'])'),
+    (match) {
+     var target = match.group(2)!;
+     if (target.startsWith('/xl/')) {
+      target = target.substring(4);
+     } else if (target.startsWith('xl/')) {
+      target = target.substring(3);
+     }
+     return '${match.group(1)}$target${match.group(3)}';
+    },
+   );
+   if (normalizedXml != originalXml) {
+    final normalizedArchive = zip.Archive();
+    for (final part in sourceArchive.files) {
+     if (!part.isFile) continue;
+     final content = part.name == 'xl/_rels/workbook.xml.rels'
+      ? Uint8List.fromList(utf8.encode(normalizedXml))
+      : part.content;
+     normalizedArchive.addFile(zip.ArchiveFile(part.name, content.length, content));
+    }
+    excelBytes = zip.ZipEncoder().encode(normalizedArchive);
+   }
+  }
+  final book=Excel.decodeBytes(excelBytes);
   const aliases=<String,List<String>>{
    'ItemCode':['itemcode','code','item code','كودالصنف','كودالخامة','الكود'],
    'ItemName':['itemname','name','item name','اسمالصنف','اسمالخامة','الصنف'],
