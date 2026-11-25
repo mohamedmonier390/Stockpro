@@ -597,7 +597,8 @@ Widget itemPage() => ListView(
     ]),
     if (visibleWarehouses.isNotEmpty)
       Wrap(spacing: 8, children: [
-        OutlinedButton.icon(onPressed: () => movementDialog('صرف للموقع'), icon: const Icon(Icons.output), label: const Text('صرف للاستهلاك بالموقع')),\n        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('استيراد بيانات المخزون')), 
+        OutlinedButton.icon(onPressed: () => movementDialog('صرف للموقع'), icon: const Icon(Icons.output), label: const Text('صرف للاستهلاك بالموقع')),
+        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('استيراد بيانات المخزون')), 
         OutlinedButton.icon(onPressed: exportImportTemplate, icon: const Icon(Icons.download), label: const Text('تحميل قالب الاستيراد')),
         OutlinedButton.icon(onPressed: () => movementDialog('استلام'), icon: const Icon(Icons.add_box), label: const Text('استلام خامات')),
         OutlinedButton.icon(onPressed: () => movementDialog('صرف'), icon: const Icon(Icons.remove_circle), label: const Text('صرف خامات')),
@@ -882,7 +883,7 @@ DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuIt
 field(qty,'الكمية بوحدة '+selected.unit,numeric:true),field(note,'ملاحظات'),Text('الرصيد الحالي: '+qtyText(balance(selected,wh.name))+' '+selected.unit)
 ]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
 final amount=double.tryParse(qty.text.trim().replaceAll(',','.'));if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل كمية صحيحة')));return;}
-final current=balance(selected,wh.name);if(type=='صرف'&&amount>current){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('رصيد غير كافٍ بالمخزن')));return;}
+final current=balance(selected,wh.name);if((type=='صرف'||type=='صرف للموقع')&&amount>current){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('رصيد غير كافٍ بالمخزن')));return;}
 setBalance(selected,wh.name,current+(type=='استلام'?amount:-amount));final movementNote=type=='صرف للموقع'?'موقع: '+wh.site+(note.text.trim().isEmpty?'':' • '+note.text.trim()):note.text.trim();movements.add(Movement(selected.n,type,amount,movementNote,DateTime.now(),wh.name,'',selected.cost));addAudit(type,'حركة مخزون',selected.n+' • '+qtyText(amount)+' '+selected.unit+' • '+wh.name+' • '+movementNote);save();setState(()=>{});Navigator.pop(dc);
 },child:const Text('تأكيد'))])));
 }
