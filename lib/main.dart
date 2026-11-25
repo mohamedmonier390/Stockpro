@@ -648,7 +648,7 @@ Future<void> exportReportExcel(List<Day> periodDays,DateTime from,DateTime to)as
   summary.appendRow([TextCellValue('تقرير StockPro'),TextCellValue('من'),TextCellValue(reportDateText(from)),TextCellValue('إلى'),TextCellValue(reportDateText(to))]);
   summary.appendRow([TextCellValue('المؤشر'),TextCellValue('القيمة')]);
   int breakfast=0,lunch=0,dinner=0,extra=0;double revenue=0,rawCost=0;final periodExpenses=expenses.where((x){final date=DateTime(x.date.year,x.date.month,x.date.day);return !date.isBefore(DateTime(from.year,from.month,from.day))&&!date.isAfter(DateTime(to.year,to.month,to.day))&&(current.admin||current.sites.contains(x.site));}).toList();final expensesTotal=periodExpenses.fold<double>(0.0,(double sum,Expense x)=>sum+x.amount);
-  for(final entry in periodDays){breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;revenue+=rev(entry);}rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));
+  for(final entry in periodDays){breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;revenue+=rev(entry);}rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));
   summary.appendRow([TextCellValue('إفطار'),IntCellValue(breakfast)]);
   summary.appendRow([TextCellValue('غداء'),IntCellValue(lunch)]);
   summary.appendRow([TextCellValue('عشاء'),IntCellValue(dinner)]);
@@ -694,6 +694,7 @@ Widget reportPage(){
     breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;
     revenue+=rev(entry);
   }
+  rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));
   final allMeals=breakfast+lunch+dinner+extra;
   final rows=<Widget>[
     const Text('تقرير الوجبات والإيرادات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
