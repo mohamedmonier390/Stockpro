@@ -80,53 +80,46 @@ class App extends StatelessWidget {
 }
 class LoginScreen extends StatefulWidget{const LoginScreen({super.key});@override State<LoginScreen> createState()=>LoginState();}
 class LoginState extends State<LoginScreen>{
-  final pin=TextEditingController();List<AppUser> users=[];AppUser? selected;bool loading=true;
+  final pin=TextEditingController();List<AppUser> users=[];AppUser? selected;bool loading=true;bool showPin=false;
   @override void initState(){super.initState();loadUsers();}
   Future<void> loadUsers()async{final p=await SharedPreferences.getInstance();try{users=(jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))).toList();}catch(_){}if(users.isEmpty){users=[AppUser('المدير','',true,Set<String>.from(AppUser.modules))];await p.setString('users',jsonEncode(users.map((u)=>u.j()).toList()));}selected=users.first;setState(()=>loading=false);}
   Future<void> enter()async{if(selected==null)return;if(pin.text!=selected!.pin){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PIN غير صحيح')));return;}final p=await SharedPreferences.getInstance();await p.setString('activeUser',selected!.name);if(!mounted)return;Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const Hub()));}
-  @override
-  Widget build(BuildContext c) {
-    if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const MonierBrand(size: 82),
-                const Text('StockPro', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xff092d50))),
-                const SizedBox(height: 22),
-                DropdownButtonFormField<AppUser>(
-                  value: selected,
-                  decoration: const InputDecoration(labelText: 'المستخدم', border: OutlineInputBorder()),
-                  items: users.map((u) => DropdownMenuItem(value: u, child: Text(u.name))).toList(),
-                  onChanged: (u) => setState(() => selected = u),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: pin,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'PIN', border: OutlineInputBorder()),
-                  onSubmitted: (_) => enter(),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(onPressed: enter, child: const Text('دخول')),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  @override Widget build(BuildContext c){
+    if(loading)return const Scaffold(body:Center(child:CircularProgressIndicator()));
+    final width=MediaQuery.sizeOf(c).width;
+    return Scaffold(body:Stack(children:[
+      Positioned.fill(child:Container(decoration:const BoxDecoration(gradient:LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xfff5f8fc),Color(0xffffffff),Color(0xffe9f0f7)])))),
+      Positioned(top:-100,left:-100,child:Container(width:260,height:260,decoration:const BoxDecoration(shape:BoxShape.circle,color:Color(0xff159b20)))),
+      Positioned(top:-80,left:-70,child:Container(width:220,height:220,decoration:const BoxDecoration(shape:BoxShape.circle,color:Color(0xff0b3970)))),
+      Positioned(bottom:-90,right:-80,child:Container(width:270,height:270,decoration:const BoxDecoration(shape:BoxShape.circle,color:Color(0xff062a50)))),
+      Positioned(bottom:-110,right:-80,child:Container(width:225,height:225,decoration:const BoxDecoration(shape:BoxShape.circle,color:Color(0xff21a447)))),
+      SafeArea(child:LayoutBuilder(builder:(ctx,box)=>SingleChildScrollView(child:ConstrainedBox(constraints:BoxConstraints(minHeight:box.maxHeight),child:Center(child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:520),child:Padding(padding:EdgeInsets.symmetric(horizontal:width<380?14:24,vertical:18),child:Column(mainAxisAlignment:MainAxisAlignment.center,mainAxisSize:MainAxisSize.min,children:[
+        const MonierBrand(size:82),
+        const SizedBox(height:4),
+        RichText(text:const TextSpan(children:[TextSpan(text:'Stock',style:TextStyle(color:Color(0xff092d50),fontSize:48,fontWeight:FontWeight.w900,letterSpacing:-2)),TextSpan(text:'Pro',style:TextStyle(color:Color(0xff19a52b),fontSize:48,fontWeight:FontWeight.w900,letterSpacing:-2))])),
+        const Text('Inventory • Operations • Better Control',style:TextStyle(color:Color(0xff092d50),fontSize:15,fontStyle:FontStyle.italic,fontWeight:FontWeight.w600),),
+        const SizedBox(height:6),
+        const Text('By Monier',style:TextStyle(color:Color(0xff092d50),fontSize:21,fontStyle:FontStyle.italic,fontWeight:FontWeight.bold)),
+        const SizedBox(height:18),
+        Card(elevation:8,shadowColor:const Color(0x33092d50),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(26)),child:Padding(padding:const EdgeInsets.all(20),child:Column(children:[
+          const Row(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.groups_rounded,size:45,color:Color(0xff092d50)),SizedBox(width:10),Text('Login',style:TextStyle(fontSize:38,fontWeight:FontWeight.w900,color:Color(0xff092d50)))]),
+          const SizedBox(height:2),const Text('Welcome to StockPro',style:TextStyle(fontSize:17,color:Color(0xff4b5870),fontStyle:FontStyle.italic)),
+          const SizedBox(height:18),
+          DropdownButtonFormField<AppUser>(value:selected,decoration:InputDecoration(prefixIcon:const Icon(Icons.person,color:Color(0xff092d50)),hintText:'Username',filled:true,fillColor:const Color(0xfff7f9fc),border:OutlineInputBorder(borderRadius:BorderRadius.circular(16)),enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:const BorderSide(color:Color(0xffc5cedb),width:1.5))),items:users.map((u)=>DropdownMenuItem(value:u,child:Text(u.name,overflow:TextOverflow.ellipsis))).toList(),onChanged:(u)=>setState(()=>selected=u)),
+          const SizedBox(height:12),
+          TextField(controller:pin,obscureText:!showPin,keyboardType:TextInputType.number,decoration:InputDecoration(prefixIcon:const Icon(Icons.lock_rounded,color:Color(0xff092d50)),hintText:'Password / PIN',suffixIcon:IconButton(onPressed:()=>setState(()=>showPin=!showPin),icon:Icon(showPin?Icons.visibility:Icons.visibility_off,color:const Color(0xff59647a))),filled:true,fillColor:const Color(0xfff7f9fc),border:OutlineInputBorder(borderRadius:BorderRadius.circular(16)),enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:const BorderSide(color:Color(0xffc5cedb),width:1.5)),contentPadding:const EdgeInsets.symmetric(vertical:18)),onSubmitted:(_)=>enter()),
+          const SizedBox(height:16),
+          SizedBox(width:double.infinity,height:56,child:FilledButton(style:FilledButton.styleFrom(backgroundColor:const Color(0xff17a31c),foregroundColor:Colors.white,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(16))),onPressed:enter,child:const Row(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.login_rounded,size:30),SizedBox(width:10),Text('Login',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold))]))),
+        ]))),
+        const SizedBox(height:12),
+        Row(children:[_loginFeature(Icons.warehouse_rounded,'Multiple\nWarehouses'),_loginDivider(),_loginFeature(Icons.fact_check_rounded,'Track\nMovements'),_loginDivider(),_loginFeature(Icons.bar_chart_rounded,'Control\nInventory'),_loginDivider(),_loginFeature(Icons.verified_user_rounded,'Secure\nAccess')]),
+        const SizedBox(height:12),
+        Container(width:double.infinity,padding:const EdgeInsets.symmetric(vertical:12,horizontal:8),decoration:BoxDecoration(color:const Color(0xff062a50),borderRadius:BorderRadius.circular(14)),child:Column(children:[RichText(text:const TextSpan(children:[TextSpan(text:'StockPro by ',style:TextStyle(color:Colors.white,fontSize:15)),TextSpan(text:'Monier',style:TextStyle(color:Color(0xff20b83a,fontSize:15,fontWeight:FontWeight.bold)),TextSpan(text:' © 2026',style:TextStyle(color:Colors.white,fontSize:15))])),const SizedBox(height:4),const Text('Together for a Smarter Business',style:TextStyle(color:Colors.white,fontStyle:FontStyle.italic,fontSize:13))]))
+      ])))))),
+    ])]));
   }
+  Widget _loginFeature(IconData icon,String text)=>Expanded(child:Column(mainAxisSize:MainAxisSize.min,children:[Icon(icon,color:const Color(0xff092d50),size:34),const SizedBox(height:3),Text(text,textAlign:TextAlign.center,style:const TextStyle(color:Color(0xff092d50),fontSize:11.5,fontWeight:FontWeight.w600))]));
+  Widget _loginDivider()=>Container(height:52,width:2,color:const Color(0xff20a638),margin:const EdgeInsets.symmetric(horizontal:3));
 }
 class AnimatedSplash extends StatefulWidget {const AnimatedSplash({super.key});@override State<AnimatedSplash> createState()=>_AnimatedSplashState();}
 class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStateMixin {
