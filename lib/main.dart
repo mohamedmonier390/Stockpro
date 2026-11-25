@@ -995,7 +995,11 @@ Future<void> importExcel() async {
       : part.content;
      normalizedArchive.addFile(zip.ArchiveFile(part.name, content.length, content));
     }
-    excelBytes = zip.ZipEncoder().encode(normalizedArchive);
+    final normalizedBytes = zip.ZipEncoder().encode(normalizedArchive);
+    if (normalizedBytes == null || normalizedBytes.isEmpty) {
+     throw const FormatException('تعذر تجهيز ملف Excel للاستيراد');
+    }
+    excelBytes = normalizedBytes;
    }
   }
   final book=Excel.decodeBytes(excelBytes);
