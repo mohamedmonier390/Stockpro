@@ -20,6 +20,8 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   String? cloudCompanyUserId;
   String cloudSnapshotStatus = 'لم يتم فحص النسخة السحابية بعد.';
   String? localAutoSyncAt;
+  int sharedRevision = 0;
+  String sharedSnapshotStatus = 'لم يتم فحص بيانات الشركة المشتركة بعد.';
   @override void initState() { super.initState(); _loadCompanyLink(); }
   Future<void> _loadCompanyLink() async { final p=await SharedPreferences.getInstance(); cloudCompanyId=p.getString('cloudCompanyId'); cloudCompanyUserId=p.getString('cloudCompanyUserId'); localAutoSyncAt=p.getString('cloudLastAutoSync'); if(mounted)setState((){}); if(hasCompanyLink) await checkSnapshotStatus(); }
   String _formatCloudDate(String? raw){if(raw==null||raw.isEmpty)return 'غير متوفر';final d=DateTime.tryParse(raw);if(d==null)return raw;final x=d.toLocal();return '${x.year}/${x.month.toString().padLeft(2,'0')}/${x.day.toString().padLeft(2,'0')} ${x.hour.toString().padLeft(2,'0')}:${x.minute.toString().padLeft(2,'0')}';}
@@ -104,6 +106,64 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     if(mounted)setState(()=>busy=false);
   }
 
+  Future<void> checkSharedSnapshotStatus() async {
+    if(!hasCompanyLink)return;
+    try {
+      final result=await Supabase.instance.client.rpc('get_company_snapshot',params:{'target_company':cloudCompanyId});
+      if(result is List && result.isNotEmpty){final row=result.first as Map;sharedRevision=int.tryParse(row['revision'].toString())??0;sharedSnapshotStatus='بيانات الشركة المشتركة — آخر تحديث: ${_formatCloudDate(row['updated_at']?.toString())} | Revision: $sharedRevision';}
+      else {sharedRevision=0;sharedSnapshotStatus='لا توجد بيانات مشتركة على السيرفر بعد (Revision 0).';}
+    } catch(e) {sharedSnapshotStatus='تعذر قراءة بيانات الشركة المشتركة: $e';}
+    if(mounted)setState((){});
+  }
+
+  Future<void> uploadSharedCompanyData() async {
+    if(!hasCompanyLink){setState(()=>message='اربط الحساب بالشركة أولًا.');return;}
+    setState(()=>busy=true);
+    try {
+      await checkSharedSnapshotStatus();
+      final prefs=await SharedPreferences.getInstance();
+      const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses'];
+      final snapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};
+      for(final k in keys){snapshot[k]=prefs.get(k);}
+      final rev=await Supabase.instance.client.rpc('save_company_snapshot',params:{'target_company':cloudCompanyId,'snapshot':snapshot,'expected_revision':sharedRevision});
+      sharedRevision=int.tryParse(rev.toString())??sharedRevision+1;
+      message='تم رفع بيانات الشركة المشتركة بنجاح — Revision $sharedRevision. أي جهاز قديم لازم ينزّل آخر نسخة قبل رفع تعديلاته.';
+      await checkSharedSnapshotStatus();
+    } on PostgrestException catch(e) {
+      final msg=e.message;
+      message=msg.contains('REVISION_CONFLICT')?'⚠️ حصل تعديل من جهاز آخر. حدّث الحالة ثم نزّل أحدث نسخة قبل الرفع.':msg.contains('Sync permission')?'الحساب لا يملك صلاحية مزامنة بيانات الشركة. اطلب من المدير تفعيل صلاحية «المزامنة».':'فشل رفع بيانات الشركة: $msg';
+    } catch(e){message='فشل رفع بيانات الشركة المشتركة: $e';}
+    if(mounted)setState(()=>busy=false);
+  }
+
+  Future<void> downloadSharedCompanyData() async {
+    if(!hasCompanyLink){setState(()=>message='اربط الحساب بالشركة أولًا.');return;}
+    setState(()=>busy=true);
+    try {
+      final response=await Supabase.instance.client.rpc('get_company_snapshot',params:{'target_company':cloudCompanyId});
+      if(response is! List || response.isEmpty){message='لا توجد بيانات مشتركة بعد. أول جهاز يرفع بيانات الشركة.';}
+      else {
+        final row=response.first as Map;final payload=row['payload'];
+        if(payload is! Map || payload['app']!='StockPro' || payload['schema']!=1)throw Exception('البيانات المشتركة غير متوافقة.');
+        final remoteRev=int.tryParse(row['revision'].toString())??0;
+        final yes=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('تنزيل بيانات الشركة المشتركة'),content:Text('سيتم استبدال بيانات التشغيل المحلية ببيانات الشركة المشتركة Revision $remoteRev. سيتم حفظ نسخة محلية للتراجع. بيانات حسابات PIN المحلية لن يتم استبدالها.'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('تنزيل واستبدال'))]));
+        if(yes==true){
+          final prefs=await SharedPreferences.getInstance();
+          const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses'];
+          final backup=<String,dynamic>{'createdAt':DateTime.now().toIso8601String()};
+          for(final key in keys){backup[key]=prefs.get(key);}
+          await prefs.setString('cloudRestoreSafetyBackup',jsonEncode(backup));
+          for(final key in keys){if(payload.containsKey(key)){final v=payload[key];if(v==null){await prefs.remove(key);}else if(v is String){await prefs.setString(key,v);}else{await prefs.setString(key,jsonEncode(v));}}}
+          sharedRevision=remoteRev;
+          message='تم تنزيل بيانات الشركة المشتركة Revision $remoteRev. نسخة محلية محفوظة للتراجع. أغلق البرنامج وافتحه لتحديث الشاشة.';
+        }else{message='تم إلغاء التنزيل.';}
+      }
+      await checkSharedSnapshotStatus();
+    } on PostgrestException catch(e){message='فشل التنزيل المشترك: ${e.message}';}
+    catch(e){message='فشل تنزيل بيانات الشركة: $e';}
+    if(mounted)setState(()=>busy=false);
+  }
+
   Future<void> rollbackCloudRestore() async {
     final prefs=await SharedPreferences.getInstance();
     final raw=prefs.getString('cloudRestoreSafetyBackup');
@@ -165,7 +225,8 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           if (user != null) TextButton.icon(onPressed: busy ? null : logout, icon: const Icon(Icons.logout), label: const Text('تسجيل الخروج')),
           if (hasCompanyLink) Padding(padding: const EdgeInsets.only(top:12),child:Text('الشركة المرتبطة: $cloudCompanyId',style:const TextStyle(fontSize:12))),
         ]))),
-        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مزامنة بيانات الجهاز',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('تم تفعيل النسخ الاحتياطي التلقائي: بعد أي تعديل وحفظ محلي، يرفع StockPro نسخة لحسابك خلال ثوانٍ عند توفر الإنترنت. استخدم تنزيل نسخة الكلاود لاستعادة البيانات على جهاز آخر. النسخ خاص بحسابك ولا تتم مشاركته تلقائيًا مع حسابات الفريق.'),const SizedBox(height:10),Text('آخر رفع تلقائي من هذا الجهاز: ${_formatCloudDate(localAutoSyncAt)}'),const SizedBox(height:6),Text(cloudSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSnapshotStatus,icon:const Icon(Icons.refresh),label:const Text('تحديث حالة النسخة')),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع بيانات الجهاز')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل نسخة الكلاود')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('التراجع واستعادة النسخة المحلية'))])]))),
+        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('النسخ الاحتياطي الشخصي',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('نسخة خاصة بحسابك لاستعادة بياناتك على جهاز آخر.'),const SizedBox(height:10),Text('آخر رفع تلقائي: ${_formatCloudDate(localAutoSyncAt)}'),const SizedBox(height:6),Text(cloudSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSnapshotStatus,icon:const Icon(Icons.refresh),label:const Text('تحديث حالة النسخة')),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع النسخة الشخصية')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل النسخة الشخصية')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('استعادة النسخة المحلية السابقة'))])]))),
+        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مشاركة بيانات الشركة بين الأجهزة',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('هذه مساحة مشتركة للشركة، وليست النسخة الشخصية. ارفع من جهاز واحد أولًا. قبل رفع جهاز آخر، نزّل أحدث نسخة لتجنب تعارض التعديلات. حماية Revision تمنع رفع نسخة قديمة فوق تحديث أحدث. حسابات PIN المحلية تبقى منفصلة.'),const SizedBox(height:8),Text(sharedSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSharedSnapshotStatus,icon:const Icon(Icons.sync),label:const Text('تحديث حالة المشاركة')),const SizedBox(height:10),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:uploadSharedCompanyData,icon:const Icon(Icons.cloud_upload_outlined),label:const Text('رفع بيانات الشركة')),OutlinedButton.icon(onPressed:busy?null:downloadSharedCompanyData,icon:const Icon(Icons.cloud_download_outlined),label:const Text('تنزيل بيانات الشركة')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('التراجع عن الاستبدال'))])]))),
         if (busy) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
         if (message.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(message))),
         const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('قاعدة البيانات مجهزة. ارفع نسخة من جهاز واحد أولاً؛ تنزيل نسخة الكلاود يستبدل بيانات الجهاز بعد التأكيد. هذه المرحلة نسخة شخصية بين الأجهزة وليست مشاركة فريق أو مزامنة تلقائية.'))),
