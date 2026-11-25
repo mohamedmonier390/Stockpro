@@ -975,7 +975,7 @@ Future<void> importExcel() async {
   if (relationships != null) {
    final originalXml = utf8.decode(relationships.content);
    final normalizedXml = originalXml.replaceAllMapped(
-    RegExp(r'(Target\\s*=\\s*["\\'])([^"\\']+)(["\\'])'),
+    RegExp(r'''(Target\s*=\s*["'])([^"']+)(["'])'''),
     (match) {
      var target = match.group(2)!;
      if (target.startsWith('/xl/')) {
