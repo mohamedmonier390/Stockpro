@@ -149,17 +149,13 @@ class LoginState extends State<LoginScreen>{
     );
 
     final features = Row(children: [
-      _loginFeature(Icons.warehouse_rounded, 'Multiple
-Warehouses'),
+      _loginFeature(Icons.warehouse_rounded, 'Multiple\nWarehouses'),
       _loginDivider(),
-      _loginFeature(Icons.fact_check_rounded, 'Track
-Movements'),
+      _loginFeature(Icons.fact_check_rounded, 'Track\nMovements'),
       _loginDivider(),
-      _loginFeature(Icons.bar_chart_rounded, 'Control
-Inventory'),
+      _loginFeature(Icons.bar_chart_rounded, 'Control\nInventory'),
       _loginDivider(),
-      _loginFeature(Icons.verified_user_rounded, 'Secure
-Access'),
+      _loginFeature(Icons.verified_user_rounded, 'Secure\nAccess'),
     ]);
 
     final footer = Container(
@@ -438,8 +434,7 @@ Future<void> expenseDialog({Expense? existing}) async {
   );
 }
 Future<void> deleteExpense(Expense x)async{final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف المصروف'),content:Text('حذف مصروف ${cash(x.amount)} — ${x.site}؟'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));if(ok==true){expenses.remove(x);addAudit('حذف','مصروف',x.site+' • '+cash(x.amount));await save();if(mounted)setState((){});}}
-Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'
-'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
+Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'\n'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
 Widget userPage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('المستخدمون والصلاحيات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:userDialog,icon:const Icon(Icons.person_add),label:const Text('إضافة مستخدم')),if(current.admin)OutlinedButton.icon(onPressed:auditLogDialog,icon:const Icon(Icons.history),label:const Text('سجل التدقيق'))]),Card(child:ListTile(leading:const Icon(Icons.account_circle),title:const Text('المستخدم الحالي'),subtitle:Text(activeUser),trailing:const Icon(Icons.verified_user,color:Colors.teal))),const Card(child:ListTile(title:Text('أمان الدخول'),subtitle:Text('تغيير المستخدم يتم بعد تسجيل الخروج وإدخال PIN الخاص به. الحسابات والصلاحيات محلية على هذا الجهاز.'))),...users.map((u)=>Card(child:ListTile(leading:Icon(u.admin?Icons.admin_panel_settings:Icons.person),title:Text(u.name),subtitle:Text(u.admin?'مدير — صلاحيات كاملة':'صلاحيات: '+u.permissions.join('، ')),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>userDialog(existing:u)))))]); 
 Future<void> userDialog({AppUser? existing})async{
   final name=TextEditingController(text:existing?.name??'');final pin=TextEditingController(text:existing?.pin??'');bool admin=existing?.admin??false;
@@ -553,8 +548,7 @@ Widget dashboard() {
           children: [
             Text('لوحة التحكم', style: TextStyle(color: Colors.white70, fontSize: 13)),
             SizedBox(height: 8),
-            Text('إدارة مواقع التغذية
-بكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
+            Text('إدارة مواقع التغذية\nبكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
             SizedBox(height: 8),
             Text('الوجبات • المخزون • الإيرادات • متابعة المواقع', style: TextStyle(color: Colors.white70, fontSize: 12)),
           ],
