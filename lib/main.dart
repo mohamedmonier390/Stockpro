@@ -149,13 +149,17 @@ class LoginState extends State<LoginScreen>{
     );
 
     final features = Row(children: [
-      _loginFeature(Icons.warehouse_rounded, 'Multiple\nWarehouses'),
+      _loginFeature(Icons.warehouse_rounded, 'Multiple
+Warehouses'),
       _loginDivider(),
-      _loginFeature(Icons.fact_check_rounded, 'Track\nMovements'),
+      _loginFeature(Icons.fact_check_rounded, 'Track
+Movements'),
       _loginDivider(),
-      _loginFeature(Icons.bar_chart_rounded, 'Control\nInventory'),
+      _loginFeature(Icons.bar_chart_rounded, 'Control
+Inventory'),
       _loginDivider(),
-      _loginFeature(Icons.verified_user_rounded, 'Secure\nAccess'),
+      _loginFeature(Icons.verified_user_rounded, 'Secure
+Access'),
     ]);
 
     final footer = Container(
@@ -294,7 +298,12 @@ double rev(Day x){final s=sites.where((z)=>z.name==x.site);return s.isEmpty?0:x.
 int get mealTotal=>days.where((x)=>today(x.date)).fold(0,(a,x)=>a+x.b+x.l+x.d+x.e);
 double get revToday=>days.where((x)=>today(x.date)).fold(0.0,(a,x)=>a+rev(x));
 double get stock=>items.fold(0.0,(a,x)=>a+x.q*x.cost);
-bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin||users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).permissions.contains(module);void siteAdd(Site x){setState(()=>sites.add(x));save();}void dayAdd(Day x){setState(()=>days.add(x));save();}void itemAdd(Item x){stockBalances.putIfAbsent(mainWarehouse.name,()=>{});stockBalances[mainWarehouse.name]![x.n]=x.q;setState(()=>items.add(x));save();}Warehouse get mainWarehouse=>warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);double balance(Item item,String warehouse)=>stockBalances[warehouse]?[item.n]??0;void setBalance(Item item,String warehouse,double value){stockBalances.putIfAbsent(warehouse,()=>{});stockBalances[warehouse]![item.n]=value;if(warehouse==mainWarehouse.name)item.q=value;}\n double movementCost(Movement m){final item=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));return m.qty*(m.unitCost??item.cost);}\n String? movementSite(Movement m){if(m.type=='استهلاك وجبات'&&m.note.startsWith('موقع: '))return m.note.substring(6).split(' • ').first.trim();final wh=warehouses.where((w)=>w.name==m.warehouse).firstOrNull;if(wh!=null&&!wh.main&&wh.site.isNotEmpty&&wh.site!='كل الشركة')return wh.site;return null;}\n bool isSiteConsumption(Movement m){if(m.type=='استهلاك وجبات'||m.type=='صرف للموقع')return true;if(m.type=='صرف'){final wh=warehouses.where((w)=>w.name==m.warehouse).firstOrNull;return wh!=null&&!wh.main&&wh.site.isNotEmpty&&wh.site!='كل الشركة';}return false;}\n List<Movement> siteCostMovements(String site,DateTime from,DateTime to){final start=DateTime(from.year,from.month,from.day),end=DateTime(to.year,to.month,to.day);return movements.where((m){final d=DateTime(m.date.year,m.date.month,m.date.day);return isSiteConsumption(m)&&movementSite(m)==site&&!d.isBefore(start)&&!d.isAfter(end);}).toList();}\n double siteMaterialCost(String site,DateTime from,DateTime to)=>siteCostMovements(site,from,to).fold<double>(0,(sum,m)=>sum+movementCost(m));
+bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin||users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).permissions.contains(module);void siteAdd(Site x){setState(()=>sites.add(x));save();}void dayAdd(Day x){setState(()=>days.add(x));save();}void itemAdd(Item x){stockBalances.putIfAbsent(mainWarehouse.name,()=>{});stockBalances[mainWarehouse.name]![x.n]=x.q;setState(()=>items.add(x));save();}Warehouse get mainWarehouse=>warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);double balance(Item item,String warehouse)=>stockBalances[warehouse]?[item.n]??0;void setBalance(Item item,String warehouse,double value){stockBalances.putIfAbsent(warehouse,()=>{});stockBalances[warehouse]![item.n]=value;if(warehouse==mainWarehouse.name)item.q=value;}
+ double movementCost(Movement m){final item=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));return m.qty*(m.unitCost??item.cost);}
+ String? movementSite(Movement m){if(m.type=='استهلاك وجبات'&&m.note.startsWith('موقع: '))return m.note.substring(6).split(' • ').first.trim();final wh=warehouses.where((w)=>w.name==m.warehouse).firstOrNull;if(wh!=null&&!wh.main&&wh.site.isNotEmpty&&wh.site!='كل الشركة')return wh.site;return null;}
+ bool isSiteConsumption(Movement m){if(m.type=='استهلاك وجبات'||m.type=='صرف للموقع')return true;if(m.type=='صرف'){final wh=warehouses.where((w)=>w.name==m.warehouse).firstOrNull;return wh!=null&&!wh.main&&wh.site.isNotEmpty&&wh.site!='كل الشركة';}return false;}
+ List<Movement> siteCostMovements(String site,DateTime from,DateTime to){final start=DateTime(from.year,from.month,from.day),end=DateTime(to.year,to.month,to.day);return movements.where((m){final d=DateTime(m.date.year,m.date.month,m.date.day);return isSiteConsumption(m)&&movementSite(m)==site&&!d.isBefore(start)&&!d.isAfter(end);}).toList();}
+ double siteMaterialCost(String site,DateTime from,DateTime to)=>siteCostMovements(site,from,to).fold<double>(0,(sum,m)=>sum+movementCost(m));
  double linkedDayMaterialCost(String dayId)=>movements.where((m)=>m.ref==dayId&&m.type=='استهلاك وجبات').fold<double>(0,(sum,m)=>sum+movementCost(m));
 @override void dispose(){_cloudSyncTimer?.cancel();final channel=_companyRealtimeChannel;if(channel!=null){Supabase.instance.client.removeChannel(channel);}super.dispose();}
 @override
@@ -429,7 +438,8 @@ Future<void> expenseDialog({Expense? existing}) async {
   );
 }
 Future<void> deleteExpense(Expense x)async{final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف المصروف'),content:Text('حذف مصروف ${cash(x.amount)} — ${x.site}؟'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));if(ok==true){expenses.remove(x);addAudit('حذف','مصروف',x.site+' • '+cash(x.amount));await save();if(mounted)setState((){});}}
-Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'\n'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
+Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'
+'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
 Widget userPage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('المستخدمون والصلاحيات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:userDialog,icon:const Icon(Icons.person_add),label:const Text('إضافة مستخدم')),if(current.admin)OutlinedButton.icon(onPressed:auditLogDialog,icon:const Icon(Icons.history),label:const Text('سجل التدقيق'))]),Card(child:ListTile(leading:const Icon(Icons.account_circle),title:const Text('المستخدم الحالي'),subtitle:Text(activeUser),trailing:const Icon(Icons.verified_user,color:Colors.teal))),const Card(child:ListTile(title:Text('أمان الدخول'),subtitle:Text('تغيير المستخدم يتم بعد تسجيل الخروج وإدخال PIN الخاص به. الحسابات والصلاحيات محلية على هذا الجهاز.'))),...users.map((u)=>Card(child:ListTile(leading:Icon(u.admin?Icons.admin_panel_settings:Icons.person),title:Text(u.name),subtitle:Text(u.admin?'مدير — صلاحيات كاملة':'صلاحيات: '+u.permissions.join('، ')),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>userDialog(existing:u)))))]); 
 Future<void> userDialog({AppUser? existing})async{
   final name=TextEditingController(text:existing?.name??'');final pin=TextEditingController(text:existing?.pin??'');bool admin=existing?.admin??false;
@@ -450,7 +460,8 @@ Future<void> userDialog({AppUser? existing})async{
       addAudit(existing==null?'إضافة':'تعديل','مستخدم',name.text.trim());save();setState((){});Navigator.pop(x);
     },child:const Text('حفظ'))])));
 }
-Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:const Text('سجل التدقيق'),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),const SizedBox(height:8),Expanded(child:list.isEmpty?const Center(child:Text('لا توجد سجلات')):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:const Icon(Icons.history),title:Text('${x.action} • ${x.entity}'),subtitle:Text('${x.user} | ${x.date.toLocal()}\n${x.details}'));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]);}));}
+Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:const Text('سجل التدقيق'),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),const SizedBox(height:8),Expanded(child:list.isEmpty?const Center(child:Text('لا توجد سجلات')):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:const Icon(Icons.history),title:Text('${x.action} • ${x.entity}'),subtitle:Text('${x.user} | ${x.date.toLocal()}
+${x.details}'));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]);}));}
 Future<void> showStockProAbout() async {
   await showDialog<void>(
     context: context,
@@ -542,7 +553,8 @@ Widget dashboard() {
           children: [
             Text('لوحة التحكم', style: TextStyle(color: Colors.white70, fontSize: 13)),
             SizedBox(height: 8),
-            Text('إدارة مواقع التغذية\nبكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
+            Text('إدارة مواقع التغذية
+بكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
             SizedBox(height: 8),
             Text('الوجبات • المخزون • الإيرادات • متابعة المواقع', style: TextStyle(color: Colors.white70, fontSize: 12)),
           ],
@@ -579,12 +591,14 @@ Widget warehousePage() => ListView(padding:const EdgeInsets.all(12),children:[
 Row(children:[const Expanded(child:Text('إدارة المخازن',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:warehouseDialog,icon:const Icon(Icons.add),label:const Text('مخزن جديد'))]),
 Wrap(spacing:6,children:[FilledButton.icon(onPressed:transferDialog,icon:const Icon(Icons.swap_horiz),label:const Text('تحويل مخزني')),OutlinedButton.icon(onPressed:stockCountDialog,icon:const Icon(Icons.fact_check),label:const Text('جرد وتسوية')),OutlinedButton.icon(onPressed:movementHistoryDialog,icon:const Icon(Icons.history),label:const Text('سجل الحركات'))]),
 const Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text('رصيد مستقل لكل مخزن'),subtitle:Text('الاستلام والصرف والتحويلات تُسجل على المخزن المحدد.'))),
-  ...visibleWarehouses.map((w)=>Card(child:ListTile(leading:Icon(w.main?Icons.warehouse:Icons.store,color:Colors.teal),title:Text(w.name),subtitle:Text((w.main?'مخزن رئيسي':'مخزن فرعي')+' • '+w.site+'\nقيمة الرصيد: '+cash(items.fold(0.0,(sum,it)=>sum+balance(it,w.name)*it.cost))),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>warehouseDialog(existing:w)))))
+  ...visibleWarehouses.map((w)=>Card(child:ListTile(leading:Icon(w.main?Icons.warehouse:Icons.store,color:Colors.teal),title:Text(w.name),subtitle:Text((w.main?'مخزن رئيسي':'مخزن فرعي')+' • '+w.site+'
+قيمة الرصيد: '+cash(items.fold(0.0,(sum,it)=>sum+balance(it,w.name)*it.cost))),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>warehouseDialog(existing:w)))))
 ]);
 Widget sitePage()=>ListView(padding:const EdgeInsets.all(12),children:[
 Row(children:[const Expanded(child:Text('المواقع والعقود',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:()=>siteDialog(),icon:const Icon(Icons.add),label:const Text('إضافة موقع'))]),
 if(visibleSites.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),
-...visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d)),trailing:IconButton(tooltip:'تعديل الموقع والعقد',icon:const Icon(Icons.edit),onPressed:()=>siteDialog(existing:s))))),
+...visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'
+إفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d)),trailing:IconButton(tooltip:'تعديل الموقع والعقد',icon:const Icon(Icons.edit),onPressed:()=>siteDialog(existing:s))))),
 ]);
 Widget dayPage()=>listPage('سجل الوجبات',visibleDays.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(rev(x))),IconButton(tooltip:'تعديل',icon:const Icon(Icons.edit),onPressed:()=>dayDialog(existing:x)),IconButton(tooltip:'حذف',icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteDay(x))])))).toList(),dayDialog,'تسجيل وجبات');
 Widget itemPage() => ListView(
@@ -610,7 +624,8 @@ Widget itemPage() => ListView(
     ...visibleItems.map((x) => Card(
       child: ListTile(
         title: Text(x.n),
-        subtitle: Text(x.code + ' | ' + x.unit + ' | حد التنبيه ' + qtyText(x.min) + '\n' + visibleWarehouses.map((w) => w.name + ': ' + qtyText(balance(x, w.name))).join(' | ')),
+        subtitle: Text(x.code + ' | ' + x.unit + ' | حد التنبيه ' + qtyText(x.min) + '
+' + visibleWarehouses.map((w) => w.name + ': ' + qtyText(balance(x, w.name))).join(' | ')),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           Column(mainAxisSize: MainAxisSize.min, children: [
             Text(qtyText(visibleWarehouses.fold(0.0, (sum, w) => sum + balance(x, w.name))) + ' ' + x.unit),
@@ -627,7 +642,8 @@ Widget itemPage() => ListView(
       child: ListTile(
         leading: Icon(m.type == 'استلام' ? Icons.arrow_downward : Icons.arrow_upward, color: m.type == 'استلام' ? Colors.green : Colors.orange),
         title: Text(m.item + ' — ' + m.type + ' ' + qtyText(m.qty)),
-        subtitle: Text(m.date.day.toString() + '/' + m.date.month.toString() + '/' + m.date.year.toString() + (m.note.isEmpty ? '' : '\n' + m.note)),
+        subtitle: Text(m.date.day.toString() + '/' + m.date.month.toString() + '/' + m.date.year.toString() + (m.note.isEmpty ? '' : '
+' + m.note)),
       ),
     )),
   ],
@@ -670,7 +686,8 @@ Future<void> exportReportExcel(List<Day> periodDays,DateTime from,DateTime to)as
   daily.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('إفطار'),TextCellValue('غداء'),TextCellValue('عشاء'),TextCellValue('إضافية'),TextCellValue('الإجمالي'),TextCellValue('الإيراد'),TextCellValue('تكلفة الخامات'),TextCellValue('الفائض')]);
   final ordered=List<Day>.from(periodDays)..sort((a,b)=>a.date.compareTo(b.date));
   for(final entry in ordered){final amount=rev(entry),cost=linkedDayMaterialCost(entry.id);daily.appendRow([TextCellValue(reportDateText(entry.date)),TextCellValue(entry.site),IntCellValue(entry.b),IntCellValue(entry.l),IntCellValue(entry.d),IntCellValue(entry.e),IntCellValue(entry.b+entry.l+entry.d+entry.e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost)]);}
-  final siteIssues=book['صرف الخامات للمواقع'];siteIssues.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('المخزن'),TextCellValue('الصنف'),TextCellValue('الكمية'),TextCellValue('تكلفة الوحدة'),TextCellValue('إجمالي التكلفة'),TextCellValue('نوع الحركة'),TextCellValue('ملاحظات')]);for(final m in movements.where((m)=>isSiteConsumption(m)&&visibleSites.any((s)=>s.name==movementSite(m))&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(from.year,from.month,from.day))>=0&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(to.year,to.month,to.day))<=0)){final it=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));siteIssues.appendRow([TextCellValue(reportDateText(m.date)),TextCellValue(movementSite(m)??''),TextCellValue(m.warehouse),TextCellValue(m.item),DoubleCellValue(m.qty),DoubleCellValue(m.unitCost??it.cost),DoubleCellValue(movementCost(m)),TextCellValue(m.type),TextCellValue(m.note)]);}\n   final encoded=book.encode();
+  final siteIssues=book['صرف الخامات للمواقع'];siteIssues.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('المخزن'),TextCellValue('الصنف'),TextCellValue('الكمية'),TextCellValue('تكلفة الوحدة'),TextCellValue('إجمالي التكلفة'),TextCellValue('نوع الحركة'),TextCellValue('ملاحظات')]);for(final m in movements.where((m)=>isSiteConsumption(m)&&visibleSites.any((s)=>s.name==movementSite(m))&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(from.year,from.month,from.day))>=0&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(to.year,to.month,to.day))<=0)){final it=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));siteIssues.appendRow([TextCellValue(reportDateText(m.date)),TextCellValue(movementSite(m)??''),TextCellValue(m.warehouse),TextCellValue(m.item),DoubleCellValue(m.qty),DoubleCellValue(m.unitCost??it.cost),DoubleCellValue(movementCost(m)),TextCellValue(m.type),TextCellValue(m.note)]);}
+   final encoded=book.encode();
   if(encoded==null)throw Exception('تعذر إنشاء ملف Excel');
   final fileName='StockPro_Report_${from.year}${from.month.toString().padLeft(2,'0')}${from.day.toString().padLeft(2,'0')}_to_${to.year}${to.month.toString().padLeft(2,'0')}${to.day.toString().padLeft(2,'0')}.xlsx';
   final saved=await FilePicker.platform.saveFile(fileName:fileName,bytes:Uint8List.fromList(encoded),type:FileType.custom,allowedExtensions:['xlsx']);
@@ -932,7 +949,8 @@ Future<void> movementHistoryDialog() async {
                       : Icons.swap_horiz,
                 ),
                 title: Text('${m.item} • ${m.type} • ${qtyText(m.qty)}'),
-                subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\n'+m.note}'),
+                subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '
+'+m.note}'),
               )).toList(),
             ),
       ),
