@@ -21,6 +21,11 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   String cloudSnapshotStatus = 'لم يتم فحص النسخة السحابية بعد.';
   String? localAutoSyncAt;
   int sharedRevision = 0;
+  List<Map<String,dynamic>> companyMembers = [];
+  final memberEmail = TextEditingController();
+  String memberRole = 'staff';
+  final memberPermissions = <String>{'المخزون','المخازن','المزامنة'};
+  static const companyModules = ['المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات','المزامنة'];
   String sharedSnapshotStatus = 'لم يتم فحص بيانات الشركة المشتركة بعد.';
   @override void initState() { super.initState(); _loadCompanyLink(); }
   Future<void> _loadCompanyLink() async { final p=await SharedPreferences.getInstance(); cloudCompanyId=p.getString('cloudCompanyId'); cloudCompanyUserId=p.getString('cloudCompanyUserId'); localAutoSyncAt=p.getString('cloudLastAutoSync'); if(mounted)setState((){}); if(hasCompanyLink) await checkSnapshotStatus(); }
@@ -106,6 +111,36 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     if(mounted)setState(()=>busy=false);
   }
 
+  Future<void> loadCompanyMembers() async {
+    if(!hasCompanyLink)return;
+    try {
+      final rows=await Supabase.instance.client.rpc('list_company_members',params:{'target_company':cloudCompanyId});
+      companyMembers=(rows as List).map((x)=>Map<String,dynamic>.from(x as Map)).toList();
+    } catch(e){message='تعذر تحميل أعضاء الشركة: $e';}
+    if(mounted)setState((){});
+  }
+  Future<void> addCompanyMember() async {
+    if(!hasCompanyLink){setState(()=>message='اربط الحساب بالشركة أولًا.');return;}
+    if(memberEmail.text.trim().isEmpty){setState(()=>message='اكتب بريد المستخدم.');return;}
+    setState(()=>busy=true);
+    try {
+      await Supabase.instance.client.rpc('add_company_member_by_email',params:{'target_company':cloudCompanyId,'member_email':memberEmail.text.trim(),'member_role':memberRole,'member_permissions':memberPermissions.toList()});
+      message='تم إضافة المستخدم للشركة وتحديث صلاحياته. يجب أن يسجل دخول بنفس حساب الكلاود.';
+      memberEmail.clear();
+      await loadCompanyMembers();
+    }on PostgrestException catch(e){message=e.message.contains('ACCOUNT_NOT_FOUND')?'الحساب غير موجود. المستخدم يسجل حساب Cloud في StockPro أولًا، وبعدها أضفه هنا.':e.message;}
+    catch(e){message='فشل إضافة المستخدم: $e';}
+    if(mounted)setState(()=>busy=false);
+  }
+  Future<void> removeCompanyMember(String id,String email) async {
+    final yes=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('إزالة عضو'),content:Text('هل تريد إزالة $email من الشركة؟'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('إزالة'))]));
+    if(yes!=true)return;
+    setState(()=>busy=true);
+    try{await Supabase.instance.client.rpc('remove_company_member',params:{'target_company':cloudCompanyId,'member_user':id});message='تم إزالة العضو.';await loadCompanyMembers();}
+    catch(e){message='تعذر إزالة العضو: $e';}
+    if(mounted)setState(()=>busy=false);
+  }
+
   Future<void> checkSharedSnapshotStatus() async {
     if(!hasCompanyLink)return;
     try {
@@ -184,7 +219,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   }
 
   @override
-  void dispose() { email.dispose(); password.dispose(); company.dispose(); super.dispose(); }
+  void dispose() { email.dispose(); password.dispose(); company.dispose(); memberEmail.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
@@ -226,6 +261,22 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           if (hasCompanyLink) Padding(padding: const EdgeInsets.only(top:12),child:Text('الشركة المرتبطة: $cloudCompanyId',style:const TextStyle(fontSize:12))),
         ]))),
         if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('النسخ الاحتياطي الشخصي',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('نسخة خاصة بحسابك لاستعادة بياناتك على جهاز آخر.'),const SizedBox(height:10),Text('آخر رفع تلقائي: ${_formatCloudDate(localAutoSyncAt)}'),const SizedBox(height:6),Text(cloudSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSnapshotStatus,icon:const Icon(Icons.refresh),label:const Text('تحديث حالة النسخة')),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع النسخة الشخصية')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل النسخة الشخصية')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('استعادة النسخة المحلية السابقة'))])]))),
+        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          const Text('أعضاء الشركة وصلاحياتهم',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+          const SizedBox(height:8),
+          const Text('إضافة الأعضاء تتم بالبريد الإلكتروني بعد أن يسجل المستخدم حساب Cloud في StockPro.'),
+          const SizedBox(height:10),
+          TextField(controller:memberEmail,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'بريد المستخدم المسجل')),
+          const SizedBox(height:8),
+          DropdownButtonFormField<String>(value:memberRole,decoration:const InputDecoration(labelText:'دور المستخدم'),items:const [DropdownMenuItem(value:'staff',child:Text('موظف')),DropdownMenuItem(value:'manager',child:Text('مشرف'))],onChanged:(v)=>setState(()=>memberRole=v??'staff')),
+          const SizedBox(height:8),
+          const Text('الصلاحيات المسموحة'),
+          ...companyModules.map((p)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(p),value:memberPermissions.contains(p),onChanged:(v)=>setState(()=>v==true?memberPermissions.add(p):memberPermissions.remove(p)))),
+          FilledButton.icon(onPressed:busy?null:addCompanyMember,icon:const Icon(Icons.person_add_alt_1),label:const Text('إضافة / تحديث العضو')),
+          const Divider(),
+          OutlinedButton.icon(onPressed:busy?null:loadCompanyMembers,icon:const Icon(Icons.refresh),label:const Text('عرض أعضاء الشركة')),
+          ...companyMembers.map((m)=>ListTile(title:Text(m['email']?.toString()??'بدون بريد'),subtitle:Text('الدور: ${m['role']} | صلاحيات: ${(m['permissions'] as List? ?? []).join('، ')}'),trailing:IconButton(icon:const Icon(Icons.person_remove_alt_1,color:Colors.red),onPressed:busy?null:()=>removeCompanyMember(m['user_id'].toString(),m['email']?.toString()??'عضو'))),
+        ]))),
         if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مشاركة بيانات الشركة بين الأجهزة',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('هذه مساحة مشتركة للشركة، وليست النسخة الشخصية. ارفع من جهاز واحد أولًا. قبل رفع جهاز آخر، نزّل أحدث نسخة لتجنب تعارض التعديلات. حماية Revision تمنع رفع نسخة قديمة فوق تحديث أحدث. حسابات PIN المحلية تبقى منفصلة.'),const SizedBox(height:8),Text(sharedSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSharedSnapshotStatus,icon:const Icon(Icons.sync),label:const Text('تحديث حالة المشاركة')),const SizedBox(height:10),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:uploadSharedCompanyData,icon:const Icon(Icons.cloud_upload_outlined),label:const Text('رفع بيانات الشركة')),OutlinedButton.icon(onPressed:busy?null:downloadSharedCompanyData,icon:const Icon(Icons.cloud_download_outlined),label:const Text('تنزيل بيانات الشركة')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('التراجع عن الاستبدال'))])]))),
         if (busy) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
         if (message.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(message))),
