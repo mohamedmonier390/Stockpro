@@ -18,8 +18,12 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   String databaseStatus = '';
   String? cloudCompanyId;
   String? cloudCompanyUserId;
+  String cloudSnapshotStatus = 'لم يتم فحص النسخة السحابية بعد.';
+  String? localAutoSyncAt;
   @override void initState() { super.initState(); _loadCompanyLink(); }
-  Future<void> _loadCompanyLink() async { final p=await SharedPreferences.getInstance(); cloudCompanyId=p.getString('cloudCompanyId'); cloudCompanyUserId=p.getString('cloudCompanyUserId'); if(mounted)setState((){}); }
+  Future<void> _loadCompanyLink() async { final p=await SharedPreferences.getInstance(); cloudCompanyId=p.getString('cloudCompanyId'); cloudCompanyUserId=p.getString('cloudCompanyUserId'); localAutoSyncAt=p.getString('cloudLastAutoSync'); if(mounted)setState((){}); if(hasCompanyLink) await checkSnapshotStatus(); }
+  String _formatCloudDate(String? raw){if(raw==null||raw.isEmpty)return 'غير متوفر';final d=DateTime.tryParse(raw);if(d==null)return raw;final x=d.toLocal();return '${x.year}/${x.month.toString().padLeft(2,'0')}/${x.day.toString().padLeft(2,'0')} ${x.hour.toString().padLeft(2,'0')}:${x.minute.toString().padLeft(2,'0')}';}
+  Future<void> checkSnapshotStatus() async {if(!hasCompanyLink)return;try{final result=await Supabase.instance.client.rpc('get_user_snapshot',params:{'target_company':cloudCompanyId});if(result is List && result.isNotEmpty){final row=result.first as Map;cloudSnapshotStatus='آخر نسخة على السيرفر: ${_formatCloudDate(row['updated_at']?.toString())} — رقم النسخة ${row['revision'] ?? '?'}';}else{cloudSnapshotStatus='لا توجد نسخة احتياطية على السيرفر حتى الآن.';}}catch(e){cloudSnapshotStatus='تعذر قراءة حالة النسخة: $e';}if(mounted)setState((){});}
   bool get hasCompanyLink => currentUser!=null && cloudCompanyUserId==currentUser!.id && (cloudCompanyId??'').isNotEmpty;
   User? get currentUser => CloudConnection.initialized ? Supabase.instance.client.auth.currentUser : null;
 
@@ -67,7 +71,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
       final snapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};
       for(final k in keys){snapshot[k]=prefs.get(k);}
       final revision=await Supabase.instance.client.rpc('save_user_snapshot',params:{'target_company':cloudCompanyId,'snapshot':snapshot});
-      message='تم رفع نسخة بياناتك للكلاود بنجاح (نسخة رقم $revision).';
+      final now=DateTime.now().toIso8601String(); await prefs.setString('cloudLastAutoSync',now); localAutoSyncAt=now; message='تم رفع نسخة بياناتك للكلاود بنجاح (نسخة رقم $revision).'; await checkSnapshotStatus();
     } on PostgrestException catch(e){message='فشل الرفع. تأكد من تشغيل Migration 0004: ${e.message}';}
     catch(e){message='فشل رفع البيانات: $e';}
     if(mounted)setState(()=>busy=false);
@@ -142,7 +146,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           if (user != null) TextButton.icon(onPressed: busy ? null : logout, icon: const Icon(Icons.logout), label: const Text('تسجيل الخروج')),
           if (hasCompanyLink) Padding(padding: const EdgeInsets.only(top:12),child:Text('الشركة المرتبطة: $cloudCompanyId',style:const TextStyle(fontSize:12))),
         ]))),
-        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مزامنة بيانات الجهاز',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('تم تفعيل النسخ الاحتياطي التلقائي: بعد أي تعديل وحفظ محلي، يرفع StockPro نسخة لحسابك خلال ثوانٍ عند توفر الإنترنت. استخدم تنزيل نسخة الكلاود لاستعادة البيانات على جهاز آخر. النسخ خاص بحسابك ولا تتم مشاركته تلقائيًا مع حسابات الفريق.'),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع بيانات الجهاز')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل نسخة الكلاود'))])]))),
+        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مزامنة بيانات الجهاز',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('تم تفعيل النسخ الاحتياطي التلقائي: بعد أي تعديل وحفظ محلي، يرفع StockPro نسخة لحسابك خلال ثوانٍ عند توفر الإنترنت. استخدم تنزيل نسخة الكلاود لاستعادة البيانات على جهاز آخر. النسخ خاص بحسابك ولا تتم مشاركته تلقائيًا مع حسابات الفريق.'),const SizedBox(height:10),Text('آخر رفع تلقائي من هذا الجهاز: ${_formatCloudDate(localAutoSyncAt)}'),const SizedBox(height:6),Text(cloudSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSnapshotStatus,icon:const Icon(Icons.refresh),label:const Text('تحديث حالة النسخة')),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع بيانات الجهاز')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل نسخة الكلاود'))])]))),
         if (busy) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
         if (message.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(message))),
         const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('قاعدة البيانات مجهزة. ارفع نسخة من جهاز واحد أولاً؛ تنزيل نسخة الكلاود يستبدل بيانات الجهاز بعد التأكيد. هذه المرحلة نسخة شخصية بين الأجهزة وليست مشاركة فريق أو مزامنة تلقائية.'))),
