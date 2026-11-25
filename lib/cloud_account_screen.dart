@@ -163,7 +163,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
       for(final k in keys){snapshot[k]=prefs.get(k);}
       final rev=await Supabase.instance.client.rpc('save_company_snapshot',params:{'target_company':cloudCompanyId,'snapshot':snapshot,'expected_revision':sharedRevision});
       sharedRevision=int.tryParse(rev.toString())??sharedRevision+1;
-      final prefs=await SharedPreferences.getInstance();await prefs.setInt('cloudSharedRevisionBaseline',sharedRevision);await prefs.setString('cloudSharedSyncStatus','تمت المزامنة اليدوية — Revision $sharedRevision');companyAutoSyncStatus='تمت المزامنة اليدوية — Revision $sharedRevision';
+      await prefs.setInt('cloudSharedRevisionBaseline',sharedRevision);await prefs.setString('cloudSharedSyncStatus','تمت المزامنة اليدوية — Revision $sharedRevision');companyAutoSyncStatus='تمت المزامنة اليدوية — Revision $sharedRevision';
       message='تم رفع بيانات الشركة المشتركة بنجاح — Revision $sharedRevision. أي جهاز قديم لازم ينزّل آخر نسخة قبل رفع تعديلاته.';
       await checkSharedSnapshotStatus();
     } on PostgrestException catch(e) {
