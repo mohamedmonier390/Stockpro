@@ -20,6 +20,8 @@ jobs:
         with:
           flutter-version: '3.29.3'
           channel: stable
+      - name: Verify build toolchain
+        run: flutter --version && java -version
       - name: Validate permanent signing secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
