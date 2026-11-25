@@ -56,59 +56,58 @@ jobs:
           s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
           if n != 1: raise SystemExit("Could not set app label")
           manifest.write_text(s)
-          # Use a known Groovy Gradle script to avoid brittle Kotlin-DSL editing.
           Path("android/app/build.gradle.kts").unlink(missing_ok=True)
-          Path("android/app/build.gradle").write_text("""import java.util.Properties
-import java.io.FileInputStream
-
-plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
-    id 'dev.flutter.flutter-gradle-plugin'
-}
-
-def signingProps = new Properties()
-def signingFile = rootProject.file('key.properties')
-signingProps.load(new FileInputStream(signingFile))
-
-android {
-    namespace 'com.stockpro.stockpro'
-    compileSdk flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-    defaultConfig {
-        applicationId 'com.stockpro.stockpro'
-        minSdk flutter.minSdkVersion
-        targetSdk flutter.targetSdkVersion
-        versionCode flutter.versionCode
-        versionName flutter.versionName
-    }
-    signingConfigs {
-        stockproReleaseSigning {
-            storeFile file(signingProps['storeFile'])
-            storePassword signingProps['storePassword']
-            keyAlias signingProps['keyAlias']
-            keyPassword signingProps['keyPassword']
-        }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.stockproReleaseSigning
-        }
-    }
-}
-flutter {
-    source '../..'
-}
-""")
           PY
+          cat > android/app/build.gradle <<'GRADLE'
+          import java.util.Properties
+          import java.io.FileInputStream
+
+          plugins {
+              id 'com.android.application'
+              id 'kotlin-android'
+              id 'dev.flutter.flutter-gradle-plugin'
+          }
+
+          def signingProps = new Properties()
+          def signingFile = rootProject.file('key.properties')
+          signingProps.load(new FileInputStream(signingFile))
+
+          android {
+              namespace 'com.stockpro.stockpro'
+              compileSdk flutter.compileSdkVersion
+              ndkVersion flutter.ndkVersion
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_11
+                  targetCompatibility JavaVersion.VERSION_11
+              }
+              kotlinOptions {
+                  jvmTarget = JavaVersion.VERSION_11.toString()
+              }
+              defaultConfig {
+                  applicationId 'com.stockpro.stockpro'
+                  minSdk flutter.minSdkVersion
+                  targetSdk flutter.targetSdkVersion
+                  versionCode flutter.versionCode
+                  versionName flutter.versionName
+              }
+              signingConfigs {
+                  stockproReleaseSigning {
+                      storeFile file(signingProps['storeFile'])
+                      storePassword signingProps['storePassword']
+                      keyAlias signingProps['keyAlias']
+                      keyPassword signingProps['keyPassword']
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.stockproReleaseSigning
+                  }
+              }
+          }
+          flutter {
+              source '../..'
+          }
+          GRADLE
       - name: Replace starter test with smoke test
         run: |
           mkdir -p test
