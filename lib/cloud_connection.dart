@@ -37,13 +37,27 @@ class CloudConnection {
     }
   }
 
+  static Future<String> _dnsCheck(String host) async {
+    try {
+      final addresses = await InternetAddress.lookup(host);
+      return addresses.isEmpty ? 'فشل DNS: $host (لا توجد عناوين)' : 'نجح DNS: $host';
+    } catch (e) {
+      return 'فشل DNS: $host — $e';
+    }
+  }
+
   static Future<String> checkDatabase() async {
     if (!initialized) {
       return 'تعذر تهيئة الاتصال: ${initializationError ?? 'غير معروف'}';
     }
+    final generalDns = await _dnsCheck('google.com');
+    final supabaseDns = await _dnsCheck('bgebhdsahnlvpqogeovm.supabase.co');
+    if (supabaseDns.startsWith('فشل DNS')) {
+      return 'اختبار DNS من داخل التطبيق:\\n$generalDns\\n$supabaseDns\\nالمتصفح قد يستخدم DNS آمنًا مختلفًا عن التطبيق. أرسل هذه النتيجة للدعم.';
+    }
     try {
       await retryDns(() => Supabase.instance.client.from('companies').select('id').limit(1));
-      return 'الاتصال ناجح وقاعدة بيانات StockPro موجودة.';
+      return 'نجح DNS والاتصال بقاعدة بيانات StockPro.\\n$generalDns\\n$supabaseDns';
     } on PostgrestException catch (e) {
       if (e.code == '42P01' || e.message.toLowerCase().contains('companies')) {
         return 'الاتصال بالمشروع تم، لكن جداول StockPro غير جاهزة. شغّل ملفات Migration من SQL Editor.';
