@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' hide Border;
+import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'cloud_connection.dart';
 import 'cloud_account_screen.dart';
 Future<void> main() async {
@@ -114,7 +114,7 @@ class LoginState extends State<LoginScreen>{
         const SizedBox(height:12),
         Row(children:[_loginFeature(Icons.warehouse_rounded,'Multiple\nWarehouses'),_loginDivider(),_loginFeature(Icons.fact_check_rounded,'Track\nMovements'),_loginDivider(),_loginFeature(Icons.bar_chart_rounded,'Control\nInventory'),_loginDivider(),_loginFeature(Icons.verified_user_rounded,'Secure\nAccess')]),
         const SizedBox(height:12),
-        Container(width:double.infinity,padding:const EdgeInsets.symmetric(vertical:12,horizontal:8),decoration:BoxDecoration(color:const Color(0xff062a50),borderRadius:BorderRadius.circular(14)),child:Column(children:[RichText(text:const TextSpan(children:[TextSpan(text:'StockPro by ',style:TextStyle(color:Colors.white,fontSize:15)),TextSpan(text:'Monier',style:TextStyle(color:Color(0xff20b83a),fontSize:15,fontWeight:FontWeight.bold),TextSpan(text:' © 2026',style:TextStyle(color:Colors.white,fontSize:15))])),const SizedBox(height:4),const Text('Together for a Smarter Business',style:TextStyle(color:Colors.white,fontStyle:FontStyle.italic,fontSize:13))]))
+        Container(width:double.infinity,padding:const EdgeInsets.symmetric(vertical:12,horizontal:8),decoration:BoxDecoration(color:const Color(0xff062a50),borderRadius:BorderRadius.circular(14)),child:Column(children:[RichText(text:const TextSpan(children:[TextSpan(text:'StockPro by ',style:TextStyle(color:Colors.white,fontSize:15)),TextSpan(text:'Monier',style:TextStyle(color:Color(0xff20b83a),fontSize:15,fontWeight:FontWeight.bold)),TextSpan(text:' © 2026',style:TextStyle(color:Colors.white,fontSize:15))])),const SizedBox(height:4),const Text('Together for a Smarter Business',style:TextStyle(color:Colors.white,fontStyle:FontStyle.italic,fontSize:13))]))
       ])))))),
     ])]));
   }
