@@ -43,18 +43,30 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
 
   Future<void> authenticate(bool register) async {
     if (!CloudConnection.initialized) { setState(() => message = 'اتصال الكلاود غير مهيأ.'); return; }
-    setState(() { busy = true; message = ''; });
+    if (email.text.trim().isEmpty || password.text.isEmpty) {
+      setState(() => message = 'اكتب البريد الإلكتروني وكلمة المرور أولًا.');
+      return;
+    }
+    setState(() { busy = true; message = register ? 'جارٍ إنشاء الحساب والاتصال بالسيرفر...' : 'جارٍ تسجيل الدخول...'; });
     try {
       final auth = Supabase.instance.client.auth;
       if (register) {
-        final result = await auth.signUp(email: email.text.trim(), password: password.text);
+        final result = await CloudConnection.retryDns(() => auth.signUp(email: email.text.trim(), password: password.text));
         message = result.session == null ? 'تم التسجيل. راجع بريدك لتأكيد الحساب، ثم سجّل الدخول.' : 'تم التسجيل وتسجيل الدخول.';
       } else {
-        await auth.signInWithPassword(email: email.text.trim(), password: password.text);
+        await CloudConnection.retryDns(() => auth.signInWithPassword(email: email.text.trim(), password: password.text));
         message = 'تم تسجيل الدخول بنجاح.';
       }
-    } on AuthException catch (e) { message = e.message; }
-    catch (e) { message = 'تعذر إكمال العملية: $e'; }
+    } on AuthException catch (e) {
+      message = e.message.contains('already registered') || e.message.contains('already exists')
+          ? 'الحساب موجود بالفعل. استخدم زر «دخول» بدل «إنشاء حساب».'
+          : 'تعذر تسجيل الحساب: ${e.message}';
+    } catch (e) {
+      final error = e.toString().toLowerCase();
+      message = error.contains('failed host lookup') || error.contains('no address associated')
+          ? 'تعذر الوصول للسيرفر بعد 3 محاولات. الاتصال يعمل في المتصفح لكن التطبيق ما زال يواجه DNS؛ جرّب شبكة أخرى ثم أعد المحاولة.'
+          : 'تعذر إكمال العملية: ${e.toString()}';
+    }
     if (mounted) setState(() => busy = false);
   }
 
