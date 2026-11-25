@@ -938,8 +938,7 @@ Future<void> movementHistoryDialog() async {
                       : Icons.swap_horiz,
                 ),
                 title: Text('${m.item} • ${m.type} • ${qtyText(m.qty)}'),
-                subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '
-'+m.note}'),
+                subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\n'+m.note}'),
               )).toList(),
             ),
       ),
