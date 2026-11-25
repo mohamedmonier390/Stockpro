@@ -90,13 +90,32 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         if(yes==true){
           final prefs=await SharedPreferences.getInstance();
           const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+          // Save a rollback copy locally before overwriting live data.
+          final localBackup=<String,dynamic>{'createdAt':DateTime.now().toIso8601String()};
+          for(final key in keys){localBackup[key]=prefs.get(key);}
+          await prefs.setString('cloudRestoreSafetyBackup',jsonEncode(localBackup));
+          // Missing cloud keys are left untouched to avoid partial destructive restores.
           for(final key in keys){if(payload.containsKey(key)){final v=payload[key];if(v==null){await prefs.remove(key);}else if(v is String){await prefs.setString(key,v);}else{await prefs.setString(key,jsonEncode(v));}}}
-          message='تم تنزيل البيانات. أغلق StockPro وافتحه مرة أخرى لتحديث الشاشة.';
+          message='تم تنزيل البيانات بأمان. تم حفظ نسخة محلية قبل الاستبدال، ويمكنك التراجع من زر استعادة النسخة المحلية. أغلق StockPro وافتحه مرة أخرى لتحديث الشاشة.';
         } else {message='تم إلغاء الاستعادة.';}
       }
     } on PostgrestException catch(e){message='فشل التنزيل. تأكد من تشغيل Migration 0004: ${e.message}';}
     catch(e){message='فشل تنزيل البيانات: $e';}
     if(mounted)setState(()=>busy=false);
+  }
+
+  Future<void> rollbackCloudRestore() async {
+    final prefs=await SharedPreferences.getInstance();
+    final raw=prefs.getString('cloudRestoreSafetyBackup');
+    if(raw==null){setState(()=>message='لا توجد نسخة محلية محفوظة للتراجع.');return;}
+    final backup=jsonDecode(raw);
+    if(backup is! Map) {setState(()=>message='النسخة المحلية غير صالحة.');return;}
+    final backupDate=_formatCloudDate(backup['createdAt']?.toString());
+    final yes=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('استعادة بيانات الجهاز السابقة'),content:Text('سيتم إرجاع البيانات المحلية التي تم حفظها قبل آخر تنزيل من الكلاود ('+backupDate+').'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('استعادة النسخة المحلية'))]));
+    if(yes!=true)return;
+    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+    for(final key in keys){if(backup.containsKey(key)){final v=backup[key];if(v==null){await prefs.remove(key);}else if(v is String){await prefs.setString(key,v);}else{await prefs.setString(key,jsonEncode(v));}}}
+    if(mounted)setState(()=>message='تمت استعادة نسخة الجهاز السابقة. أغلق StockPro وافتحه مرة أخرى.');
   }
 
   Future<void> logout() async {
@@ -146,7 +165,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           if (user != null) TextButton.icon(onPressed: busy ? null : logout, icon: const Icon(Icons.logout), label: const Text('تسجيل الخروج')),
           if (hasCompanyLink) Padding(padding: const EdgeInsets.only(top:12),child:Text('الشركة المرتبطة: $cloudCompanyId',style:const TextStyle(fontSize:12))),
         ]))),
-        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مزامنة بيانات الجهاز',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('تم تفعيل النسخ الاحتياطي التلقائي: بعد أي تعديل وحفظ محلي، يرفع StockPro نسخة لحسابك خلال ثوانٍ عند توفر الإنترنت. استخدم تنزيل نسخة الكلاود لاستعادة البيانات على جهاز آخر. النسخ خاص بحسابك ولا تتم مشاركته تلقائيًا مع حسابات الفريق.'),const SizedBox(height:10),Text('آخر رفع تلقائي من هذا الجهاز: ${_formatCloudDate(localAutoSyncAt)}'),const SizedBox(height:6),Text(cloudSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSnapshotStatus,icon:const Icon(Icons.refresh),label:const Text('تحديث حالة النسخة')),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع بيانات الجهاز')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل نسخة الكلاود'))])]))),
+        if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مزامنة بيانات الجهاز',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('تم تفعيل النسخ الاحتياطي التلقائي: بعد أي تعديل وحفظ محلي، يرفع StockPro نسخة لحسابك خلال ثوانٍ عند توفر الإنترنت. استخدم تنزيل نسخة الكلاود لاستعادة البيانات على جهاز آخر. النسخ خاص بحسابك ولا تتم مشاركته تلقائيًا مع حسابات الفريق.'),const SizedBox(height:10),Text('آخر رفع تلقائي من هذا الجهاز: ${_formatCloudDate(localAutoSyncAt)}'),const SizedBox(height:6),Text(cloudSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSnapshotStatus,icon:const Icon(Icons.refresh),label:const Text('تحديث حالة النسخة')),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع بيانات الجهاز')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل نسخة الكلاود')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('التراجع واستعادة النسخة المحلية'))])]))),
         if (busy) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
         if (message.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(message))),
         const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('قاعدة البيانات مجهزة. ارفع نسخة من جهاز واحد أولاً؛ تنزيل نسخة الكلاود يستبدل بيانات الجهاز بعد التأكيد. هذه المرحلة نسخة شخصية بين الأجهزة وليست مشاركة فريق أو مزامنة تلقائية.'))),
