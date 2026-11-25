@@ -114,7 +114,7 @@ class LoginState extends State<LoginScreen>{
         const SizedBox(height:12),
         Row(children:[_loginFeature(Icons.warehouse_rounded,'Multiple\nWarehouses'),_loginDivider(),_loginFeature(Icons.fact_check_rounded,'Track\nMovements'),_loginDivider(),_loginFeature(Icons.bar_chart_rounded,'Control\nInventory'),_loginDivider(),_loginFeature(Icons.verified_user_rounded,'Secure\nAccess')]),
         const SizedBox(height:12),
-        Container(width:double.infinity,padding:const EdgeInsets.symmetric(vertical:12,horizontal:8),decoration:BoxDecoration(color:const Color(0xff062a50),borderRadius:BorderRadius.circular(14)),child:const Column(children:[Text('StockPro by Monier © 2026',style:TextStyle(color:Colors.white,fontSize:15,fontWeight:FontWeight.bold)),SizedBox(height:4),Text('Together for a Smarter Business',style:TextStyle(color:Colors.white,fontStyle:FontStyle.italic,fontSize:13))]));
+        Container(width:double.infinity,padding:const EdgeInsets.symmetric(vertical:12,horizontal:8),decoration:BoxDecoration(color:const Color(0xff062a50),borderRadius:BorderRadius.circular(14)),child:const Column(children:[Text('StockPro by Monier © 2026',style:TextStyle(color:Colors.white,fontSize:15,fontWeight:FontWeight.bold)),SizedBox(height:4),Text('Together for a Smarter Business',style:TextStyle(color:Colors.white,fontStyle:FontStyle.italic,fontSize:13))])),
       ])))))),
     ])]));
   }
