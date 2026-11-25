@@ -55,6 +55,9 @@ jobs:
           s = manifest.read_text()
           s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
           if n != 1: raise SystemExit("Could not set app label")
+          if "android.permission.INTERNET" not in s:
+              s = s.replace("<application", '    <uses-permission android:name="android.permission.INTERNET" />\n    <application', 1)
+          if "android.permission.INTERNET" not in s: raise SystemExit("INTERNET permission missing")
           manifest.write_text(s)
           Path("android/app/build.gradle.kts").unlink(missing_ok=True)
           PY
