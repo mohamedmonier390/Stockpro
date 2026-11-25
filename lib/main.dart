@@ -615,8 +615,7 @@ Widget itemPage() => ListView(
     ...visibleItems.map((x) => Card(
       child: ListTile(
         title: Text(x.n),
-        subtitle: Text(x.code + ' | ' + x.unit + ' | حد التنبيه ' + qtyText(x.min) + '
-' + visibleWarehouses.map((w) => w.name + ': ' + qtyText(balance(x, w.name))).join(' | ')),
+        subtitle: Text(x.code + ' | ' + x.unit + ' | حد التنبيه ' + qtyText(x.min) + '\n' + visibleWarehouses.map((w) => w.name + ': ' + qtyText(balance(x, w.name))).join(' | ')),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           Column(mainAxisSize: MainAxisSize.min, children: [
             Text(qtyText(visibleWarehouses.fold(0.0, (sum, w) => sum + balance(x, w.name))) + ' ' + x.unit),
@@ -633,8 +632,7 @@ Widget itemPage() => ListView(
       child: ListTile(
         leading: Icon(m.type == 'استلام' ? Icons.arrow_downward : Icons.arrow_upward, color: m.type == 'استلام' ? Colors.green : Colors.orange),
         title: Text(m.item + ' — ' + m.type + ' ' + qtyText(m.qty)),
-        subtitle: Text(m.date.day.toString() + '/' + m.date.month.toString() + '/' + m.date.year.toString() + (m.note.isEmpty ? '' : '
-' + m.note)),
+        subtitle: Text(m.date.day.toString() + '/' + m.date.month.toString() + '/' + m.date.year.toString() + (m.note.isEmpty ? '' : '\n' + m.note)),
       ),
     )),
   ],
