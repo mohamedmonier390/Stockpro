@@ -15,12 +15,19 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   final company = TextEditingController();
   bool busy = false;
   String message = '';
+  String databaseStatus = '';
   String? cloudCompanyId;
   String? cloudCompanyUserId;
   @override void initState() { super.initState(); _loadCompanyLink(); }
   Future<void> _loadCompanyLink() async { final p=await SharedPreferences.getInstance(); cloudCompanyId=p.getString('cloudCompanyId'); cloudCompanyUserId=p.getString('cloudCompanyUserId'); if(mounted)setState((){}); }
   bool get hasCompanyLink => currentUser!=null && cloudCompanyUserId==currentUser!.id && (cloudCompanyId??'').isNotEmpty;
   User? get currentUser => CloudConnection.initialized ? Supabase.instance.client.auth.currentUser : null;
+
+  Future<void> testConnection() async {
+    setState(() { busy = true; databaseStatus = ''; });
+    final result = await CloudConnection.checkDatabase();
+    if (mounted) setState(() { busy = false; databaseStatus = result; });
+  }
 
   Future<void> authenticate(bool register) async {
     if (!CloudConnection.initialized) { setState(() => message = 'اتصال الكلاود غير مهيأ.'); return; }
@@ -103,6 +110,14 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
       appBar: AppBar(title: const Text('حساب الكلاود')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('حالة الاتصال بالسيرفر', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('تم تجهيز قاعدة البيانات على Supabase. اضغط لفحص اتصال التطبيق الفعلي.'),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(onPressed: busy ? null : testConnection, icon: const Icon(Icons.cloud_done), label: const Text('فحص الاتصال')),
+          if (databaseStatus.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(databaseStatus)),
+        ]))),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('تسجيل حساب أو دخول', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           const Text('هذا الحساب مستقل عن PIN المستخدم محليًا.'),
@@ -130,7 +145,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مزامنة بيانات الجهاز',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('هذه المرحلة تحفظ نسخة بياناتك الخاصة بحسابك على الكلاود لاسترجاعها على جهاز آخر بنفس الحساب. لا تتم مشاركة البيانات تلقائيًا مع مستخدمين آخرين.'),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع بيانات الجهاز')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل نسخة الكلاود'))])]))),
         if (busy) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
         if (message.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(message))),
-        const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('مهم: قبل استخدام المزامنة، يجب تنفيذ ملفات SQL حتى Migration 0004 في Supabase. ارفع نسخة من جهاز واحد أولاً؛ تنزيل نسخة الكلاود يستبدل بيانات الجهاز. هذه مرحلة مزامنة نسخة شخصية وليست مشاركة فريق كاملة.'))),
+        const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('قاعدة البيانات مجهزة. ارفع نسخة من جهاز واحد أولاً؛ تنزيل نسخة الكلاود يستبدل بيانات الجهاز بعد التأكيد. هذه المرحلة نسخة شخصية بين الأجهزة وليست مشاركة فريق أو مزامنة تلقائية.'))),
       ]),
     );
   }
