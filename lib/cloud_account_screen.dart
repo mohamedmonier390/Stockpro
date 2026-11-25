@@ -24,7 +24,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   List<Map<String,dynamic>> companyMembers = [];
   final memberEmail = TextEditingController();
   String memberRole = 'staff';
-  final memberPermissions = <String>{'المخزون','المخازن','المزامنة'};
+  final memberPermissions = <String>{'المخزون','المخازن'};
   static const companyModules = ['المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات','المزامنة'];
   String sharedSnapshotStatus = 'لم يتم فحص بيانات الشركة المشتركة بعد.';
   String companyAutoSyncStatus = 'المزامنة التلقائية لم تبدأ بعد.';
@@ -285,7 +285,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           DropdownButtonFormField<String>(value:memberRole,decoration:const InputDecoration(labelText:'دور المستخدم'),items:const [DropdownMenuItem(value:'staff',child:Text('موظف')),DropdownMenuItem(value:'manager',child:Text('مشرف'))],onChanged:(v)=>setState(()=>memberRole=v??'staff')),
           const SizedBox(height:8),
           const Text('الصلاحيات المسموحة'),
-          ...companyModules.map((p)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(p),value:memberPermissions.contains(p),onChanged:(v)=>setState(()=>v==true?memberPermissions.add(p):memberPermissions.remove(p)))),
+          ...companyModules.map((p)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(p),subtitle:p=='المزامنة'?const Text('تتيح الوصول إلى بيانات التشغيل المشتركة كاملة بين أجهزة الشركة. امنحها فقط للمستخدمين الموثوقين.'):null,value:memberPermissions.contains(p),onChanged:(v)=>setState(()=>v==true?memberPermissions.add(p):memberPermissions.remove(p)))),
           FilledButton.icon(onPressed:busy?null:addCompanyMember,icon:const Icon(Icons.person_add_alt_1),label:const Text('إضافة / تحديث العضو')),
           const Divider(),
           OutlinedButton.icon(onPressed:busy?null:loadCompanyMembers,icon:const Icon(Icons.refresh),label:const Text('عرض أعضاء الشركة')),
@@ -294,7 +294,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مشاركة بيانات الشركة بين الأجهزة',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('هذه مساحة مشتركة للشركة، وليست النسخة الشخصية. ارفع من جهاز واحد أولًا. قبل رفع جهاز آخر، نزّل أحدث نسخة لتجنب تعارض التعديلات. حماية Revision تمنع رفع نسخة قديمة فوق تحديث أحدث. حسابات PIN المحلية تبقى منفصلة.'),const SizedBox(height:8),Text(sharedSnapshotStatus),const SizedBox(height:6),Text(companyAutoSyncStatus,style:const TextStyle(fontSize:13)),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSharedSnapshotStatus,icon:const Icon(Icons.sync),label:const Text('تحديث حالة المشاركة')),const SizedBox(height:10),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:uploadSharedCompanyData,icon:const Icon(Icons.cloud_upload_outlined),label:const Text('رفع بيانات الشركة')),OutlinedButton.icon(onPressed:busy?null:downloadSharedCompanyData,icon:const Icon(Icons.cloud_download_outlined),label:const Text('تنزيل بيانات الشركة')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('التراجع عن الاستبدال'))])]))),
         if (busy) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
         if (message.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(message))),
-        const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('قاعدة البيانات مجهزة. ارفع نسخة من جهاز واحد أولاً؛ تنزيل نسخة الكلاود يستبدل بيانات الجهاز بعد التأكيد. هذه المرحلة نسخة شخصية بين الأجهزة وليست مشاركة فريق أو مزامنة تلقائية.'))),
+        const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('النسخة الاحتياطية الشخصية تُرفع بعد الحفظ عند توفر الاتصال. بيانات الشركة المشتركة تخضع لصلاحية «المزامنة» ورقم Revision لمنع الكتابة فوق تحديث أحدث؛ عند وصول تعديل من جهاز آخر، نزّل أحدث نسخة على هذا الجهاز قبل متابعة العمل.'))),
       ]),
     );
   }
