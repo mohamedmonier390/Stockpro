@@ -749,6 +749,65 @@ movements.add(Movement(selected.n,'تحويل صادر',amount,'إلى '+target.
 addAudit('تحويل','مخزون',selected.n+' • '+qtyText(amount)+' '+selected.unit+' • '+source.name+' ← '+target.name+' • '+transferNo);save();setState(()=>{});Navigator.pop(dc);
 },child:const Text('اعتماد التحويل'))])));
 }
+Future<void> editStockMovement(Movement movement) async {
+  // Only standalone receipt/issue records can be edited safely here.
+  if(movement.ref.isNotEmpty || !['استلام','صرف'].contains(movement.type)){
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('هذه الحركة مرتبطة بعملية أخرى أو تسوية؛ لا يمكن تعديلها من سجل الحركات.')));
+    return;
+  }
+  final itemMatch=items.where((i)=>i.n==movement.item);
+  final warehouseMatch=warehouses.where((w)=>w.name==movement.warehouse);
+  if(itemMatch.isEmpty||warehouseMatch.isEmpty){
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تعذر العثور على الصنف أو المخزن المرتبط بالحركة.')));
+    return;
+  }
+  final item=itemMatch.first;
+  final warehouse=warehouseMatch.first;
+  final qty=TextEditingController(text:movement.qty.toString());
+  final note=TextEditingController(text:movement.note);
+  await showDialog(context:context,builder:(dc)=>AlertDialog(title:Text('تعديل حركة ${movement.type}'),content:Column(mainAxisSize:MainAxisSize.min,children:[
+    Text('الصنف: ${item.n} • المخزن: ${warehouse.name}'),
+    field(qty,'الكمية',numeric:true),
+    field(note,'ملاحظات'),
+  ]),actions:[
+    TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),
+    FilledButton(onPressed:(){
+      final newQty=double.tryParse(qty.text.trim().replaceAll(',','.'));
+      if(newQty==null||newQty<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل كمية صحيحة أكبر من صفر')));return;}
+      final current=balance(item,warehouse.name);
+      final restored=movement.type=='استلام'?current-movement.qty:current+movement.qty;
+      final resulting=movement.type=='استلام'?restored+newQty:restored-newQty;
+      if(restored< -0.000001 || resulting< -0.000001){
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لا يمكن تعديل الحركة؛ سيؤدي ذلك إلى رصيد سالب.')));return;
+      }
+      setBalance(item,warehouse.name,resulting<0?0:resulting);
+      movement.qty=newQty;movement.note=note.text.trim();
+      addAudit('تعديل','حركة مخزون',movement.type+' • '+item.n+' • '+warehouse.name+' • '+qtyText(newQty));
+      save();setState((){});Navigator.pop(dc);
+    },child:const Text('حفظ التعديل')),
+  ]));
+}
+Future<void> deleteStockMovement(Movement movement) async {
+  if(movement.ref.isNotEmpty || !['استلام','صرف'].contains(movement.type)){
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('هذه الحركة مرتبطة بعملية أخرى أو تسوية؛ لا يمكن حذفها من سجل الحركات.')));
+    return;
+  }
+  final itemMatch=items.where((i)=>i.n==movement.item);
+  if(itemMatch.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الصنف المرتبط بالحركة غير موجود.')));return;}
+  final item=itemMatch.first;
+  final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف حركة مخزون'),content:Text('حذف حركة ${movement.type} • ${item.n} • ${qtyText(movement.qty)}؟ سيتم عكس أثرها على الرصيد.'),actions:[
+    TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),
+    FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف')),
+  ]));
+  if(ok!=true)return;
+  final current=balance(item,movement.warehouse);
+  final restored=movement.type=='استلام'?current-movement.qty:current+movement.qty;
+  if(restored< -0.000001){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تعذر الحذف لأن رصيد المخزن لا يسمح بعكس الحركة بأمان.')));return;}
+  setBalance(item,movement.warehouse,restored<0?0:restored);
+  movements.remove(movement);
+  addAudit('حذف','حركة مخزون',movement.type+' • '+item.n+' • '+movement.warehouse+' • '+qtyText(movement.qty));
+  await save();if(mounted)setState((){});
+}
 Future<void> movementHistoryDialog() async {
   final list = visibleMovements.reversed.toList();
   await showDialog(
@@ -771,6 +830,11 @@ Future<void> movementHistoryDialog() async {
                 ),
                 title: Text('${m.item} • ${m.type} • ${qtyText(m.qty)}'),
                 subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\\n'+m.note}'),
+                trailing: ['استلام','صرف'].contains(m.type)&&m.ref.isEmpty?PopupMenuButton<String>(
+                  tooltip:'إجراءات الحركة',
+                  onSelected:(action){if(action=='edit'){Navigator.pop(dc);editStockMovement(m);}else if(action=='delete'){Navigator.pop(dc);deleteStockMovement(m);}},
+                  itemBuilder:(ctx)=>const [PopupMenuItem(value:'edit',child:Text('تعديل الحركة')),PopupMenuItem(value:'delete',child:Text('حذف الحركة'))],
+                ):null,
               )).toList(),
             ),
       ),
