@@ -704,6 +704,8 @@ Widget reportPage(){
   }
   rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));
   final allMeals=breakfast+lunch+dinner+extra;
+  final siteCostRanking=visibleSites.map((site){final siteCost=siteMaterialCost(site.name,from,to);return MapEntry(site.name,siteCost);}).toList()..sort((a,b)=>b.value.compareTo(a.value));
+  final averageMaterialCostPerMeal=allMeals>0?rawCost/allMeals:0.0;
   final rows=<Widget>[
     const Text('تقرير الوجبات والإيرادات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
     Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -728,6 +730,8 @@ Widget reportPage(){
     metric('إجمالي الوجبات',allMeals.toString(),Icons.restaurant),
     metric('إيراد الوجبات المسعّرة',cash(revenue),Icons.payments),
     metric('تكلفة الخامات المصروفة فعليًا',cash(rawCost),Icons.calculate),
+    metric('متوسط تكلفة الخامات لكل وجبة',cash(averageMaterialCostPerMeal),Icons.analytics),
+    if(siteCostRanking.isNotEmpty) Card(child:ListTile(leading:const Icon(Icons.leaderboard,color:Colors.deepOrange),title:const Text('أعلى موقع في تكلفة الخامات'),subtitle:Text(siteCostRanking.first.key),trailing:Text(cash(siteCostRanking.first.value),style:const TextStyle(fontWeight:FontWeight.bold)))),
     metric('الفائض بعد تكلفة الخامات',cash(revenue-rawCost),Icons.trending_up),metric('مصروفات المواقع خلال الفترة',cash(expensesTotal),Icons.receipt_long),metric('صافي الربح بعد المصروفات',cash(revenue-rawCost-expensesTotal),Icons.account_balance),
     Card(child:ListTile(leading:const Icon(Icons.info_outline),title:const Text('ملاحظة محاسبية'),subtitle:Text('الوجبات الإضافية: $extra وجبة. لا تدخل في الإيراد أو تكلفة الوصفات حاليًا لعدم وجود سعر تعاقدي ووصفة محددة لها. الفائض المعروض لا يشمل العمالة أو النقل أو المصروفات التشغيلية.'))),
     const Padding(padding:EdgeInsets.only(top:12,bottom:6),child:Text('تفصيل الأداء حسب الموقع',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
@@ -740,7 +744,7 @@ Widget reportPage(){
         amount+=rev(entry);
       }
     }
-    cost=siteMaterialCost(site.name,from,to);final count=b+l+d+e;
+    cost=siteMaterialCost(site.name,from,to);final count=b+l+d+e;final itemCosts=<String,double>{};for(final movement in siteCostMovements(site.name,from,to)){itemCosts[movement.item]=(itemCosts[movement.item]??0)+movementCost(movement);}final sortedItemCosts=itemCosts.entries.toList()..sort((a,b)=>b.value.compareTo(a.value));
     rows.add(Card(child:ExpansionTile(
       leading:const Icon(Icons.apartment,color:Colors.teal),
       title:Text(site.name,style:const TextStyle(fontWeight:FontWeight.bold)),
@@ -752,7 +756,10 @@ Widget reportPage(){
         ListTile(dense:true,title:const Text('وجبات إضافية'),trailing:Text('$e وجبة • غير مسعّرة')),
         const Divider(),
         ListTile(dense:true,title:const Text('تكلفة الخامات المصروفة فعليًا'),trailing:Text(cash(cost))),
-        ...siteCostMovements(site.name,from,to).map((m)=>ListTile(dense:true,leading:const Icon(Icons.inventory_2_outlined),title:Text(m.item+' • '+qtyText(m.qty)),subtitle:Text(m.date.toString()+' | '+m.warehouse+' | '+m.type),trailing:Text(cash(movementCost(m))))),
+        if(sortedItemCosts.isNotEmpty)const ListTile(dense:true,title:Text('تفصيل التكلفة حسب الخامة',style:TextStyle(fontWeight:FontWeight.bold))),
+        ...sortedItemCosts.map((entry)=>ListTile(dense:true,leading:const Icon(Icons.inventory_2_outlined),title:Text(entry.key),subtitle:Text('إجمالي تكلفة الصنف خلال الفترة'),trailing:Text(cash(entry.value)))),
+        const Divider(),
+        ...siteCostMovements(site.name,from,to).map((m)=>ListTile(dense:true,leading:const Icon(Icons.receipt_long_outlined),title:Text(m.item+' • '+qtyText(m.qty)),subtitle:Text(m.date.toString()+' | '+m.warehouse+' | '+m.type),trailing:Text(cash(movementCost(m))))),
         ListTile(dense:true,title:const Text('الفائض بعد تكلفة الخامات'),trailing:Text(cash(amount-cost),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.teal))),
       ],
     )));
