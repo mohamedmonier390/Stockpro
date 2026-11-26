@@ -87,7 +87,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     setState(()=>busy=true);
     try {
       final prefs=await SharedPreferences.getInstance();
-      const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+      const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];
       final snapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};
       for(final k in keys){snapshot[k]=prefs.get(k);}
       final revision=await Supabase.instance.client.rpc('save_user_snapshot',params:{'target_company':cloudCompanyId,'snapshot':snapshot});
@@ -109,7 +109,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         final yes=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('تحميل بيانات الكلاود'),content:const Text('سيتم استبدال بيانات StockPro الموجودة على هذا الجهاز ببيانات النسخة السحابية. يفضل عمل نسخة احتياطية محلية قبل المتابعة.'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('استبدال البيانات'))]));
         if(yes==true){
           final prefs=await SharedPreferences.getInstance();
-          const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+          const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];
           // Save a rollback copy locally before overwriting live data.
           final localBackup=<String,dynamic>{'createdAt':DateTime.now().toIso8601String()};
           for(final key in keys){localBackup[key]=prefs.get(key);}
@@ -170,7 +170,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     try {
       await checkSharedSnapshotStatus();
       final prefs=await SharedPreferences.getInstance();
-      const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses'];
+      const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];
       final snapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};
       for(final k in keys){snapshot[k]=prefs.get(k);}
       final rev=await Supabase.instance.client.rpc('save_company_snapshot',params:{'target_company':cloudCompanyId,'snapshot':snapshot,'expected_revision':sharedRevision});
@@ -198,7 +198,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         final yes=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('تنزيل بيانات الشركة المشتركة'),content:Text('سيتم استبدال بيانات التشغيل المحلية ببيانات الشركة المشتركة Revision $remoteRev. سيتم حفظ نسخة محلية للتراجع. بيانات حسابات PIN المحلية لن يتم استبدالها.'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('تنزيل واستبدال'))]));
         if(yes==true){
           final prefs=await SharedPreferences.getInstance();
-          const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses'];
+          const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];
           final backup=<String,dynamic>{'createdAt':DateTime.now().toIso8601String()};
           for(final key in keys){backup[key]=prefs.get(key);}
           await prefs.setString('cloudRestoreSafetyBackup',jsonEncode(backup));
@@ -222,7 +222,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     final backupDate=_formatCloudDate(backup['createdAt']?.toString());
     final yes=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('استعادة بيانات الجهاز السابقة'),content:Text('سيتم إرجاع البيانات المحلية التي تم حفظها قبل آخر تنزيل من الكلاود ('+backupDate+').'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('استعادة النسخة المحلية'))]));
     if(yes!=true)return;
-    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];
     for(final key in keys){if(backup.containsKey(key)){final v=backup[key];if(v==null){await prefs.remove(key);}else if(v is String){await prefs.setString(key,v);}else{await prefs.setString(key,jsonEncode(v));}}}
     if(mounted)setState(()=>message='تمت استعادة نسخة الجهاز السابقة. أغلق StockPro وافتحه مرة أخرى.');
   }
