@@ -22,6 +22,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   String? localAutoSyncAt;
   int sharedRevision = 0;
   List<Map<String,dynamic>> companyMembers = [];
+  List<Map<String,dynamic>> availableCompanies = [];
   final memberEmail = TextEditingController();
   String memberRole = 'staff';
   final memberPermissions = <String>{'المخزون','المخازن'};
@@ -80,6 +81,45 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     } on PostgrestException catch (e) { message = 'تعذر الإنشاء. تأكد من تشغيل Migration 0003. ${e.message}'; }
     catch (e) { message = 'حدث خطأ: $e'; }
     if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> discoverMyCompanies() async {
+    if(currentUser==null){setState(()=>message='سجّل الدخول أولًا.');return;}
+    setState(()=>busy=true);
+    try {
+      final rows=await Supabase.instance.client.rpc('list_my_companies');
+      availableCompanies=(rows as List).map((r)=>Map<String,dynamic>.from(r as Map)).toList();
+      if(availableCompanies.isEmpty) {
+        message='هذا الحساب ليس عضوًا في شركة بعد. اطلب من مدير الشركة إضافتك بالبريد الإلكتروني نفسه.';
+      } else {
+        final selected=await showDialog<Map<String,dynamic>>(
+          context:context,
+          builder:(d)=>AlertDialog(
+            title:const Text('الشركات المرتبط بها حسابك'),
+            content:SizedBox(width:double.maxFinite,child:Column(mainAxisSize:MainAxisSize.min,children:availableCompanies.map((c)=>ListTile(
+              leading:const Icon(Icons.business),
+              title:Text(c['company_name']?.toString()??'شركة'),
+              subtitle:Text('الدور: ${c['member_role']??'عضو'}'),
+              onTap:()=>Navigator.pop(d,c),
+            )).toList())),
+            actions:[TextButton(onPressed:()=>Navigator.pop(d),child:const Text('إلغاء'))],
+          ),
+        );
+        if(selected!=null){
+          final prefs=await SharedPreferences.getInstance();
+          final id=selected['company_id'].toString();
+          await prefs.setString('cloudCompanyId',id);
+          await prefs.setString('cloudCompanyUserId',currentUser!.id);
+          cloudCompanyId=id;cloudCompanyUserId=currentUser!.id;
+          message='تم ربط الجهاز بالشركة «${selected['company_name']}» بنجاح. تحقق من صلاحية المزامنة قبل تنزيل البيانات المشتركة.';
+          await checkSnapshotStatus();
+          await checkSharedSnapshotStatus();
+        }
+      }
+    } on PostgrestException catch(e) {
+      message='تعذر اكتشاف الشركات. تأكد من تطبيق Migration 0011: ${e.message}';
+    } catch(e){message='فشل اكتشاف الشركات: $e';}
+    if(mounted)setState(()=>busy=false);
   }
 
   Future<void> syncUpload() async {
@@ -274,6 +314,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           if (user != null) TextButton.icon(onPressed: busy ? null : logout, icon: const Icon(Icons.logout), label: const Text('تسجيل الخروج')),
           if (hasCompanyLink) Padding(padding: const EdgeInsets.only(top:12),child:Text('الشركة المرتبطة: $cloudCompanyId',style:const TextStyle(fontSize:12))),
         ]))),
+        if (user != null && !hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('الانضمام إلى شركة موجودة',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('إذا أضافك مدير الشركة ببريد حساب Cloud هذا، اضغط لاكتشاف الشركات وربط الجهاز.'),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:discoverMyCompanies,icon:const Icon(Icons.group_search),label:const Text('اكتشاف الشركات المرتبط بها حسابي'))]))),
         if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('النسخ الاحتياطي الشخصي',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('نسخة خاصة بحسابك لاستعادة بياناتك على جهاز آخر.'),const SizedBox(height:10),Text('آخر رفع تلقائي: ${_formatCloudDate(localAutoSyncAt)}'),const SizedBox(height:6),Text(cloudSnapshotStatus),const SizedBox(height:10),OutlinedButton.icon(onPressed:busy?null:checkSnapshotStatus,icon:const Icon(Icons.refresh),label:const Text('تحديث حالة النسخة')),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[FilledButton.icon(onPressed:busy?null:syncUpload,icon:const Icon(Icons.cloud_upload),label:const Text('رفع النسخة الشخصية')),OutlinedButton.icon(onPressed:busy?null:syncDownload,icon:const Icon(Icons.cloud_download),label:const Text('تنزيل النسخة الشخصية')),OutlinedButton.icon(onPressed:busy?null:rollbackCloudRestore,icon:const Icon(Icons.undo),label:const Text('استعادة النسخة المحلية السابقة'))])]))),
         if (hasCompanyLink) Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           const Text('أعضاء الشركة وصلاحياتهم',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
