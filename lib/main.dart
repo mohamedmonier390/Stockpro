@@ -532,10 +532,33 @@ Widget metric(String title, String val, IconData icon) {
     ),
   );
 }
+List<Map<String,dynamic>> buildWasteAlerts(DateTime from,DateTime to){
+  final alerts=<Map<String,dynamic>>[];
+  for(final site in visibleSites){
+    final expected=expectedSiteConsumption(site.name,from,to);
+    final actual=actualSiteIssues(site.name,from,to);
+    for(final item in {...expected.keys,...actual.keys}){
+      final e=expected[item]??0.0,a=actual[item]??0.0,d=a-e;
+      if(e>0 && d>0 && d/e*100>=5){
+        alerts.add({'site':site.name,'item':item,'expected':e,'actual':a,'difference':d,'percent':d/e*100,'cost':d*item.cost,'noRecipe':false});
+      }else if(e<=0 && a>0){
+        alerts.add({'site':site.name,'item':item,'expected':0.0,'actual':a,'difference':a,'percent':null,'cost':a*item.cost,'noRecipe':true});
+      }
+    }
+  }
+  alerts.sort((a,b)=>(b['cost'] as double).compareTo(a['cost'] as double));
+  return alerts;
+}
 Widget dashboard() {
   final todayDays = days.where((x) => today(x.date) && (current.admin || current.sites.contains(x.site))).toList();
   final todayRevenue = todayDays.fold(0.0, (a, x) => a + rev(x));
   final todayMeals = todayDays.fold(0, (a, x) => a + x.b + x.l + x.d + x.e);
+  final now=DateTime.now();
+  final monthStart=DateTime(now.year,now.month,1);
+  final wasteAlerts=buildWasteAlerts(monthStart,DateTime(now.year,now.month,now.day));
+  final overuseAlerts=wasteAlerts.where((x)=>x['noRecipe']!=true).toList();
+  final noRecipeAlerts=wasteAlerts.where((x)=>x['noRecipe']==true).toList();
+  final alertCost=overuseAlerts.fold<double>(0,(s,x)=>s+(x['cost'] as double));
   return ListView(
     padding: const EdgeInsets.all(14),
     children: [
@@ -566,6 +589,30 @@ Widget dashboard() {
       metric('عدد الخامات', visibleItems.length.toString(), Icons.inventory_2),
       metric('خامات وصلت حد التنبيه', visibleLowStockCount.toString(), Icons.warning_amber_rounded),
       metric('قيمة المخزون', cash(visibleStock), Icons.warehouse),
+      Card(
+        color: wasteAlerts.isEmpty ? const Color(0xffeaf7ef) : const Color(0xfffff3e5),
+        child: ExpansionTile(
+          leading: Icon(wasteAlerts.isEmpty?Icons.check_circle:Icons.warning_amber_rounded,color:wasteAlerts.isEmpty?Colors.green:Colors.deepOrange),
+          title: Text(wasteAlerts.isEmpty?'متابعة الهالك والانحراف':'تنبيهات الهالك والانحراف (${wasteAlerts.length})',style:const TextStyle(fontWeight:FontWeight.bold)),
+          subtitle: Text(wasteAlerts.isEmpty?'لا توجد تجاوزات بنسبة 5% أو صرف خامات بلا وصفة هذا الشهر':'هالك زائد مرصود: ${cash(alertCost)} • الشهر الحالي'),
+          children: [
+            if(wasteAlerts.isEmpty) const ListTile(dense:true,title:Text('ممتاز! لا توجد تنبيهات حسب حد 5% الحالي.')),
+            ...wasteAlerts.take(8).map((a){
+              final item=a['item'] as Item;
+              final missing=a['noRecipe']==true;
+              return ListTile(
+                dense:true,
+                leading:Icon(missing?Icons.help_outline:Icons.trending_up,color:Colors.deepOrange),
+                title:Text('${a['site']} • ${item.n}'),
+                subtitle:Text(missing?'صرف ${qtyText(a['actual'] as double)} ${item.unit} بدون وصفة مسجلة':'زيادة ${qtyText(a['difference'] as double)} ${item.unit} • انحراف ${(a['percent'] as double).toStringAsFixed(1)}%'),
+                trailing:Text(cash(a['cost'] as double),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.deepOrange)),
+              );
+            }),
+            if(wasteAlerts.length>8) ListTile(title:Text('يوجد ${wasteAlerts.length-8} تنبيه إضافي في تقرير الانحراف')),
+            if(can('التقارير')) ListTile(leading:const Icon(Icons.analytics),title:const Text('فتح تقرير تحليل الانحراف'),onTap:(){setState(()=>tab=4);}),
+          ],
+        ),
+      ),
       const SizedBox(height: 8),
       const Text('إجراءات سريعة', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xff153b3a))),
       Wrap(
