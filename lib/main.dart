@@ -634,7 +634,7 @@ Widget dashboard() {
           children: [
             ListTile(leading:const Icon(Icons.tune),title:Text('تغيير نسبة التنبيه الحالية: ${wasteAlertThreshold.toStringAsFixed(0)}%'),subtitle:const Text('اختيار الحد الذي يبدأ عنده التنبيه'),trailing:const Icon(Icons.chevron_left),onTap:showWasteThresholdDialog),
             ListTile(leading:const Icon(Icons.leaderboard),title:const Text('عرض ترتيب جميع الانحرافات'),subtitle:const Text('من الأعلى تكلفة إلى الأقل — الشهر الحالي'),onTap:()=>showRankedWasteDialog(wasteAlerts)),
-            if(wasteAlerts.isEmpty) const ListTile(dense:true,title:Text('ممتاز! لا توجد تنبيهات حسب حد ${wasteAlertThreshold.toStringAsFixed(0)}% الحالي.')),
+            if(wasteAlerts.isEmpty) ListTile(dense:true,title:Text('ممتاز! لا توجد تنبيهات حسب حد ${wasteAlertThreshold.toStringAsFixed(0)}% الحالي.')),
             ...wasteAlerts.take(8).map((a){
               final item=a['item'] as Item;
               final missing=a['noRecipe']==true;
