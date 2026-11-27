@@ -3,12 +3,20 @@
 This migration creates the multi-company Supabase/Postgres foundation. The Android app currently initializes the Supabase client and offers a database connectivity check, but cloud authentication, data sync, and company onboarding UI are not yet enabled.
 
 ## Apply migrations
-In Supabase Dashboard → SQL Editor, run in order:
+In Supabase Dashboard → SQL Editor, run in order (only in a test project until security checks are complete):
 1. `supabase/migrations/0001_stockpro_cloud.sql`
 2. `supabase/migrations/0002_permission_scope_rls.sql`
 3. `supabase/migrations/0003_secure_company_onboarding.sql`
+4. `supabase/migrations/0004_user_snapshot_sync.sql`
+5. `supabase/migrations/0005_secure_existing_permission_functions.sql`
+6. `supabase/migrations/0006_company_shared_snapshot.sql`
+7. `supabase/migrations/0007_company_member_management.sql`
+8. `supabase/migrations/0008_member_owner_protection.sql`
+9. `supabase/migrations/0009_enable_company_snapshot_realtime.sql`
+10. `supabase/migrations/0010_require_company_sync_permission.sql`
+11. `supabase/migrations/0011_member_company_discovery.sql`
 
-Confirm each finishes without errors. Keep a copy of the results.
+Confirm each finishes without errors. Keep a copy of the results. Migration 0011 adds `list_my_companies()`, which returns only the companies for which the signed-in user is already a member, allowing an invited member to link their device. It does not allow searching or joining arbitrary companies.
 
 ## What exists
 - Company membership and roles.

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Client-side Supabase configuration. The publishable key is intended for
@@ -18,19 +19,55 @@ class CloudConnection {
     }
   }
 
+  /// Retry transient DNS/socket lookup failures, which can occur briefly on
+  /// Android when a network changes between Wi-Fi and mobile data.
+  static Future<T> retryDns<T>(Future<T> Function() action) async {
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return await action();
+      } catch (e) {
+        final error = e.toString().toLowerCase();
+        final transient = e is SocketException ||
+            error.contains('failed host lookup') ||
+            error.contains('no address associated with hostname') ||
+            error.contains('socketexception');
+        if (!transient || attempt >= 2) rethrow;
+        await Future<void>.delayed(Duration(seconds: attempt + 1));
+      }
+    }
+  }
+
+  static Future<String> _dnsCheck(String host) async {
+    try {
+      final addresses = await InternetAddress.lookup(host);
+      return addresses.isEmpty ? 'فشل DNS: $host (لا توجد عناوين)' : 'نجح DNS: $host';
+    } catch (e) {
+      return 'فشل DNS: $host — $e';
+    }
+  }
+
   static Future<String> checkDatabase() async {
     if (!initialized) {
       return 'تعذر تهيئة الاتصال: ${initializationError ?? 'غير معروف'}';
     }
+    final generalDns = await _dnsCheck('google.com');
+    final supabaseDns = await _dnsCheck('bgebhdsahnlvpqogeovm.supabase.co');
+    if (supabaseDns.startsWith('فشل DNS')) {
+      return 'اختبار DNS من داخل التطبيق:\\n$generalDns\\n$supabaseDns\\nالمتصفح قد يستخدم DNS آمنًا مختلفًا عن التطبيق. أرسل هذه النتيجة للدعم.';
+    }
     try {
-      await Supabase.instance.client.from('companies').select('id').limit(1);
-      return 'الاتصال ناجح وقاعدة بيانات StockPro موجودة.';
+      await retryDns(() => Supabase.instance.client.from('companies').select('id').limit(1));
+      return 'نجح DNS والاتصال بقاعدة بيانات StockPro.\\n$generalDns\\n$supabaseDns';
     } on PostgrestException catch (e) {
       if (e.code == '42P01' || e.message.toLowerCase().contains('companies')) {
         return 'الاتصال بالمشروع تم، لكن جداول StockPro غير جاهزة. شغّل ملفات Migration من SQL Editor.';
       }
       return 'وصلنا للمشروع، لكن فحص قاعدة البيانات رجع: ${e.message}';
     } catch (e) {
+      final error = e.toString().toLowerCase();
+      if (error.contains('failed host lookup') || error.contains('no address associated')) {
+        return 'السيرفر لم يُحلّ عنوانه من الشبكة بعد 3 محاولات. جرّب تبديل Wi-Fi وبيانات الهاتف ثم أعد الفحص.';
+      }
       return 'فشل فحص الاتصال: ${e.toString()}';
     }
   }

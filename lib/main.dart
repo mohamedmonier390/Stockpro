@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:archive/archive.dart' as zip;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' hide Border, TextSpan;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'cloud_connection.dart';
 import 'cloud_account_screen.dart';
 Future<void> main() async {
@@ -80,53 +83,142 @@ class App extends StatelessWidget {
 }
 class LoginScreen extends StatefulWidget{const LoginScreen({super.key});@override State<LoginScreen> createState()=>LoginState();}
 class LoginState extends State<LoginScreen>{
-  final pin=TextEditingController();List<AppUser> users=[];AppUser? selected;bool loading=true;
+  final pin=TextEditingController();List<AppUser> users=[];AppUser? selected;bool loading=true;bool showPin=false;
   @override void initState(){super.initState();loadUsers();}
   Future<void> loadUsers()async{final p=await SharedPreferences.getInstance();try{users=(jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))).toList();}catch(_){}if(users.isEmpty){users=[AppUser('المدير','',true,Set<String>.from(AppUser.modules))];await p.setString('users',jsonEncode(users.map((u)=>u.j()).toList()));}selected=users.first;setState(()=>loading=false);}
   Future<void> enter()async{if(selected==null)return;if(pin.text!=selected!.pin){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PIN غير صحيح')));return;}final p=await SharedPreferences.getInstance();await p.setString('activeUser',selected!.name);if(!mounted)return;Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const Hub()));}
   @override
   Widget build(BuildContext c) {
-    if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const MonierBrand(size: 82),
-                const Text('StockPro', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xff092d50))),
-                const SizedBox(height: 22),
-                DropdownButtonFormField<AppUser>(
-                  value: selected,
-                  decoration: const InputDecoration(labelText: 'المستخدم', border: OutlineInputBorder()),
-                  items: users.map((u) => DropdownMenuItem(value: u, child: Text(u.name))).toList(),
-                  onChanged: (u) => setState(() => selected = u),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: pin,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'PIN', border: OutlineInputBorder()),
-                  onSubmitted: (_) => enter(),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(onPressed: enter, child: const Text('دخول')),
-                ),
-              ],
+    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final width = MediaQuery.sizeOf(c).width;
+
+    final loginCard = Card(
+      elevation: 8,
+      shadowColor: const Color(0x33092d50),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(children: [
+          const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.groups_rounded, size: 45, color: Color(0xff092d50)),
+            SizedBox(width: 10),
+            Text('Login', style: TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: Color(0xff092d50))),
+          ]),
+          const SizedBox(height: 2),
+          const Text('Welcome to StockPro', style: TextStyle(fontSize: 17, color: Color(0xff4b5870), fontStyle: FontStyle.italic)),
+          const SizedBox(height: 18),
+          DropdownButtonFormField<AppUser>(
+            value: selected,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.person, color: Color(0xff092d50)),
+              hintText: 'Username', filled: true, fillColor: const Color(0xfff7f9fc),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xffc5cedb), width: 1.5)),
+            ),
+            items: users.map((u) => DropdownMenuItem(value: u, child: Text(u.name, overflow: TextOverflow.ellipsis))).toList(),
+            onChanged: (u) => setState(() => selected = u),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: pin, obscureText: !showPin, keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.lock_rounded, color: Color(0xff092d50)),
+              hintText: 'Password / PIN',
+              suffixIcon: IconButton(onPressed: () => setState(() => showPin = !showPin), icon: Icon(showPin ? Icons.visibility : Icons.visibility_off, color: const Color(0xff59647a))),
+              filled: true, fillColor: const Color(0xfff7f9fc),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xffc5cedb), width: 1.5)),
+              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            ),
+            onSubmitted: (_) => enter(),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity, height: 56,
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xff17a31c), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              onPressed: enter,
+              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.login_rounded, size: 30), SizedBox(width: 10),
+                Text('Login', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              ]),
             ),
           ),
-        ),
+        ]),
       ),
     );
+
+    final features = Row(children: [
+      _loginFeature(Icons.warehouse_rounded, 'Multiple\nWarehouses'),
+      _loginDivider(),
+      _loginFeature(Icons.fact_check_rounded, 'Track\nMovements'),
+      _loginDivider(),
+      _loginFeature(Icons.bar_chart_rounded, 'Control\nInventory'),
+      _loginDivider(),
+      _loginFeature(Icons.verified_user_rounded, 'Secure\nAccess'),
+    ]);
+
+    final footer = Container(
+      width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(color: const Color(0xff062a50), borderRadius: BorderRadius.circular(14)),
+      child: const Column(children: [
+        Text('StockPro by Monier © 2026', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+        SizedBox(height: 4),
+        Text('Together for a Smarter Business', style: TextStyle(color: Colors.white, fontStyle: FontStyle.italic, fontSize: 13)),
+      ]),
+    );
+
+    final content = Column(
+      mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min,
+      children: [
+        const MonierBrand(size: 82),
+        const SizedBox(height: 4),
+        RichText(text: const TextSpan(children: [
+          TextSpan(text: 'Stock', style: TextStyle(color: Color(0xff092d50), fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: -2)),
+          TextSpan(text: 'Pro', style: TextStyle(color: Color(0xff19a52b), fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: -2)),
+        ])),
+        const Text('Inventory • Operations • Better Control', style: TextStyle(color: Color(0xff092d50), fontSize: 15, fontStyle: FontStyle.italic, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        const Text('By Monier', style: TextStyle(color: Color(0xff092d50), fontSize: 21, fontStyle: FontStyle.italic, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 18),
+        loginCard,
+        const SizedBox(height: 12),
+        features,
+        const SizedBox(height: 12),
+        footer,
+      ],
+    );
+
+    return Scaffold(
+      body: Stack(children: [
+        Positioned.fill(child: Container(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xfff5f8fc), Color(0xffffffff), Color(0xffe9f0f7)])))),
+        Positioned(top: -100, left: -100, child: Container(width: 260, height: 260, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xff159b20)))),
+        Positioned(top: -80, left: -70, child: Container(width: 220, height: 220, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xff0b3970)))),
+        Positioned(bottom: -90, right: -80, child: Container(width: 270, height: 270, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xff062a50)))),
+        Positioned(bottom: -110, right: -80, child: Container(width: 225, height: 225, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xff21a447)))),
+        SafeArea(
+          child: LayoutBuilder(builder: (ctx, box) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: box.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: width < 380 ? 14 : 24, vertical: 18),
+                      child: content,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ]),
+    );
   }
+  Widget _loginFeature(IconData icon,String text)=>Expanded(child:Column(mainAxisSize:MainAxisSize.min,children:[Icon(icon,color:const Color(0xff092d50),size:34),const SizedBox(height:3),Text(text,textAlign:TextAlign.center,style:const TextStyle(color:Color(0xff092d50),fontSize:11.5,fontWeight:FontWeight.w600))]));
+  Widget _loginDivider()=>Container(height:52,width:2,color:const Color(0xff20a638),margin:const EdgeInsets.symmetric(horizontal:3));
 }
 class AnimatedSplash extends StatefulWidget {const AnimatedSplash({super.key});@override State<AnimatedSplash> createState()=>_AnimatedSplashState();}
 class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStateMixin {
@@ -168,7 +260,7 @@ class _AnimatedSplashState extends State<AnimatedSplash> with TickerProviderStat
 class Site{String name,client;double b,l,d;Site(this.name,this.client,this.b,this.l,this.d);Map j()=>{'n':name,'c':client,'b':b,'l':l,'d':d};}
 class Day{String site;DateTime date;int b,l,d,e;String id;Day(this.site,this.date,this.b,this.l,this.d,this.e,{String? id}):id=id??DateTime.now().microsecondsSinceEpoch.toString();Map j()=>{'s':site,'t':date.toIso8601String(),'b':b,'l':l,'d':d,'e':e,'id':id};}
 class Item{String n,code,unit;double cost,q,min;Item(this.n,this.code,this.unit,this.cost,this.q,this.min);Map j()=>{'n':n,'c':code,'u':unit,'cost':cost,'q':q,'min':min};}
-class Movement{String item,type,note,warehouse,ref;double qty;DateTime date;Movement(this.item,this.type,this.qty,this.note,this.date,[this.warehouse='',this.ref='']);Map j()=>{'i':item,'t':type,'q':qty,'n':note,'d':date.toIso8601String(),'w':warehouse,'ref':ref};}
+class Movement{String item,type,note,warehouse,ref;double qty;DateTime date;double? unitCost;Movement(this.item,this.type,this.qty,this.note,this.date,[this.warehouse='',this.ref='',this.unitCost]);Map j()=>{'i':item,'t':type,'q':qty,'n':note,'d':date.toIso8601String(),'w':warehouse,'ref':ref,'cost':unitCost};}
 class Recipe{String item,meal;double qty;Recipe(this.item,this.meal,this.qty);Map j()=>{'i':item,'m':meal,'q':qty};}
 class Warehouse{String name,site,manager;bool main;Warehouse(this.name,this.site,this.manager,this.main);Map j()=>{'n':name,'s':site,'m':manager,'main':main};}
 class Expense{String id,site,category,note;DateTime date;double amount;Expense(this.id,this.site,this.category,this.note,this.date,this.amount);Map j()=>{'id':id,'s':site,'c':category,'n':note,'d':date.toIso8601String(),'a':amount};factory Expense.fromMap(dynamic x)=>Expense(x['id']??DateTime.now().microsecondsSinceEpoch.toString(),x['s']??'',x['c']??'أخرى',x['n']??'',DateTime.tryParse(x['d']??'')??DateTime.now(),(x['a'] as num?)?.toDouble()??0);}
@@ -182,13 +274,19 @@ class AppUser {
 }
 class AuditEntry{String user,action,entity,details;DateTime date;AuditEntry(this.user,this.action,this.entity,this.details,this.date);Map j()=>{'u':user,'a':action,'e':entity,'d':details,'t':date.toIso8601String()};factory AuditEntry.fromMap(dynamic x)=>AuditEntry(x['u']??'',x['a']??'',x['e']??'',x['d']??'',DateTime.tryParse(x['t']??'')??DateTime.now());}
 class Hub extends StatefulWidget{const Hub({super.key});@override State<Hub> createState()=>HState();}
-class HState extends State<Hub>{int tab=0;bool ready=false;DateTime reportFrom=DateTime(DateTime.now().year,DateTime.now().month,1);DateTime reportTo=DateTime.now();final sites=<Site>[];final days=<Day>[];final items=<Item>[];final movements=<Movement>[];final recipes=<Recipe>[];final warehouses=<Warehouse>[];final users=<AppUser>[];final auditLogs=<AuditEntry>[];final expenses=<Expense>[];final stockBalances=<String,Map<String,double>>{};String activeUser='المدير';AppUser get current=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{}));List<Site> get visibleSites=>current.admin?sites:sites.where((s)=>current.sites.contains(s.name)).toList();List<Warehouse> get visibleWarehouses=>current.admin?warehouses:warehouses.where((w)=>current.warehouses.contains(w.name)).toList();List<Day> get visibleDays=>current.admin?days:days.where((x)=>current.sites.contains(x.site)).toList();List<Movement> get visibleMovements=>current.admin?movements:movements.where((m)=>current.warehouses.contains(m.warehouse)).toList();List<Item> get visibleItems=>current.admin||visibleWarehouses.isNotEmpty?items:[];double visibleBalance(Item item)=>visibleWarehouses.fold(0.0,(sum,w)=>sum+balance(item,w.name));double get visibleStock=>visibleItems.fold(0.0,(sum,item)=>sum+visibleBalance(item)*item.cost);int get visibleLowStockCount=>visibleItems.where((item)=>visibleBalance(item)<=item.min).length;
-Future<void> load()async{final p=await SharedPreferences.getInstance();try{sites.addAll((jsonDecode(p.getString('sites')??'[]') as List).map((x)=>Site(x['n'],x['c'],(x['b'] as num).toDouble(),(x['l'] as num).toDouble(),(x['d'] as num).toDouble())));days.addAll((jsonDecode(p.getString('days')??'[]') as List).map((x)=>Day(x['s'],DateTime.parse(x['t']),x['b'],x['l'],x['d'],x['e'],id:x['id']??'')));items.addAll((jsonDecode(p.getString('items')??'[]') as List).map((x)=>Item(x['n'],x['c'],x['u'],(x['cost'] as num).toDouble(),(x['q'] as num).toDouble(),(x['min'] as num).toDouble())));movements.addAll((jsonDecode(p.getString('movements')??'[]') as List).map((x)=>Movement(x['i'],x['t'],(x['q'] as num).toDouble(),x['n'],DateTime.parse(x['d']),x['w']??'')));recipes.addAll((jsonDecode(p.getString('recipes')??'[]') as List).map((x)=>Recipe(x['i'],x['m'],(x['q'] as num).toDouble())));warehouses.addAll((jsonDecode(p.getString('warehouses')??'[]') as List).map((x)=>Warehouse(x['n'],x['s']??'',x['m']??'',x['main']??false)));users.addAll((jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))));
-auditLogs.addAll((jsonDecode(p.getString('auditLogs')??'[]') as List).map((x)=>AuditEntry.fromMap(x)));expenses.addAll((jsonDecode(p.getString('expenses')??'[]') as List).map((x)=>Expense.fromMap(x)));activeUser=p.getString('activeUser')??'المدير';
+class HState extends State<Hub>{RealtimeChannel? _companyRealtimeChannel; bool _companyRealtimeStarted=false;int tab=0;bool ready=false;DateTime reportFrom=DateTime(DateTime.now().year,DateTime.now().month,1);DateTime reportTo=DateTime.now();final sites=<Site>[];final days=<Day>[];final items=<Item>[];final movements=<Movement>[];final recipes=<Recipe>[];final warehouses=<Warehouse>[];final users=<AppUser>[];final auditLogs=<AuditEntry>[];final expenses=<Expense>[];final stockBalances=<String,Map<String,double>>{};String activeUser='المدير';double wasteAlertThreshold=5;Map<String,dynamic> wasteAlertReviews={};AppUser get current=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{}));List<Site> get visibleSites=>current.admin?sites:sites.where((s)=>current.sites.contains(s.name)).toList();List<Warehouse> get visibleWarehouses=>current.admin?warehouses:warehouses.where((w)=>current.warehouses.contains(w.name)).toList();List<Day> get visibleDays=>current.admin?days:days.where((x)=>current.sites.contains(x.site)).toList();List<Movement> get visibleMovements=>current.admin?movements:movements.where((m)=>current.warehouses.contains(m.warehouse)).toList();List<Item> get visibleItems=>current.admin||visibleWarehouses.isNotEmpty?items:[];double visibleBalance(Item item)=>visibleWarehouses.fold(0.0,(sum,w)=>sum+balance(item,w.name));double get visibleStock=>visibleItems.fold(0.0,(sum,item)=>sum+visibleBalance(item)*item.cost);int get visibleLowStockCount=>visibleItems.where((item)=>visibleBalance(item)<=item.min).length;
+Future<void> load()async{final p=await SharedPreferences.getInstance();sites.clear();days.clear();items.clear();movements.clear();recipes.clear();warehouses.clear();users.clear();auditLogs.clear();expenses.clear();stockBalances.clear();try{sites.addAll((jsonDecode(p.getString('sites')??'[]') as List).map((x)=>Site(x['n'],x['c'],(x['b'] as num).toDouble(),(x['l'] as num).toDouble(),(x['d'] as num).toDouble())));days.addAll((jsonDecode(p.getString('days')??'[]') as List).map((x)=>Day(x['s'],DateTime.parse(x['t']),x['b'],x['l'],x['d'],x['e'],id:x['id']??'')));items.addAll((jsonDecode(p.getString('items')??'[]') as List).map((x)=>Item(x['n'],x['c'],x['u'],(x['cost'] as num).toDouble(),(x['q'] as num).toDouble(),(x['min'] as num).toDouble())));movements.addAll((jsonDecode(p.getString('movements')??'[]') as List).map((x)=>Movement(x['i'],x['t'],(x['q'] as num).toDouble(),x['n'],DateTime.parse(x['d']),x['w']??'',x['ref']??'',(x['cost'] as num?)?.toDouble())));recipes.addAll((jsonDecode(p.getString('recipes')??'[]') as List).map((x)=>Recipe(x['i'],x['m'],(x['q'] as num).toDouble())));warehouses.addAll((jsonDecode(p.getString('warehouses')??'[]') as List).map((x)=>Warehouse(x['n'],x['s']??'',x['m']??'',x['main']??false)));users.addAll((jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))));
+auditLogs.addAll((jsonDecode(p.getString('auditLogs')??'[]') as List).map((x)=>AuditEntry.fromMap(x)));expenses.addAll((jsonDecode(p.getString('expenses')??'[]') as List).map((x)=>Expense.fromMap(x)));activeUser=p.getString('activeUser')??'المدير';final rawThreshold=p.get('wasteAlertThreshold');wasteAlertThreshold=(rawThreshold is num?rawThreshold.toDouble():double.tryParse(rawThreshold?.toString()??'')??5).clamp(1,100).toDouble();try{final rawReviews=jsonDecode(p.getString('wasteAlertReviews')??'{}');if(rawReviews is Map)wasteAlertReviews=Map<String,dynamic>.from(rawReviews);}catch(_){}
 if(users.isEmpty){users.add(AppUser('المدير','',true,Set<String>.from(AppUser.modules)));}
 if(!users.any((u)=>u.name==activeUser))activeUser=users.first.name;
-if(warehouses.isEmpty){warehouses.add(Warehouse('المخزن الرئيسي','كل الشركة','',true));}final raw=jsonDecode(p.getString('stockBalances')??'{}');if(raw is Map){raw.forEach((wh,v){if(v is Map)stockBalances[wh.toString()]=v.map((k,val)=>MapEntry(k.toString(),(val as num).toDouble()));});}final main=warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);stockBalances.putIfAbsent(main.name,()=>{});for(final item in items){stockBalances[main.name]!.putIfAbsent(item.n,()=>item.q);item.q=stockBalances[main.name]![item.n]??0;}}catch(_){if(users.isEmpty)users.add(AppUser('المدير','',true,Set<String>.from(AppUser.modules)));}setState(()=>ready=true);}
-Future<void> save()async{final p=await SharedPreferences.getInstance();await p.setString('sites',jsonEncode(sites.map((x)=>x.j()).toList()));await p.setString('days',jsonEncode(days.map((x)=>x.j()).toList()));await p.setString('items',jsonEncode(items.map((x)=>x.j()).toList()));await p.setString('movements',jsonEncode(movements.map((x)=>x.j()).toList()));await p.setString('recipes',jsonEncode(recipes.map((x)=>x.j()).toList()));await p.setString('warehouses',jsonEncode(warehouses.map((x)=>x.j()).toList()));await p.setString('stockBalances',jsonEncode(stockBalances));await p.setString('users',jsonEncode(users.map((x)=>x.j()).toList()));await p.setString('activeUser',activeUser);await p.setString('auditLogs',jsonEncode(auditLogs.map((x)=>x.j()).toList()));await p.setString('expenses',jsonEncode(expenses.map((x)=>x.j()).toList()));}
+if(warehouses.isEmpty){warehouses.add(Warehouse('المخزن الرئيسي','كل الشركة','',true));}final raw=jsonDecode(p.getString('stockBalances')??'{}');if(raw is Map){raw.forEach((wh,v){if(v is Map)stockBalances[wh.toString()]=v.map((k,val)=>MapEntry(k.toString(),(val as num).toDouble()));});}final main=warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);stockBalances.putIfAbsent(main.name,()=>{});for(final item in items){stockBalances[main.name]!.putIfAbsent(item.n,()=>item.q);item.q=stockBalances[main.name]![item.n]??0;}}catch(_){if(users.isEmpty)users.add(AppUser('المدير','',true,Set<String>.from(AppUser.modules)));}setState(()=>ready=true);_startCompanyRealtime();}
+Timer? _cloudSyncTimer;
+bool _cloudSyncing=false;
+Future<void> save()async{final p=await SharedPreferences.getInstance();await p.setString('sites',jsonEncode(sites.map((x)=>x.j()).toList()));await p.setString('days',jsonEncode(days.map((x)=>x.j()).toList()));await p.setString('items',jsonEncode(items.map((x)=>x.j()).toList()));await p.setString('movements',jsonEncode(movements.map((x)=>x.j()).toList()));await p.setString('recipes',jsonEncode(recipes.map((x)=>x.j()).toList()));await p.setString('warehouses',jsonEncode(warehouses.map((x)=>x.j()).toList()));await p.setString('stockBalances',jsonEncode(stockBalances));await p.setString('users',jsonEncode(users.map((x)=>x.j()).toList()));await p.setString('activeUser',activeUser);await p.setString('auditLogs',jsonEncode(auditLogs.map((x)=>x.j()).toList()));await p.setString('expenses',jsonEncode(expenses.map((x)=>x.j()).toList()));_queueCloudBackup();}
+void _queueCloudBackup(){_cloudSyncTimer?.cancel();_cloudSyncTimer=Timer(const Duration(seconds:3),_autoCloudBackup);}
+Future<void> _startCompanyRealtime() async { if(_companyRealtimeStarted || !CloudConnection.initialized) return; _companyRealtimeStarted=true; try { final client=Supabase.instance.client; final user=client.auth.currentUser; final p=await SharedPreferences.getInstance(); final companyId=p.getString('cloudCompanyId'); final linkedUser=p.getString('cloudCompanyUserId'); if(user==null || companyId==null || companyId.isEmpty || linkedUser!=user.id){_companyRealtimeStarted=false;return;} _companyRealtimeChannel=client.channel('stockpro-company-$companyId').onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',table:'company_data_snapshots',filter:PostgresChangeFilter(type:PostgresChangeFilterType.eq,column:'company_id',value:companyId),callback:(payload) async { final row=payload.newRecord; final revision=int.tryParse(row['revision']?.toString()??'')??0; final prefs=await SharedPreferences.getInstance(); final baseline=prefs.getInt('cloudSharedRevisionBaseline'); if(revision<= (baseline??0) || !mounted) return; if(_cloudSyncing || (_cloudSyncTimer?.isActive??false)){await prefs.setString('cloudSharedSyncStatus','وصل تحديث Revision $revision لكن عندك تغييرات محلية قيد الحفظ؛ تم تأجيل التنزيل لتجنب فقدها.'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تحديث من الجهاز الآخر مؤجل لحماية تعديلاتك المحلية.'))); return;} if(baseline==null){await prefs.setString('cloudSharedSyncStatus','وصل تحديث Revision $revision. يلزم تنزيل أول نسخة يدويًا لمقارنة البيانات المحلية بأمان.'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:const Text('وصل تحديث من الجهاز الآخر. نزّل النسخة الأولى يدويًا لتفعيل التحديث التلقائي.'))); return;} try { final response=await client.rpc('get_company_snapshot',params:{'target_company':companyId}); if(response is! List || response.isEmpty) return; final cloudRow=response.first as Map; final remoteRevision=int.tryParse(cloudRow['revision'].toString())??0; if(remoteRevision<=baseline) return; final payload=cloudRow['payload']; if(payload is! Map || payload['app']!='StockPro' || payload['schema']!=1) throw Exception('نسخة سحابية غير متوافقة'); const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews']; final backup=<String,dynamic>{'createdAt':DateTime.now().toIso8601String()}; for(final key in keys){backup[key]=prefs.get(key);} await prefs.setString('cloudRestoreSafetyBackup',jsonEncode(backup)); for(final key in keys){if(payload.containsKey(key)){final value=payload[key];if(value==null){await prefs.remove(key);}else if(value is String){await prefs.setString(key,value);}else{await prefs.setString(key,jsonEncode(value));}}} await prefs.setInt('cloudSharedRevisionBaseline',remoteRevision); await prefs.setString('cloudSharedSyncStatus','تم تنزيل تحديث تلقائي من جهاز آخر — Revision $remoteRevision'); await load(); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تمت مزامنة تحديث الجهاز الآخر تلقائيًا — Revision $remoteRevision')));} catch(e){await prefs.setString('cloudSharedSyncStatus','وصل تحديث لكن تعذر تنزيله تلقائيًا: $e'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وصل تحديث لكن لم يتم تنزيله؛ راجع صفحة الكلاود.')));} }).subscribe(); } catch(_) { _companyRealtimeStarted=false; } }
+Future<void> _autoCloudBackup()async{if(_cloudSyncing||!CloudConnection.initialized)return;final client=Supabase.instance.client;final user=client.auth.currentUser;if(user==null)return;final p=await SharedPreferences.getInstance();final companyId=p.getString('cloudCompanyId');final linkedUser=p.getString('cloudCompanyUserId');if(companyId==null||companyId.isEmpty||linkedUser!=user.id)return;_cloudSyncing=true;try{const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];final snapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};for(final key in keys){snapshot[key]=p.get(key);}try{await client.rpc('save_user_snapshot',params:{'target_company':companyId,'snapshot':snapshot});await p.setString('cloudLastAutoSync',DateTime.now().toIso8601String());}catch(e){await p.setString('cloudSnapshotSyncStatus','تعذر تحديث النسخة الشخصية: $e');}const sharedKeys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];final sharedSnapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};for(final key in sharedKeys){sharedSnapshot[key]=p.get(key);}await _autoCompanySync(client,p,companyId,sharedSnapshot);}catch(e){await p.setString('cloudSharedSyncStatus','تعذر بدء المزامنة: $e');}finally{_cloudSyncing=false;}}
+Future<void> _autoCompanySync(SupabaseClient client,SharedPreferences p,String companyId,Map<String,dynamic> snapshot)async{try{final rows=await client.rpc('get_company_snapshot',params:{'target_company':companyId});final remoteRevision=rows is List&&rows.isNotEmpty?(int.tryParse((rows.first as Map)['revision'].toString())??0):0;final baseline=p.getInt('cloudSharedRevisionBaseline');if(baseline==null&&remoteRevision>0){await p.setString('cloudSharedSyncStatus','توجد بيانات مشتركة أحدث أو لم يتم تنزيلها بعد؛ تم إيقاف الرفع التلقائي لحماية البيانات.');return;}if(baseline!=null&&remoteRevision!=baseline){await p.setString('cloudSharedSyncStatus','تعارض مزامنة: نسخة الشركة تغيرت على جهاز آخر. نزّل النسخة المشتركة قبل أي رفع جديد.');return;}final expected=baseline??0;final next=await client.rpc('save_company_snapshot',params:{'target_company':companyId,'snapshot':snapshot,'expected_revision':expected});final revision=int.tryParse(next.toString())??expected+1;await p.setInt('cloudSharedRevisionBaseline',revision);await p.setString('cloudSharedSyncStatus','تمت المزامنة التلقائية لبيانات الشركة — Revision $revision');await p.setString('cloudSharedLastAutoSync',DateTime.now().toIso8601String());}catch(e){await p.setString('cloudSharedSyncStatus','المزامنة التلقائية متوقفة: '+e.toString());}}
 void addAudit(String action,String entity,String details){auditLogs.insert(0,AuditEntry(activeUser,action,entity,details,DateTime.now()));if(auditLogs.length>1000)auditLogs.removeRange(1000,auditLogs.length);}
 @override void initState(){super.initState();load();}
 bool today(DateTime d){final n=DateTime.now();return d.year==n.year&&d.month==n.month&&d.day==n.day;}
@@ -197,7 +295,74 @@ int get mealTotal=>days.where((x)=>today(x.date)).fold(0,(a,x)=>a+x.b+x.l+x.d+x.
 double get revToday=>days.where((x)=>today(x.date)).fold(0.0,(a,x)=>a+rev(x));
 double get stock=>items.fold(0.0,(a,x)=>a+x.q*x.cost);
 bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).admin||users.firstWhere((u)=>u.name==activeUser,orElse:()=>AppUser(activeUser,'',false,{})).permissions.contains(module);void siteAdd(Site x){setState(()=>sites.add(x));save();}void dayAdd(Day x){setState(()=>days.add(x));save();}void itemAdd(Item x){stockBalances.putIfAbsent(mainWarehouse.name,()=>{});stockBalances[mainWarehouse.name]![x.n]=x.q;setState(()=>items.add(x));save();}Warehouse get mainWarehouse=>warehouses.firstWhere((w)=>w.main,orElse:()=>warehouses.first);double balance(Item item,String warehouse)=>stockBalances[warehouse]?[item.n]??0;void setBalance(Item item,String warehouse,double value){stockBalances.putIfAbsent(warehouse,()=>{});stockBalances[warehouse]![item.n]=value;if(warehouse==mainWarehouse.name)item.q=value;}
-@override Widget build(BuildContext c){if(!ready)return const Scaffold(body:Center(child:CircularProgressIndicator()));final views=<Widget Function()>[dashboard,sitePage,dayPage,itemPage,reportPage,warehousePage,userPage,expensePage];final allowedTabs=[0,1,2,3,4,5,6,7].where((i){if(i==6)return current.admin; if(i==7)return can('المصروفات'); return can(AppUser.modules[i]);}).toList();if(!allowedTabs.contains(tab))tab=allowedTabs.isEmpty?0:allowedTabs.first;final icons=[Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];final labels=['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Row(mainAxisSize:MainAxisSize.min,children:[MonierBrand(size:30),SizedBox(width:8),Text('StockPro Business | التغذية')]),actions:[IconButton(tooltip:'حول StockPro',icon:const Icon(Icons.info_outline),onPressed:showStockProAbout),IconButton(tooltip:'تسجيل الخروج',icon:const Icon(Icons.logout),onPressed:()=>Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const LoginScreen())))],),body:views[tab](),bottomNavigationBar:NavigationBar(selectedIndex:allowedTabs.isEmpty?0:allowedTabs.indexOf(tab),onDestinationSelected:(i)=>setState(()=>tab=allowedTabs[i]),destinations:allowedTabs.map((i)=>NavigationDestination(icon:Icon(icons[i]),label:labels[i])).toList())));}
+ double movementCost(Movement m){final item=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));return m.qty*(m.unitCost??item.cost);}
+ String? movementSite(Movement m){if(m.type=='استهلاك وجبات'&&m.note.startsWith('موقع: '))return m.note.substring(6).split(' • ').first.trim();final wh=warehouses.where((w)=>w.name==m.warehouse).firstOrNull;if(wh!=null&&!wh.main&&wh.site.isNotEmpty&&wh.site!='كل الشركة')return wh.site;return null;}
+ bool isSiteConsumption(Movement m){if(m.type=='استهلاك وجبات'||m.type=='صرف للموقع')return true;if(m.type=='صرف'){final wh=warehouses.where((w)=>w.name==m.warehouse).firstOrNull;return wh!=null&&!wh.main&&wh.site.isNotEmpty&&wh.site!='كل الشركة';}return false;}
+ List<Movement> siteCostMovements(String site,DateTime from,DateTime to){final start=DateTime(from.year,from.month,from.day),end=DateTime(to.year,to.month,to.day);return movements.where((m){final d=DateTime(m.date.year,m.date.month,m.date.day);return isSiteConsumption(m)&&movementSite(m)==site&&!d.isBefore(start)&&!d.isAfter(end);}).toList();}
+ double siteMaterialCost(String site,DateTime from,DateTime to)=>siteCostMovements(site,from,to).fold<double>(0,(sum,m)=>sum+movementCost(m));
+ double linkedDayMaterialCost(String dayId)=>movements.where((m)=>m.ref==dayId&&m.type=='استهلاك وجبات').fold<double>(0,(sum,m)=>sum+movementCost(m));
+ Map<Item,double> expectedSiteConsumption(String site,DateTime from,DateTime to){final start=DateTime(from.year,from.month,from.day),end=DateTime(to.year,to.month,to.day);final result=<Item,double>{};for(final day in days){final date=DateTime(day.date.year,day.date.month,day.date.day);if(day.site!=site||date.isBefore(start)||date.isAfter(end))continue;for(final recipe in recipes){final count=recipe.meal=='إفطار'?day.b:recipe.meal=='غداء'?day.l:recipe.meal=='عشاء'?day.d:0;if(count<=0)continue;final item=items.where((i)=>i.n==recipe.item).firstOrNull;if(item!=null)result[item]=(result[item]??0)+count*recipe.qty;}}return result;}
+ List<Movement> manualSiteIssueMovements(String site,DateTime from,DateTime to){final start=DateTime(from.year,from.month,from.day),end=DateTime(to.year,to.month,to.day);return movements.where((m){final date=DateTime(m.date.year,m.date.month,m.date.day);if(date.isBefore(start)||date.isAfter(end)||movementSite(m)!=site)return false;if(m.type=='استهلاك وجبات')return false;return m.type=='صرف للموقع'||m.type=='صرف';}).toList();}
+ Map<Item,double> actualSiteIssues(String site,DateTime from,DateTime to){final result=<Item,double>{};for(final m in manualSiteIssueMovements(site,from,to)){final item=items.where((i)=>i.n==m.item).firstOrNull;if(item!=null)result[item]=(result[item]??0)+m.qty;}return result;}
+@override void dispose(){_cloudSyncTimer?.cancel();final channel=_companyRealtimeChannel;if(channel!=null){Supabase.instance.client.removeChannel(channel);}super.dispose();}
+@override
+Widget build(BuildContext c) {
+  if (!ready) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  final views = <Widget Function()>[dashboard, sitePage, dayPage, itemPage, reportPage, warehousePage, userPage, expensePage];
+  final allowedTabs = [0,1,2,3,4,5,6,7].where((i) {
+    if (i == 6) return current.admin;
+    if (i == 7) return can('المصروفات');
+    return can(AppUser.modules[i]);
+  }).toList();
+  if (!allowedTabs.contains(tab)) tab = allowedTabs.isEmpty ? 0 : allowedTabs.first;
+  final icons = [Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];
+  final labels = ['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];
+  final colors = Theme.of(c).colorScheme;
+  return Directionality(
+    textDirection: TextDirection.rtl,
+    child: Scaffold(
+      appBar: AppBar(
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          const MonierBrand(size: 27), const SizedBox(width: 6),
+          const Flexible(child: Text('StockPro | التغذية', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+        ]),
+        actions: [
+          IconButton(tooltip: 'حول StockPro', icon: const Icon(Icons.info_outline), onPressed: showStockProAbout),
+          IconButton(tooltip: 'تسجيل الخروج', icon: const Icon(Icons.logout), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()))),
+        ],
+      ),
+      body: views[tab](),
+      bottomNavigationBar: allowedTabs.isEmpty ? const SizedBox.shrink() : SafeArea(
+        top: false,
+        child: Container(
+          height: 72,
+          decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xffe5eceb)))),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: Row(children: allowedTabs.map((i) {
+              final selected = i == tab;
+              return InkWell(
+                onTap: () => setState(() => tab = i),
+                child: Container(
+                  width: 78, height: 68,
+                  margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  decoration: BoxDecoration(color: selected ? colors.primaryContainer : Colors.transparent, borderRadius: BorderRadius.circular(16)),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+                    Icon(icons[i], size: 23, color: selected ? colors.primary : const Color(0xff455453)),
+                    const SizedBox(height: 3),
+                    Text(labels[i], maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? colors.primary : const Color(0xff455453))),
+                  ]),
+                ),
+              );
+            }).toList()),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 Future<void> expenseDialog({Expense? existing}) async {
   if (visibleSites.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سجل المواقع أولاً')));
@@ -272,7 +437,7 @@ Future<void> expenseDialog({Expense? existing}) async {
   );
 }
 Future<void> deleteExpense(Expense x)async{final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف المصروف'),content:Text('حذف مصروف ${cash(x.amount)} — ${x.site}؟'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));if(ok==true){expenses.remove(x);addAudit('حذف','مصروف',x.site+' • '+cash(x.amount));await save();if(mounted)setState((){});}}
-Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'\\n'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
+Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'\n'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
 Widget userPage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('المستخدمون والصلاحيات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:userDialog,icon:const Icon(Icons.person_add),label:const Text('إضافة مستخدم')),if(current.admin)OutlinedButton.icon(onPressed:auditLogDialog,icon:const Icon(Icons.history),label:const Text('سجل التدقيق'))]),Card(child:ListTile(leading:const Icon(Icons.account_circle),title:const Text('المستخدم الحالي'),subtitle:Text(activeUser),trailing:const Icon(Icons.verified_user,color:Colors.teal))),const Card(child:ListTile(title:Text('أمان الدخول'),subtitle:Text('تغيير المستخدم يتم بعد تسجيل الخروج وإدخال PIN الخاص به. الحسابات والصلاحيات محلية على هذا الجهاز.'))),...users.map((u)=>Card(child:ListTile(leading:Icon(u.admin?Icons.admin_panel_settings:Icons.person),title:Text(u.name),subtitle:Text(u.admin?'مدير — صلاحيات كاملة':'صلاحيات: '+u.permissions.join('، ')),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>userDialog(existing:u)))))]); 
 Future<void> userDialog({AppUser? existing})async{
   final name=TextEditingController(text:existing?.name??'');final pin=TextEditingController(text:existing?.pin??'');bool admin=existing?.admin??false;
@@ -293,7 +458,7 @@ Future<void> userDialog({AppUser? existing})async{
       addAudit(existing==null?'إضافة':'تعديل','مستخدم',name.text.trim());save();setState((){});Navigator.pop(x);
     },child:const Text('حفظ'))])));
 }
-Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:const Text('سجل التدقيق'),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),const SizedBox(height:8),Expanded(child:list.isEmpty?const Center(child:Text('لا توجد سجلات')):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:const Icon(Icons.history),title:Text('${x.action} • ${x.entity}'),subtitle:Text('${x.user} | ${x.date.toLocal()}\\n${x.details}'));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]);}));}
+Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:const Text('سجل التدقيق'),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),const SizedBox(height:8),Expanded(child:list.isEmpty?const Center(child:Text('لا توجد سجلات')):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:const Icon(Icons.history),title:Text('${x.action} • ${x.entity}'),subtitle:Text('${x.user} | ${x.date.toLocal()}\n${x.details}'));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]);}));}
 Future<void> showStockProAbout() async {
   await showDialog<void>(
     context: context,
@@ -330,7 +495,24 @@ Future<void> showStockProAbout() async {
       ),
       actions: [
         TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) { await showDialog<void>(context: context, builder: (x) => AlertDialog(title: const Text('فحص الكلاود'), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: const Text('تمام'))])); } }, child: const Text('فحص الاتصال')),
-        FilledButton.icon(onPressed: () { Navigator.pop(dc); Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudAccountScreen())); }, icon: const Icon(Icons.cloud), label: const Text('حساب الكلاود')),
+        FilledButton.icon(
+          onPressed: () async {
+            Navigator.pop(dc);
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudAccountScreen()));
+            if (!mounted) return;
+            // Cloud login/company linking may have changed the authenticated user
+            // or company while this Hub was still alive. Rebind Realtime now.
+            final oldChannel = _companyRealtimeChannel;
+            if (oldChannel != null) {
+              await Supabase.instance.client.removeChannel(oldChannel);
+            }
+            _companyRealtimeChannel = null;
+            _companyRealtimeStarted = false;
+            await load();
+          },
+          icon: const Icon(Icons.cloud),
+          label: const Text('حساب الكلاود'),
+        ),
         TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
       ],
     ),
@@ -367,10 +549,77 @@ Widget metric(String title, String val, IconData icon) {
     ),
   );
 }
+List<Map<String,dynamic>> buildWasteAlerts(DateTime from,DateTime to,double threshold){
+  final alerts=<Map<String,dynamic>>[];
+  for(final site in visibleSites){
+    final expected=expectedSiteConsumption(site.name,from,to);
+    final actual=actualSiteIssues(site.name,from,to);
+    for(final item in {...expected.keys,...actual.keys}){
+      final e=expected[item]??0.0,a=actual[item]??0.0,d=a-e;
+      if(e>0 && d>0 && d/e*100>=threshold){
+        alerts.add({'site':site.name,'item':item,'expected':e,'actual':a,'difference':d,'percent':d/e*100,'cost':d*item.cost,'noRecipe':false});
+      }else if(e<=0 && a>0){
+        alerts.add({'site':site.name,'item':item,'expected':0.0,'actual':a,'difference':a,'percent':null,'cost':a*item.cost,'noRecipe':true});
+      }
+    }
+  }
+  for(final alert in alerts){final site=alert['site'] as String;final item=alert['item'] as Item;var occurrences=1;for(var offset=1;offset<=2;offset++){final start=DateTime(from.year,from.month-offset,1);final end=DateTime(start.year,start.month+1,0);occurrences+=wasteOccurrenceCount(site,item,start,end);}alert['repeatCount']=occurrences;}
+  alerts.sort((a,b)=>(b['cost'] as double).compareTo(a['cost'] as double));
+  return alerts;
+}
+Future<void> showWasteThresholdDialog() async {
+  var selected=wasteAlertThreshold;
+  final result=await showDialog<double>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,setDialog)=>AlertDialog(
+    title:const Text('حد تنبيه الانحراف'),
+    content:Column(mainAxisSize:MainAxisSize.min,children:[
+      Text('التنبيه عند تجاوز الاستهلاك المتوقع بنسبة ${selected.toStringAsFixed(0)}% أو أكثر',textAlign:TextAlign.center),
+      Slider(min:1,max:30,divisions:29,value:selected,onChanged:(v)=>setDialog(()=>selected=v)),
+      Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[const Text('1%'),Text('${selected.toStringAsFixed(0)}%',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:20)),const Text('30%')]),
+    ]),
+    actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(ctx,selected),child:const Text('حفظ'))],
+  )));
+  if(result==null)return;
+  wasteAlertThreshold=result;
+  final prefs=await SharedPreferences.getInstance();
+  await prefs.setDouble('wasteAlertThreshold',result);
+  await save();
+  if(mounted)setState((){});
+}
+String wasteReviewKey(Map<String,dynamic> alert,DateTime period){final item=alert['item'] as Item;return '${period.year}-${period.month.toString().padLeft(2,'0')}|${alert['site']}|${item.n}';}
+Map<String,dynamic> wasteReviewFor(Map<String,dynamic> alert,DateTime period)=>wasteAlertReviews[wasteReviewKey(alert,period)]??{};
+Future<void> reviewWasteAlert(Map<String,dynamic> alert,DateTime period)async{
+ final item=alert['item'] as Item;final key=wasteReviewKey(alert,period);final old=wasteAlertReviews[key]??{};var reviewed=old['reviewed']==true;final note=TextEditingController(text:old['note']?.toString()??'');
+ await showDialog<void>(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,update)=>AlertDialog(title:Text('مراجعة الانحراف • ${alert['site']}'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[Text(item.n,style:const TextStyle(fontWeight:FontWeight.bold)),const SizedBox(height:8),Text(alert['noRecipe']==true?'صرف بلا وصفة: ${qtyText(alert['actual'] as double)} ${item.unit}':'زيادة ${qtyText(alert['difference'] as double)} ${item.unit} • ${(alert['percent'] as double).toStringAsFixed(1)}%'),Text('التكلفة التقديرية: ${cash(alert['cost'] as double)}'),if((alert['repeatCount']??1)>1)Text('تكرر خلال آخر 3 شهور: ${alert['repeatCount']} مرات',style:const TextStyle(color:Colors.deepOrange,fontWeight:FontWeight.w600)),const SizedBox(height:12),CheckboxListTile(contentPadding:EdgeInsets.zero,value:reviewed,title:const Text('تمت مراجعة التنبيه'),onChanged:(v)=>update(()=>reviewed=v??false)),TextField(controller:note,maxLines:3,decoration:const InputDecoration(labelText:'سبب الانحراف / الإجراء التصحيحي',hintText:'اكتب الملاحظة هنا'))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:()async{wasteAlertReviews[key]={'reviewed':reviewed,'note':note.text.trim(),'user':activeUser,'updatedAt':DateTime.now().toIso8601String()};final prefs=await SharedPreferences.getInstance();await prefs.setString('wasteAlertReviews',jsonEncode(wasteAlertReviews));addAudit(reviewed?'مراجعة تنبيه':'تحديث ملاحظة','انحراف مخزون','${alert['site']} • ${item.n} • ${note.text.trim()}');await save();if(mounted)setState((){});if(dc.mounted)Navigator.pop(dc);},child:const Text('حفظ المراجعة'))])));
+}
+int wasteOccurrenceCount(String site,Item item,DateTime from,DateTime to){final expected=expectedSiteConsumption(site,from,to)[item]??0.0;final actual=actualSiteIssues(site,from,to)[item]??0.0;if(expected>0){final diff=actual-expected;return diff>0&&diff/expected*100>=wasteAlertThreshold?1:0;}return expected<=0&&actual>0?1:0;}
+void showRankedWasteDialog(List<Map<String,dynamic>> alerts) {
+  showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+    title:const Text('ترتيب الهالك والانحراف — الشهر الحالي'),
+    content:SizedBox(width:420,height:440,child:alerts.isEmpty
+      ?const Center(child:Text('لا توجد تنبيهات خلال الشهر الحالي'))
+      :ListView.builder(itemCount:alerts.length,itemBuilder:(ctx,index){
+        final a=alerts[index];final item=a['item'] as Item;final noRecipe=a['noRecipe']==true;
+        return ListTile(
+          dense:true,
+          leading:CircleAvatar(radius:15,child:Text('${index+1}',style:const TextStyle(fontSize:12))),
+          title:Text('${a['site']} • ${item.n}'),
+          subtitle:Text(noRecipe?'صرف بلا وصفة • ${qtyText(a['actual'] as double)} ${item.unit}':'زيادة ${(a['percent'] as double).toStringAsFixed(1)}% • ${qtyText(a['difference'] as double)} ${item.unit}'),
+          trailing:Column(mainAxisSize:MainAxisSize.min,children:[Text(cash(a['cost'] as double),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.deepOrange)),Icon(wasteReviewFor(a,DateTime.now()).isNotEmpty&&wasteReviewFor(a,DateTime.now())['reviewed']==true?Icons.task_alt:Icons.rate_review_outlined,size:18,color:Colors.teal)]),onTap:()=>reviewWasteAlert(a,DateTime.now()),
+        );
+      })),
+    actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('إغلاق'))],
+  ));
+}
 Widget dashboard() {
   final todayDays = days.where((x) => today(x.date) && (current.admin || current.sites.contains(x.site))).toList();
   final todayRevenue = todayDays.fold(0.0, (a, x) => a + rev(x));
   final todayMeals = todayDays.fold(0, (a, x) => a + x.b + x.l + x.d + x.e);
+  final now=DateTime.now();
+  final monthStart=DateTime(now.year,now.month,1);
+  final wasteAlerts=buildWasteAlerts(monthStart,DateTime(now.year,now.month,now.day),wasteAlertThreshold);
+  final overuseAlerts=wasteAlerts.where((x)=>x['noRecipe']!=true).toList();
+  final noRecipeAlerts=wasteAlerts.where((x)=>x['noRecipe']==true).toList();
+  final alertCost=overuseAlerts.fold<double>(0,(s,x)=>s+(x['cost'] as double));
   return ListView(
     padding: const EdgeInsets.all(14),
     children: [
@@ -385,7 +634,7 @@ Widget dashboard() {
           children: [
             Text('لوحة التحكم', style: TextStyle(color: Colors.white70, fontSize: 13)),
             SizedBox(height: 8),
-            Text('إدارة مواقع التغذية\\nبكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
+            Text('إدارة مواقع التغذية\nبكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
             SizedBox(height: 8),
             Text('الوجبات • المخزون • الإيرادات • متابعة المواقع', style: TextStyle(color: Colors.white70, fontSize: 12)),
           ],
@@ -401,6 +650,32 @@ Widget dashboard() {
       metric('عدد الخامات', visibleItems.length.toString(), Icons.inventory_2),
       metric('خامات وصلت حد التنبيه', visibleLowStockCount.toString(), Icons.warning_amber_rounded),
       metric('قيمة المخزون', cash(visibleStock), Icons.warehouse),
+      Card(
+        color: wasteAlerts.isEmpty ? const Color(0xffeaf7ef) : const Color(0xfffff3e5),
+        child: ExpansionTile(
+          leading: Icon(wasteAlerts.isEmpty?Icons.check_circle:Icons.warning_amber_rounded,color:wasteAlerts.isEmpty?Colors.green:Colors.deepOrange),
+          title: Text(wasteAlerts.isEmpty?'متابعة الهالك والانحراف':'تنبيهات الهالك والانحراف (${wasteAlerts.length})',style:const TextStyle(fontWeight:FontWeight.bold)),
+          subtitle: Text(wasteAlerts.isEmpty?'لا توجد تجاوزات بنسبة ${wasteAlertThreshold.toStringAsFixed(0)}% أو صرف خامات بلا وصفة هذا الشهر':'هالك زائد مرصود: ${cash(alertCost)} • ${wasteAlerts.where((a)=>wasteReviewFor(a,DateTime.now())['reviewed']!=true).length} تنبيه لم يُراجع • الشهر الحالي'),
+          children: [
+            ListTile(leading:const Icon(Icons.tune),title:Text('تغيير نسبة التنبيه الحالية: ${wasteAlertThreshold.toStringAsFixed(0)}%'),subtitle:const Text('اختيار الحد الذي يبدأ عنده التنبيه'),trailing:const Icon(Icons.chevron_left),onTap:showWasteThresholdDialog),
+            ListTile(leading:const Icon(Icons.leaderboard),title:const Text('عرض ترتيب جميع الانحرافات'),subtitle:const Text('من الأعلى تكلفة إلى الأقل — الشهر الحالي'),onTap:()=>showRankedWasteDialog(wasteAlerts)),
+            if(wasteAlerts.isEmpty) ListTile(dense:true,title:Text('ممتاز! لا توجد تنبيهات حسب حد ${wasteAlertThreshold.toStringAsFixed(0)}% الحالي.')),
+            ...wasteAlerts.take(8).map((a){
+              final item=a['item'] as Item;
+              final missing=a['noRecipe']==true;
+              return ListTile(
+                dense:true,
+                leading:Icon(missing?Icons.help_outline:Icons.trending_up,color:Colors.deepOrange),
+                title:Text('${a['site']} • ${item.n}'),
+                subtitle:Text((missing?'صرف ${qtyText(a['actual'] as double)} ${item.unit} بدون وصفة مسجلة':'زيادة ${qtyText(a['difference'] as double)} ${item.unit} • انحراف ${(a['percent'] as double).toStringAsFixed(1)}%')+((a['repeatCount']??1)>1?' • متكرر ${a['repeatCount']} مرات':'')),
+                trailing:Column(mainAxisSize:MainAxisSize.min,children:[Text(cash(a['cost'] as double),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.deepOrange)),Icon(wasteReviewFor(a,DateTime.now()).isNotEmpty&&wasteReviewFor(a,DateTime.now())['reviewed']==true?Icons.task_alt:Icons.rate_review_outlined,size:18,color:Colors.teal)]),onTap:()=>reviewWasteAlert(a,DateTime.now()),
+              );
+            }),
+            if(wasteAlerts.length>8) ListTile(title:Text('يوجد ${wasteAlerts.length-8} تنبيه إضافي في تقرير الانحراف')),
+            if(can('التقارير')) ListTile(leading:const Icon(Icons.analytics),title:const Text('فتح تقرير تحليل الانحراف'),onTap:(){setState(()=>tab=4);}),
+          ],
+        ),
+      ),
       const SizedBox(height: 8),
       const Text('إجراءات سريعة', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xff153b3a))),
       Wrap(
@@ -427,7 +702,7 @@ const Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text('رصيد 
 Widget sitePage()=>ListView(padding:const EdgeInsets.all(12),children:[
 Row(children:[const Expanded(child:Text('المواقع والعقود',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:()=>siteDialog(),icon:const Icon(Icons.add),label:const Text('إضافة موقع'))]),
 if(visibleSites.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),
-...visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d)),trailing:IconButton(tooltip:'تعديل الموقع والعقد',icon:const Icon(Icons.edit),onPressed:()=>siteDialog(existing:s))))),
+...visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d)),trailing:IconButton(tooltip:'تعديل الموقع والعقد',icon:const Icon(Icons.edit),onPressed:()=>siteDialog(existing:s))))),
 ]);
 Widget dayPage()=>listPage('سجل الوجبات',visibleDays.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(rev(x))),IconButton(tooltip:'تعديل',icon:const Icon(Icons.edit),onPressed:()=>dayDialog(existing:x)),IconButton(tooltip:'حذف',icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteDay(x))])))).toList(),dayDialog,'تسجيل وجبات');
 Widget itemPage() => ListView(
@@ -440,17 +715,20 @@ Widget itemPage() => ListView(
     ]),
     if (visibleWarehouses.isNotEmpty)
       Wrap(spacing: 8, children: [
-        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('Import Excel')),
+        OutlinedButton.icon(onPressed: () => movementDialog('صرف للموقع'), icon: const Icon(Icons.output), label: const Text('صرف للاستهلاك بالموقع')),
+        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('استيراد بيانات المخزون')), 
+        OutlinedButton.icon(onPressed: exportImportTemplate, icon: const Icon(Icons.download), label: const Text('تحميل قالب الاستيراد')),
         OutlinedButton.icon(onPressed: () => movementDialog('استلام'), icon: const Icon(Icons.add_box), label: const Text('استلام خامات')),
         OutlinedButton.icon(onPressed: () => movementDialog('صرف'), icon: const Icon(Icons.remove_circle), label: const Text('صرف خامات')),
         OutlinedButton.icon(onPressed: recipeDialog, icon: const Icon(Icons.menu_book), label: const Text('وصفات الوجبات')),
       ]),
+    const Card(child:ListTile(leading:Icon(Icons.info_outline,color:Colors.teal),title:Text('تكلفة الموقع من الصرف الفعلي'),subtitle:Text('التحويل بين المخازن لا يُحسب تكلفة. صرف الخامات للاستهلاك من مخزن الموقع يُضاف تلقائيًا لتكلفة الموقع، مع حفظ تكلفة الوحدة وقت الصرف.'))),
     if (visibleItems.isEmpty)
       const Card(child: Padding(padding: EdgeInsets.all(18), child: Text('لا توجد خامات أو لا توجد مخازن مسموح بها'))),
     ...visibleItems.map((x) => Card(
       child: ListTile(
         title: Text(x.n),
-        subtitle: Text(x.code + ' | ' + x.unit + ' | حد التنبيه ' + qtyText(x.min) + '\\n' + visibleWarehouses.map((w) => w.name + ': ' + qtyText(balance(x, w.name))).join(' | ')),
+        subtitle: Text(x.code + ' | ' + x.unit + ' | حد التنبيه ' + qtyText(x.min) + '\n' + visibleWarehouses.map((w) => w.name + ': ' + qtyText(balance(x, w.name))).join(' | ')),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           Column(mainAxisSize: MainAxisSize.min, children: [
             Text(qtyText(visibleWarehouses.fold(0.0, (sum, w) => sum + balance(x, w.name))) + ' ' + x.unit),
@@ -467,7 +745,7 @@ Widget itemPage() => ListView(
       child: ListTile(
         leading: Icon(m.type == 'استلام' ? Icons.arrow_downward : Icons.arrow_upward, color: m.type == 'استلام' ? Colors.green : Colors.orange),
         title: Text(m.item + ' — ' + m.type + ' ' + qtyText(m.qty)),
-        subtitle: Text(m.date.day.toString() + '/' + m.date.month.toString() + '/' + m.date.year.toString() + (m.note.isEmpty ? '' : '\\n' + m.note)),
+        subtitle: Text(m.date.day.toString() + '/' + m.date.month.toString() + '/' + m.date.year.toString() + (m.note.isEmpty ? '' : '\n' + m.note)),
       ),
     )),
   ],
@@ -490,27 +768,29 @@ Future<void> exportReportExcel(List<Day> periodDays,DateTime from,DateTime to)as
   summary.appendRow([TextCellValue('تقرير StockPro'),TextCellValue('من'),TextCellValue(reportDateText(from)),TextCellValue('إلى'),TextCellValue(reportDateText(to))]);
   summary.appendRow([TextCellValue('المؤشر'),TextCellValue('القيمة')]);
   int breakfast=0,lunch=0,dinner=0,extra=0;double revenue=0,rawCost=0;final periodExpenses=expenses.where((x){final date=DateTime(x.date.year,x.date.month,x.date.day);return !date.isBefore(DateTime(from.year,from.month,from.day))&&!date.isAfter(DateTime(to.year,to.month,to.day))&&(current.admin||current.sites.contains(x.site));}).toList();final expensesTotal=periodExpenses.fold<double>(0.0,(double sum,Expense x)=>sum+x.amount);
-  for(final entry in periodDays){breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;revenue+=rev(entry);rawCost+=mealCost(entry);}
+  for(final entry in periodDays){breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;revenue+=rev(entry);}rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));
   summary.appendRow([TextCellValue('إفطار'),IntCellValue(breakfast)]);
   summary.appendRow([TextCellValue('غداء'),IntCellValue(lunch)]);
   summary.appendRow([TextCellValue('عشاء'),IntCellValue(dinner)]);
   summary.appendRow([TextCellValue('وجبات إضافية'),IntCellValue(extra)]);
   summary.appendRow([TextCellValue('إجمالي الوجبات'),IntCellValue(breakfast+lunch+dinner+extra)]);
   summary.appendRow([TextCellValue('إيراد الوجبات المسعّرة'),DoubleCellValue(revenue)]);
-  summary.appendRow([TextCellValue('تكلفة الخامات حسب الوصفات'),DoubleCellValue(rawCost)]);
+  summary.appendRow([TextCellValue('تكلفة الخامات المصروفة فعليًا للمواقع'),DoubleCellValue(rawCost)]);
   summary.appendRow([TextCellValue('الفائض بعد تكلفة الخامات'),DoubleCellValue(revenue-rawCost)]);summary.appendRow([TextCellValue('مصروفات المواقع'),DoubleCellValue(expensesTotal)]);summary.appendRow([TextCellValue('صافي الربح بعد المصروفات'),DoubleCellValue(revenue-rawCost-expensesTotal)]);final expenseSheet=book['المصروفات'];expenseSheet.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('التصنيف'),TextCellValue('المبلغ'),TextCellValue('ملاحظات')]);for(final x in periodExpenses){expenseSheet.appendRow([TextCellValue(reportDateText(x.date)),TextCellValue(x.site),TextCellValue(x.category),DoubleCellValue(x.amount),TextCellValue(x.note)]);}
   final bySite=book['تفصيل المواقع'];
   bySite.appendRow([TextCellValue('الموقع'),TextCellValue('إفطار'),TextCellValue('غداء'),TextCellValue('عشاء'),TextCellValue('إضافية'),TextCellValue('الإجمالي'),TextCellValue('الإيراد'),TextCellValue('تكلفة الخامات'),TextCellValue('الفائض'),TextCellValue('مصروفات'),TextCellValue('صافي الربح')]);
   for(final site in visibleSites){
    int b=0,l=0,d=0,e=0;double amount=0,cost=0;
-   for(final entry in periodDays){if(entry.site==site.name){b+=entry.b;l+=entry.l;d+=entry.d;e+=entry.e;amount+=rev(entry);cost+=mealCost(entry);}}
+   for(final entry in periodDays){if(entry.site==site.name){b+=entry.b;l+=entry.l;d+=entry.d;e+=entry.e;amount+=rev(entry);}}cost=siteMaterialCost(site.name,from,to);
    final siteExpenses=periodExpenses.where((x)=>x.site==site.name).fold<double>(0.0,(double sum,Expense x)=>sum+x.amount);bySite.appendRow([TextCellValue(site.name),IntCellValue(b),IntCellValue(l),IntCellValue(d),IntCellValue(e),IntCellValue(b+l+d+e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost),DoubleCellValue(siteExpenses),DoubleCellValue(amount-cost-siteExpenses)]);
   }
   final daily=book['تفصيل التسجيلات'];
   daily.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('إفطار'),TextCellValue('غداء'),TextCellValue('عشاء'),TextCellValue('إضافية'),TextCellValue('الإجمالي'),TextCellValue('الإيراد'),TextCellValue('تكلفة الخامات'),TextCellValue('الفائض')]);
   final ordered=List<Day>.from(periodDays)..sort((a,b)=>a.date.compareTo(b.date));
-  for(final entry in ordered){final amount=rev(entry),cost=mealCost(entry);daily.appendRow([TextCellValue(reportDateText(entry.date)),TextCellValue(entry.site),IntCellValue(entry.b),IntCellValue(entry.l),IntCellValue(entry.d),IntCellValue(entry.e),IntCellValue(entry.b+entry.l+entry.d+entry.e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost)]);}
-  final encoded=book.encode();
+  for(final entry in ordered){final amount=rev(entry),cost=linkedDayMaterialCost(entry.id);daily.appendRow([TextCellValue(reportDateText(entry.date)),TextCellValue(entry.site),IntCellValue(entry.b),IntCellValue(entry.l),IntCellValue(entry.d),IntCellValue(entry.e),IntCellValue(entry.b+entry.l+entry.d+entry.e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost)]);}
+  final siteIssues=book['صرف الخامات للمواقع'];siteIssues.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('المخزن'),TextCellValue('الصنف'),TextCellValue('الكمية'),TextCellValue('تكلفة الوحدة'),TextCellValue('إجمالي التكلفة'),TextCellValue('نوع الحركة'),TextCellValue('ملاحظات')]);for(final m in movements.where((m)=>isSiteConsumption(m)&&visibleSites.any((s)=>s.name==movementSite(m))&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(from.year,from.month,from.day))>=0&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(to.year,to.month,to.day))<=0)){final it=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));siteIssues.appendRow([TextCellValue(reportDateText(m.date)),TextCellValue(movementSite(m)??''),TextCellValue(m.warehouse),TextCellValue(m.item),DoubleCellValue(m.qty),DoubleCellValue(m.unitCost??it.cost),DoubleCellValue(movementCost(m)),TextCellValue(m.type),TextCellValue(m.note)]);}
+  final varianceSheet=book['تحليل الانحراف والهالك'];varianceSheet.appendRow([TextCellValue('الموقع'),TextCellValue('الصنف'),TextCellValue('الوحدة'),TextCellValue('الاستهلاك النظري'),TextCellValue('الصرف الفعلي اليدوي'),TextCellValue('الزيادة / العجز'),TextCellValue('نسبة الانحراف %'),TextCellValue('تكلفة الانحراف')]);for(final site in visibleSites){final expected=expectedSiteConsumption(site.name,from,to),actual=actualSiteIssues(site.name,from,to);final allItems={...expected.keys,...actual.keys};for(final item in allItems){final e=expected[item]??0.0,a=actual[item]??0.0,d=a-e;final pct=e>0?d/e*100:null;varianceSheet.appendRow([TextCellValue(site.name),TextCellValue(item.n),TextCellValue(item.unit),DoubleCellValue(e),DoubleCellValue(a),DoubleCellValue(d),pct==null?TextCellValue('لا توجد وصفة'):DoubleCellValue(pct),DoubleCellValue(d*item.cost)]);}}
+   final encoded=book.encode();
   if(encoded==null)throw Exception('تعذر إنشاء ملف Excel');
   final fileName='StockPro_Report_${from.year}${from.month.toString().padLeft(2,'0')}${from.day.toString().padLeft(2,'0')}_to_${to.year}${to.month.toString().padLeft(2,'0')}${to.day.toString().padLeft(2,'0')}.xlsx';
   final saved=await FilePicker.platform.saveFile(fileName:fileName,bytes:Uint8List.fromList(encoded),type:FileType.custom,allowedExtensions:['xlsx']);
@@ -534,9 +814,13 @@ Widget reportPage(){
   double revenue=0,rawCost=0;
   for(final entry in periodDays){
     breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;
-    revenue+=rev(entry);rawCost+=mealCost(entry);
+    revenue+=rev(entry);
   }
+  rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));
   final allMeals=breakfast+lunch+dinner+extra;
+  final siteCostRanking=visibleSites.map((site){final siteCost=siteMaterialCost(site.name,from,to);return MapEntry(site.name,siteCost);}).toList()..sort((a,b)=>b.value.compareTo(a.value));
+  final varianceSites=visibleSites.map((site){final expected=expectedSiteConsumption(site.name,from,to),actual=actualSiteIssues(site.name,from,to);final allItems={...expected.keys,...actual.keys};final rows=allItems.map((item){final e=expected[item]??0.0,a=actual[item]??0.0,d=a-e;return {'item':item,'expected':e,'actual':a,'difference':d,'percent':e>0?d/e*100:null,'cost':d*item.cost};}).toList()..sort((a,b)=>(b['cost'] as double).compareTo(a['cost'] as double));final totalExpected=expected.values.fold<double>(0,(s,v)=>s+v),totalActual=actual.values.fold<double>(0,(s,v)=>s+v);final costVariance=rows.fold<double>(0,(s,r)=>s+(r['cost'] as double));return {'site':site.name,'rows':rows,'expected':totalExpected,'actual':totalActual,'cost':costVariance};}).toList();
+  final averageMaterialCostPerMeal=allMeals>0?rawCost/allMeals:0.0;
   final rows=<Widget>[
     const Text('تقرير الوجبات والإيرادات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
     Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -558,9 +842,39 @@ Widget reportPage(){
       Chip(label:Text('عشاء: $dinner')),
       Chip(label:Text('إضافية: $extra')),
     ]))),
+    const Padding(padding:EdgeInsets.only(top:14,bottom:6),child:Text('مراقبة الاستهلاك والانحراف عن الوصفة',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
+    Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مقارنة الصرف اليدوي للمواقع بالاستهلاك النظري المحسوب من الوجبات والوصفات. حركات استهلاك الوجبات التلقائية لا تدخل في الصرف الفعلي هنا لتجنب احتسابها مرتين.'),const SizedBox(height:8),Text('تكلفة الانحراف الصافية: '+cash(varianceSites.fold<double>(0,(sum,s)=>sum+(s['cost'] as double))),style:const TextStyle(fontWeight:FontWeight.bold))]))),
+    ...varianceSites.map((s) {
+      final rows = s['rows'] as List<Map<String, dynamic>>;
+      return Card(
+        child: ExpansionTile(
+          leading: const Icon(Icons.warning_amber_rounded, color: Colors.deepOrange),
+          title: Text(s['site'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text('نظري ${qtyText(s['expected'] as double)} • فعلي ${qtyText(s['actual'] as double)} • تكلفة الانحراف ${cash(s['cost'] as double)}'),
+          children: rows.isEmpty
+              ? [const ListTile(title: Text('لا توجد وصفات أو صرف يدوي للمقارنة'))]
+              : rows.map((r) {
+                  final item = r['item'] as Item;
+                  final e = r['expected'] as double;
+                  final a = r['actual'] as double;
+                  final d = r['difference'] as double;
+                  final p = r['percent'] as double?;
+                  final cost = r['cost'] as double;
+                  return ListTile(
+                    dense: true,
+                    title: Text(item.n),
+                    subtitle: Text('نظري ${qtyText(e)} ${item.unit} | فعلي ${qtyText(a)} | انحراف ${p == null ? 'غير محسوب (لا توجد وصفة)' : '${p.toStringAsFixed(1)}%'}'),
+                    trailing: Text('${d >= 0 ? '+' : ''}${qtyText(d)}\\n${cash(cost)}', textAlign: TextAlign.end, style: TextStyle(color: d > 0 ? Colors.red : d < 0 ? Colors.green : null, fontWeight: FontWeight.bold)),
+                  );
+                }).toList(),
+        ),
+      );
+    }),
     metric('إجمالي الوجبات',allMeals.toString(),Icons.restaurant),
     metric('إيراد الوجبات المسعّرة',cash(revenue),Icons.payments),
-    metric('تكلفة الخامات حسب الوصفات',cash(rawCost),Icons.calculate),
+    metric('تكلفة الخامات المصروفة فعليًا',cash(rawCost),Icons.calculate),
+    metric('متوسط تكلفة الخامات لكل وجبة',cash(averageMaterialCostPerMeal),Icons.analytics),
+    if(siteCostRanking.isNotEmpty) Card(child:ListTile(leading:const Icon(Icons.leaderboard,color:Colors.deepOrange),title:const Text('أعلى موقع في تكلفة الخامات'),subtitle:Text(siteCostRanking.first.key),trailing:Text(cash(siteCostRanking.first.value),style:const TextStyle(fontWeight:FontWeight.bold)))),
     metric('الفائض بعد تكلفة الخامات',cash(revenue-rawCost),Icons.trending_up),metric('مصروفات المواقع خلال الفترة',cash(expensesTotal),Icons.receipt_long),metric('صافي الربح بعد المصروفات',cash(revenue-rawCost-expensesTotal),Icons.account_balance),
     Card(child:ListTile(leading:const Icon(Icons.info_outline),title:const Text('ملاحظة محاسبية'),subtitle:Text('الوجبات الإضافية: $extra وجبة. لا تدخل في الإيراد أو تكلفة الوصفات حاليًا لعدم وجود سعر تعاقدي ووصفة محددة لها. الفائض المعروض لا يشمل العمالة أو النقل أو المصروفات التشغيلية.'))),
     const Padding(padding:EdgeInsets.only(top:12,bottom:6),child:Text('تفصيل الأداء حسب الموقع',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
@@ -570,10 +884,10 @@ Widget reportPage(){
     for(final entry in periodDays){
       if(entry.site==site.name){
         b+=entry.b;l+=entry.l;d+=entry.d;e+=entry.e;
-        amount+=rev(entry);cost+=mealCost(entry);
+        amount+=rev(entry);
       }
     }
-    final count=b+l+d+e;
+    cost=siteMaterialCost(site.name,from,to);final count=b+l+d+e;final itemCosts=<String,double>{};for(final movement in siteCostMovements(site.name,from,to)){itemCosts[movement.item]=(itemCosts[movement.item]??0)+movementCost(movement);}final sortedItemCosts=itemCosts.entries.toList()..sort((a,b)=>b.value.compareTo(a.value));
     rows.add(Card(child:ExpansionTile(
       leading:const Icon(Icons.apartment,color:Colors.teal),
       title:Text(site.name,style:const TextStyle(fontWeight:FontWeight.bold)),
@@ -584,7 +898,11 @@ Widget reportPage(){
         ListTile(dense:true,title:const Text('عشاء'),trailing:Text('$d وجبة × ${cash(site.d)} = ${cash(d*site.d)}')),
         ListTile(dense:true,title:const Text('وجبات إضافية'),trailing:Text('$e وجبة • غير مسعّرة')),
         const Divider(),
-        ListTile(dense:true,title:const Text('تكلفة الخامات'),trailing:Text(cash(cost))),
+        ListTile(dense:true,title:const Text('تكلفة الخامات المصروفة فعليًا'),trailing:Text(cash(cost))),
+        if(sortedItemCosts.isNotEmpty)const ListTile(dense:true,title:Text('تفصيل التكلفة حسب الخامة',style:TextStyle(fontWeight:FontWeight.bold))),
+        ...sortedItemCosts.map((entry)=>ListTile(dense:true,leading:const Icon(Icons.inventory_2_outlined),title:Text(entry.key),subtitle:Text('إجمالي تكلفة الصنف خلال الفترة'),trailing:Text(cash(entry.value)))),
+        const Divider(),
+        ...siteCostMovements(site.name,from,to).map((m)=>ListTile(dense:true,leading:const Icon(Icons.receipt_long_outlined),title:Text(m.item+' • '+qtyText(m.qty)),subtitle:Text(m.date.toString()+' | '+m.warehouse+' | '+m.type),trailing:Text(cash(movementCost(m))))),
         ListTile(dense:true,title:const Text('الفائض بعد تكلفة الخامات'),trailing:Text(cash(amount-cost),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.teal))),
       ],
     )));
@@ -703,11 +1021,11 @@ Future<void> dayDialog({Day? existing})async{
       if(existing==null){
         final record=Day(chosen.name,DateTime.now(),nb,nl,nd,ne);
         days.add(record);
-        for(final entry in need.entries){setBalance(entry.key,consumeWh.name,balance(entry.key,consumeWh.name)-entry.value);movements.add(Movement(entry.key.n,'استهلاك وجبات',entry.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name,record.id));}
+        for(final entry in need.entries){setBalance(entry.key,consumeWh.name,balance(entry.key,consumeWh.name)-entry.value);movements.add(Movement(entry.key.n,'استهلاك وجبات',entry.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name,record.id,entry.key.cost));}
       }else{
         movements.removeWhere((m)=>m.ref.isNotEmpty&&m.ref==existing.id);
         existing.site=chosen.name;existing.b=nb;existing.l=nl;existing.d=nd;existing.e=ne;
-        for(final entry in need.entries){setBalance(entry.key,consumeWh.name,balance(entry.key,consumeWh.name)-entry.value);movements.add(Movement(entry.key.n,'استهلاك وجبات',entry.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name,existing.id));}
+        for(final entry in need.entries){setBalance(entry.key,consumeWh.name,balance(entry.key,consumeWh.name)-entry.value);movements.add(Movement(entry.key.n,'استهلاك وجبات',entry.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name,existing.id,entry.key.cost));}
       }
       addAudit(existing==null?'إضافة':'تعديل','تسجيل وجبات',chosen.name+' • إفطار '+nb.toString()+' / غداء '+nl.toString()+' / عشاء '+nd.toString());save();setState((){});Navigator.pop(x);
     },child:Text(existing==null?'حفظ':'حفظ التعديلات'))
@@ -715,15 +1033,15 @@ Future<void> dayDialog({Day? existing})async{
 }
 Future<void> movementDialog(String type) async {
 if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامة أولاً')));return;}
-Item selected=items.first;if(visibleWarehouses.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لا يوجد مخزن مسموح لك بالتعامل معه')));return;}Warehouse wh=visibleWarehouses.first;final qty=TextEditingController(),note=TextEditingController();
+Item selected=items.first;final movementWarehouses=type=='صرف للموقع'?visibleWarehouses.where((w)=>!w.main&&visibleSites.any((s)=>s.name==w.site)).toList():visibleWarehouses;if(movementWarehouses.isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(type=='صرف للموقع'?'لا يوجد مخزن موقع مسموح بالصرف منه':'لا يوجد مخزن مسموح لك بالتعامل معه')));return;}Warehouse wh=movementWarehouses.first;final qty=TextEditingController(),note=TextEditingController();
 await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:Text('$type خامات'),content:Column(mainAxisSize:MainAxisSize.min,children:[
-DropdownButtonFormField<Warehouse>(value:wh,items:visibleWarehouses.map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null)upd(()=>wh=v);}),
+DropdownButtonFormField<Warehouse>(value:wh,items:movementWarehouses.map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null)upd(()=>wh=v);}),
 DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)upd(()=>selected=v);}),
 field(qty,'الكمية بوحدة '+selected.unit,numeric:true),field(note,'ملاحظات'),Text('الرصيد الحالي: '+qtyText(balance(selected,wh.name))+' '+selected.unit)
 ]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
 final amount=double.tryParse(qty.text.trim().replaceAll(',','.'));if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل كمية صحيحة')));return;}
-final current=balance(selected,wh.name);if(type=='صرف'&&amount>current){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('رصيد غير كافٍ بالمخزن')));return;}
-setBalance(selected,wh.name,current+(type=='استلام'?amount:-amount));movements.add(Movement(selected.n,type,amount,note.text.trim(),DateTime.now(),wh.name));addAudit(type,'حركة مخزون',selected.n+' • '+qtyText(amount)+' '+selected.unit+' • '+wh.name+' • '+note.text.trim());save();setState(()=>{});Navigator.pop(dc);
+final current=balance(selected,wh.name);if((type=='صرف'||type=='صرف للموقع')&&amount>current){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('رصيد غير كافٍ بالمخزن')));return;}
+setBalance(selected,wh.name,current+(type=='استلام'?amount:-amount));final movementNote=type=='صرف للموقع'?'موقع: '+wh.site+(note.text.trim().isEmpty?'':' • '+note.text.trim()):note.text.trim();movements.add(Movement(selected.n,type,amount,movementNote,DateTime.now(),wh.name,'',selected.cost));addAudit(type,'حركة مخزون',selected.n+' • '+qtyText(amount)+' '+selected.unit+' • '+wh.name+' • '+movementNote);save();setState(()=>{});Navigator.pop(dc);
 },child:const Text('تأكيد'))])));
 }
 Future<void> transferDialog()async{
@@ -745,7 +1063,7 @@ if(amount==null||amount<=0||amount>balance(selected,source.name)){ScaffoldMessen
 final stamp=DateTime.now();final transferNo='TR-${stamp.year}${stamp.month.toString().padLeft(2,'0')}${stamp.day.toString().padLeft(2,'0')}-${stamp.hour.toString().padLeft(2,'0')}${stamp.minute.toString().padLeft(2,'0')}${stamp.second.toString().padLeft(2,'0')}';
 final memo=(note.text.trim().isEmpty?'':note.text.trim()+' | ')+'رقم التحويل: '+transferNo;
 setBalance(selected,source.name,balance(selected,source.name)-amount);setBalance(selected,target.name,balance(selected,target.name)+amount);
-movements.add(Movement(selected.n,'تحويل صادر',amount,'إلى '+target.name+' | '+memo,stamp,source.name));movements.add(Movement(selected.n,'تحويل وارد',amount,'من '+source.name+' | '+memo,stamp,target.name));
+movements.add(Movement(selected.n,'تحويل صادر',amount,'إلى '+target.name+' | '+memo,stamp,source.name,'',selected.cost));movements.add(Movement(selected.n,'تحويل وارد',amount,'من '+source.name+' | '+memo,stamp,target.name,'',selected.cost));
 addAudit('تحويل','مخزون',selected.n+' • '+qtyText(amount)+' '+selected.unit+' • '+source.name+' ← '+target.name+' • '+transferNo);save();setState(()=>{});Navigator.pop(dc);
 },child:const Text('اعتماد التحويل'))])));
 }
@@ -770,7 +1088,7 @@ Future<void> movementHistoryDialog() async {
                       : Icons.swap_horiz,
                 ),
                 title: Text('${m.item} • ${m.type} • ${qtyText(m.qty)}'),
-                subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\\n'+m.note}'),
+                subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\n'+m.note}'),
               )).toList(),
             ),
       ),
@@ -782,13 +1100,70 @@ Future<void> movementHistoryDialog() async {
   );
 }
 Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامات أولاً')));return;}Item selected=items.first;String meal='إفطار';final q=TextEditingController(text:'1');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تحديد استهلاك الخامة لكل وجبة'),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)set(()=>selected=v);}),DropdownButtonFormField<String>(value:meal,items:['إفطار','غداء','عشاء'].map((m)=>DropdownMenuItem(value:m,child:Text(m))).toList(),onChanged:(v){if(v!=null)set(()=>meal=v);}),field(q,'الكمية لكل وجبة بوحدة المخزون',numeric:true),const Text('عند تسجيل الوجبات سيتم خصم الاستهلاك تلقائيًا.')]),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final qty=double.tryParse(q.text.trim().replaceAll(',', '.'));if(qty==null||qty<=0)return;final old=recipes.where((r)=>r.item==selected.n&&r.meal==meal);if(old.isNotEmpty){old.first.qty=qty;}else{recipes.add(Recipe(selected.n,meal,qty));}save();setState(()=>{});Navigator.pop(x);},child:const Text('حفظ الوصفة'))])));}
+Future<void> exportImportTemplate() async {
+ try {
+  final book=Excel.createExcel();
+  book.rename('Sheet1','بيانات المخزون');
+  final sheet=book['بيانات المخزون'];
+  sheet.appendRow([TextCellValue('كود الصنف'),TextCellValue('اسم الصنف'),TextCellValue('وحدة القياس'),TextCellValue('المخزن'),TextCellValue('الرصيد الافتتاحي'),TextCellValue('حد التنبيه'),TextCellValue('متوسط التكلفة'),TextCellValue('ملاحظات')]);
+  sheet.appendRow([TextCellValue('ITM-001'),TextCellValue('مثال: أرز'),TextCellValue('كجم'),TextCellValue('المخزن الرئيسي'),DoubleCellValue(0),DoubleCellValue(5),DoubleCellValue(0),TextCellValue('مثال - احذف الصف قبل الاستيراد')]);
+  final guide=book['تعليمات'];
+  guide.appendRow([TextCellValue('StockPro Business - قالب استيراد المخزون')]);
+  guide.appendRow([TextCellValue('1'),TextCellValue('الأعمدة الأساسية المطلوبة: كود الصنف، اسم الصنف، وحدة القياس، المخزن. ويمكن استخدام الأسماء الإنجليزية البديلة أيضاً.')]);
+  guide.appendRow([TextCellValue('2'),TextCellValue('كل صنف يجب أن يكون له كود فريد واسم ووحدة قياس ومخزن موجود داخل البرنامج.')]);
+  guide.appendRow([TextCellValue('3'),TextCellValue('الأعمدة الاختيارية: الرصيد الافتتاحي، حد التنبيه، متوسط التكلفة، ملاحظات. إذا تركتها فارغة فسيتم اعتبار الأرقام صفرًا.')]);
+  guide.appendRow([TextCellValue('4'),TextCellValue('استخدم أسماء المخازن المطابقة تماماً للمخازن المسجلة. يمكنك استخدام المخزن الرئيسي.')]);
+  guide.appendRow([TextCellValue('5'),TextCellValue('احذف صف المثال، ثم احفظ الملف بصيغة Excel .xlsx واستورده من شاشة المخزون.')]);
+  final encoded=book.encode();
+  if(encoded==null)throw Exception('تعذر إنشاء قالب Excel');
+  final name='StockPro_Import_Template.xlsx';
+  final saved=await FilePicker.platform.saveFile(fileName:name,bytes:Uint8List.fromList(encoded),type:FileType.custom,allowedExtensions:['xlsx']);
+  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(saved==null?'تم إلغاء حفظ القالب':'تم حفظ قالب استيراد المخزون بنجاح')));
+ }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل إنشاء القالب: $e')));}
+}
 Future<void> importExcel() async {
  try {
   final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['xlsx'],withData:true);
   if(picked==null)return;
   final bytes=picked.files.single.bytes;
   if(bytes==null||bytes.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أستطع قراءة الملف. احفظه بصيغة Excel .xlsx وحاول مرة أخرى.')));return;}
-  final book=Excel.decodeBytes(bytes);
+  // Normalize OpenXML workbook relationship targets before decoding.
+  // Some valid XLSX writers (including OpenPyXL) use absolute /xl/... targets.
+  // excel 4.0.6 prefixes every target with "xl/" and crashes on those paths.
+  List<int> excelBytes = bytes;
+  final sourceArchive = zip.ZipDecoder().decodeBytes(bytes);
+  final relationships = sourceArchive.findFile('xl/_rels/workbook.xml.rels');
+  if (relationships != null) {
+   final originalXml = utf8.decode(relationships.content);
+   final normalizedXml = originalXml.replaceAllMapped(
+    RegExp(r'''(Target\s*=\s*["'])([^"']+)(["'])'''),
+    (match) {
+     var target = match.group(2)!;
+     if (target.startsWith('/xl/')) {
+      target = target.substring(4);
+     } else if (target.startsWith('xl/')) {
+      target = target.substring(3);
+     }
+     return '${match.group(1)}$target${match.group(3)}';
+    },
+   );
+   if (normalizedXml != originalXml) {
+    final normalizedArchive = zip.Archive();
+    for (final part in sourceArchive.files) {
+     if (!part.isFile) continue;
+     final content = part.name == 'xl/_rels/workbook.xml.rels'
+      ? Uint8List.fromList(utf8.encode(normalizedXml))
+      : part.content;
+     normalizedArchive.addFile(zip.ArchiveFile(part.name, content.length, content));
+    }
+    final normalizedBytes = zip.ZipEncoder().encode(normalizedArchive);
+    if (normalizedBytes == null || normalizedBytes.isEmpty) {
+     throw const FormatException('تعذر تجهيز ملف Excel للاستيراد');
+    }
+    excelBytes = normalizedBytes;
+   }
+  }
+  final book=Excel.decodeBytes(excelBytes);
   const aliases=<String,List<String>>{
    'ItemCode':['itemcode','code','item code','كودالصنف','كودالخامة','الكود'],
    'ItemName':['itemname','name','item name','اسمالصنف','اسمالخامة','الصنف'],
@@ -822,7 +1197,7 @@ Future<void> importExcel() async {
    if(dataRows!=null)break;
   }
   if(dataRows==null){
-   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro ولا تغيّر الأعمدة الأساسية: ItemCode, ItemName, Unit, Warehouse.')));
+   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro وتأكد من وجود أعمدة كود الصنف واسم الصنف ووحدة القياس والمخزن.')));
    return;
   }
   String number(String value){
@@ -863,7 +1238,7 @@ Future<void> importExcel() async {
    stockBalances.putIfAbsent(warehouse.name,()=>{});
    stockBalances[warehouse.name]![item.n]=item.q;
    if(warehouse.main)item.q=stockBalances[warehouse.name]![item.n]??0;
-   if(item.q>0)movements.add(Movement(item.n,'رصيد افتتاحي',item.q,'Import Excel',DateTime.now(),warehouse.name));
+   if(item.q>0)movements.add(Movement(item.n,'رصيد افتتاحي',item.q,'Import Excel',DateTime.now(),warehouse.name,'',item.cost));
    imported++;
   }
   if(imported>0)addAudit('استيراد Excel','خامات',imported.toString()+' خامة جديدة من '+chosenSheet+' • تم تخطي '+skipped.toString());
@@ -911,7 +1286,7 @@ Widget field(TextEditingController x,String label,{bool numeric=false,bool decim
 Future<void> exportBackup() async {
   try {
     final p=await SharedPreferences.getInstance();
-    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];
     final data=<String,dynamic>{'app':'StockPro','schema':1,'createdAt':DateTime.now().toIso8601String()};
     for(final key in keys){data[key]=p.get(key);}
     final bytes=Uint8List.fromList(utf8.encode(jsonEncode(data)));
@@ -929,11 +1304,12 @@ Future<void> restoreBackup() async {
     if(bytes==null||bytes.isEmpty)throw Exception('الملف فارغ أو غير قابل للقراءة');
     final parsed=jsonDecode(utf8.decode(bytes));
     if(parsed is! Map||parsed['app']!='StockPro'||parsed['schema']!=1)throw Exception('الملف ليس نسخة StockPro معتمدة');
-    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses'];
+    const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];
     for(final key in ['sites','days','items','movements','recipes','warehouses','users','auditLogs','expenses']){
       if(parsed[key]!=null&&parsed[key] is! List)throw Exception('بيانات غير سليمة في $key');
     }
     if(parsed['stockBalances']!=null&&parsed['stockBalances'] is! Map)throw Exception('أرصدة المخازن غير سليمة');
+    if(parsed['wasteAlertReviews']!=null&&parsed['wasteAlertReviews'] is! Map)throw Exception('مراجعات تنبيهات الهالك غير سليمة');
     final confirm=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('استعادة نسخة احتياطية'),content:Text('سيتم استبدال البيانات الحالية بالنسخة من ${parsed['createdAt']??'تاريخ غير معروف'}. يفضل تصدير نسخة من بياناتك الحالية أولاً.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('استعادة'))]));
     if(confirm!=true)return;
     final p=await SharedPreferences.getInstance();

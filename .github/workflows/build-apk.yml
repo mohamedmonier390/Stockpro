@@ -2,7 +2,7 @@ name: Build StockPro Release Candidate
 on:
   workflow_dispatch:
   push:
-    branches: [ main, 'commercial/**' ]
+    branches: [ main, 'commercial/**', 'feature/**' ]
   pull_request:
     branches: [ main ]
 
@@ -20,21 +20,122 @@ jobs:
         with:
           flutter-version: '3.29.3'
           channel: stable
+      - name: Verify build toolchain
+        run: flutter --version && java -version
+      - name: Validate permanent signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          for secret in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!secret}" ]; then echo "Missing secret: $secret"; exit 1; fi
+          done
       - name: Generate Android project files
         run: flutter create --platforms=android --org com.stockpro --project-name stockpro .
-      - name: Set Android launcher label
+      - name: Generate StockPro launcher icons
         run: |
+          python3 -m pip install --quiet cairosvg
+          python3 - <<'PY'
+          from pathlib import Path
+          import cairosvg
+          svg = Path("assets/stockpro_launcher.svg").read_bytes()
+          sizes = {"mdpi":48,"hdpi":72,"xhdpi":96,"xxhdpi":144,"xxxhdpi":192}
+          for density,size in sizes.items():
+              folder = Path(f"android/app/src/main/res/mipmap-{density}")
+              folder.mkdir(parents=True,exist_ok=True)
+              for name in ("ic_launcher.png","ic_launcher_round.png"):
+                  cairosvg.svg2png(bytestring=svg,write_to=str(folder/name),output_width=size,output_height=size)
+          manifest=Path("android/app/src/main/AndroidManifest.xml")
+          s=manifest.read_text()
+          s=s.replace('android:icon="@mipmap/ic_launcher"', 'android:icon="@mipmap/ic_launcher"')
+          if 'android:icon="@mipmap/ic_launcher"' not in s: raise SystemExit("Launcher icon entry missing")
+          manifest.write_text(s)
+          # Remove Flutter starter adaptive icons so the custom PNGs are used on all Android versions.
+          for density in ("anydpi-v26",):
+              folder=Path(f"android/app/src/main/res/mipmap-{density}")
+              for name in ("ic_launcher.xml","ic_launcher_round.xml"):
+                  (folder/name).unlink(missing_ok=True)
+          PY
+      - name: Configure label and release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/stockpro-release-key.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=stockpro-release-key.jks
+          EOF
           python3 - <<'PY'
           from pathlib import Path
           import re
-          p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text()
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          s = manifest.read_text()
           s, n = re.subn(r'android:label="[^"]+"', 'android:label="StockPro Business"', s, count=1)
-          if n != 1:
-              raise SystemExit("Could not set Android app label")
-          p.write_text(s)
+          if n != 1: raise SystemExit("Could not set app label")
+          if "android.permission.INTERNET" not in s:
+              s = s.replace("<application", '    <uses-permission android:name="android.permission.INTERNET" />\n    <application', 1)
+          if "android.permission.INTERNET" not in s: raise SystemExit("INTERNET permission missing")
+          manifest.write_text(s)
+          Path("android/app/build.gradle.kts").unlink(missing_ok=True)
           PY
-      - name: Replace generated starter test with StockPro smoke test
+          cat > android/app/build.gradle <<'GRADLE'
+          import java.util.Properties
+          import java.io.FileInputStream
+
+          plugins {
+              id 'com.android.application'
+              id 'kotlin-android'
+              id 'dev.flutter.flutter-gradle-plugin'
+          }
+
+          def signingProps = new Properties()
+          def signingFile = rootProject.file('key.properties')
+          signingProps.load(new FileInputStream(signingFile))
+
+          android {
+              namespace 'com.stockpro.stockpro'
+              compileSdk flutter.compileSdkVersion
+              ndkVersion flutter.ndkVersion
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_11
+                  targetCompatibility JavaVersion.VERSION_11
+              }
+              kotlinOptions {
+                  jvmTarget = JavaVersion.VERSION_11.toString()
+              }
+              defaultConfig {
+                  applicationId 'com.stockpro.stockpro'
+                  minSdk flutter.minSdkVersion
+                  targetSdk flutter.targetSdkVersion
+                  versionCode flutter.versionCode
+                  versionName flutter.versionName
+              }
+              signingConfigs {
+                  stockproReleaseSigning {
+                      storeFile file(signingProps['storeFile'])
+                      storePassword signingProps['storePassword']
+                      keyAlias signingProps['keyAlias']
+                      keyPassword signingProps['keyPassword']
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.stockproReleaseSigning
+                  }
+              }
+          }
+          flutter {
+              source '../..'
+          }
+          GRADLE
+      - name: Replace starter test with smoke test
         run: |
           mkdir -p test
           cat > test/widget_test.dart <<'EOF'
@@ -49,7 +150,7 @@ jobs:
               expect(find.text('StockPro Business'), findsOneWidget);
               await tester.pump(const Duration(milliseconds: 2300));
               await tester.pumpAndSettle();
-              expect(find.text('دخول'), findsOneWidget);
+              expect(find.text('Login'), findsNWidgets(2));
             });
           }
           EOF
@@ -57,11 +158,21 @@ jobs:
         run: flutter pub get
       - name: Static analysis
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - name: Run smoke tests
+      - name: Run smoke test
         run: flutter test
-      - name: Build installable APK (CI debug signing)
-        run: flutter build apk --release
-      - name: Upload APK
+      - name: Build signed release APK
+        run: flutter build apk --release --build-number ${{ github.run_number }} --dart-define=dart.library.io.force_staggered_ipv6_lookup=true
+      - name: Verify APK package and permanent signing certificate
+        run: |
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          AAPT=$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)
+          if [ -z "$AAPT" ]; then echo "aapt not found"; exit 1; fi
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.stockpro.stockpro'" >/dev/null || { echo "Unexpected package/applicationId"; exit 1; }
+          ACTUAL=$(keytool -printcert -jarfile "$APK" | awk '/SHA256:/{print $2}' | tr -d ':' | tr '[:lower:]' '[:upper:]')
+          EXPECTED=167A3BDFB5DD39E33B80F0CBDF222DE4A69EFB5FC083911B8BBF3BDF6B9EBF45
+          if [ "$ACTUAL" != "$EXPECTED" ]; then echo "Signing certificate changed!"; exit 1; fi
+          echo "APK package and signing certificate verified."
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: stockpro-apk
