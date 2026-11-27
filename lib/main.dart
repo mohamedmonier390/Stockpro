@@ -1398,3 +1398,33 @@ Future<void> stockCountDialog() async {
             Text('الرصيد الدفتري: ${qtyText(balance(item, wh.name))} ${item.unit}'),
             field(actual, 'الرصيد الفعلي بعد الجرد', numeric: true),
             field(note, 'ملاحظات / رقم محضر الجرد'),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إلغاء')),
+          FilledButton(onPressed: () {
+            final counted = double.tryParse(actual.text.trim().replaceAll(',', '.'));
+            if (counted == null || counted < 0) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل رصيدًا فعليًا صحيحًا')));
+              return;
+            }
+            final book = balance(item, wh.name), delta = counted - book;
+            if (delta.abs() < 0.000001) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الرصيد الفعلي مطابق للرصيد الدفتري')));
+              return;
+            }
+            final type = delta > 0 ? 'تسوية زيادة' : 'تسوية عجز';
+            setBalance(item, wh.name, counted);
+            movements.add(Movement(item.n, type, delta.abs(),
+              (note.text.trim().isEmpty ? '' : note.text.trim() + ' • ') + 'دفترى ' + qtyText(book) + ' / فعلي ' + qtyText(counted),
+              DateTime.now(), wh.name));
+            addAudit('جرد', 'تسوية مخزون', item.n + ' • ' + wh.name + ' • ' + type + ' ' + qtyText(delta.abs()) + ' ' + item.unit);
+            save(); setState(() {}); Navigator.pop(dc);
+          }, child: const Text('اعتماد الجرد')),
+        ],
+      ),
+    ),
+  );
+}
+
+}
