@@ -9,8 +9,12 @@ import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'cloud_connection.dart';
 import 'cloud_account_screen.dart';
+ValueNotifier<String> appLanguage = ValueNotifier<String>('ar');
+String languageText(String arabic, String english) => appLanguage.value == 'en' ? english : arabic;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  appLanguage.value = prefs.getString('appLanguage') == 'en' ? 'en' : 'ar';
   await CloudConnection.initialize(); // Cloud errors never prevent offline use.
   runApp(const App());
 }
@@ -75,6 +79,13 @@ class App extends StatelessWidget {
         ),
         dialogTheme: DialogTheme(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        ),
+      ),
+      builder: (context, child) => ValueListenableBuilder<String>(
+        valueListenable: appLanguage,
+        builder: (context, language, _) => Directionality(
+          textDirection: language == 'en' ? TextDirection.ltr : TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
         ),
       ),
       home: const AnimatedSplash(),
@@ -305,6 +316,43 @@ bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>App
  List<Movement> manualSiteIssueMovements(String site,DateTime from,DateTime to){final start=DateTime(from.year,from.month,from.day),end=DateTime(to.year,to.month,to.day);return movements.where((m){final date=DateTime(m.date.year,m.date.month,m.date.day);if(date.isBefore(start)||date.isAfter(end)||movementSite(m)!=site)return false;if(m.type=='استهلاك وجبات')return false;return m.type=='صرف للموقع'||m.type=='صرف';}).toList();}
  Map<Item,double> actualSiteIssues(String site,DateTime from,DateTime to){final result=<Item,double>{};for(final m in manualSiteIssueMovements(site,from,to)){final item=items.where((i)=>i.n==m.item).firstOrNull;if(item!=null)result[item]=(result[item]??0)+m.qty;}return result;}
 @override void dispose(){_cloudSyncTimer?.cancel();final channel=_companyRealtimeChannel;if(channel!=null){Supabase.instance.client.removeChannel(channel);}super.dispose();}
+  Future<void> showLanguageDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('🌐 Language / اللغة'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Text('🇪🇬', style: TextStyle(fontSize: 24)),
+            title: const Text('العربية'),
+            subtitle: const Text('Right-to-left (RTL)'),
+            trailing: appLanguage.value == 'ar' ? const Icon(Icons.check_circle, color: Colors.teal) : null,
+            onTap: () async {
+              appLanguage.value = 'ar';
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('appLanguage', 'ar');
+              if (mounted) setState(() {});
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+          ),
+          ListTile(
+            leading: const Text('🇬🇧', style: TextStyle(fontSize: 24)),
+            title: const Text('English'),
+            subtitle: const Text('Left-to-right (LTR)'),
+            trailing: appLanguage.value == 'en' ? const Icon(Icons.check_circle, color: Colors.teal) : null,
+            onTap: () async {
+              appLanguage.value = 'en';
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('appLanguage', 'en');
+              if (mounted) setState(() {});
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+          ),
+        ]),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(languageText('إغلاق','Close')))],
+      ),
+    );
+  }
 @override
 Widget build(BuildContext c) {
   if (!ready) return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -316,7 +364,7 @@ Widget build(BuildContext c) {
   }).toList();
   if (!allowedTabs.contains(tab)) tab = allowedTabs.isEmpty ? 0 : allowedTabs.first;
   final icons = [Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];
-  final labels = ['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];
+  final labels = appLanguage.value == 'en' ? ['Home','Sites','Meals','Inventory','Reports','Warehouses','Users','Expenses'] : ['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];
   final colors = Theme.of(c).colorScheme;
   return Directionality(
     textDirection: TextDirection.rtl,
@@ -324,9 +372,10 @@ Widget build(BuildContext c) {
       appBar: AppBar(
         title: Row(mainAxisSize: MainAxisSize.min, children: [
           const MonierBrand(size: 27), const SizedBox(width: 6),
-          const Flexible(child: Text('StockPro | التغذية', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+          Flexible(child: Text(languageText('StockPro | التغذية', 'StockPro | Catering'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
         ]),
         actions: [
+          IconButton(tooltip: languageText('تغيير اللغة', 'Change language'), icon: const Icon(Icons.language), onPressed: showLanguageDialog),
           IconButton(tooltip: 'حول StockPro', icon: const Icon(Icons.info_outline), onPressed: showStockProAbout),
           IconButton(tooltip: 'تسجيل الخروج', icon: const Icon(Icons.logout), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()))),
         ],
@@ -629,14 +678,14 @@ Widget dashboard() {
           gradient: const LinearGradient(colors: [Color(0xff07594d), Color(0xff0b8874)], begin: Alignment.topRight, end: Alignment.bottomLeft),
           borderRadius: BorderRadius.circular(22),
         ),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('لوحة التحكم', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(languageText('لوحة التحكم', 'Dashboard'), style: const TextStyle(color: Colors.white70, fontSize: 13)),
             SizedBox(height: 8),
-            Text('إدارة مواقع التغذية\nبكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
+            Text(languageText('إدارة مواقع التغذية\nبكل سهولة', 'Catering site management\nmade easy'), style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
             SizedBox(height: 8),
-            Text('الوجبات • المخزون • الإيرادات • متابعة المواقع', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(languageText('الوجبات • المخزون • الإيرادات • متابعة المواقع', 'Meals • Inventory • Revenue • Site tracking'), style: TextStyle(color: Colors.white70, fontSize: 12)),
           ],
         ),
       ),
