@@ -495,7 +495,24 @@ Future<void> showStockProAbout() async {
       ),
       actions: [
         TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) { await showDialog<void>(context: context, builder: (x) => AlertDialog(title: const Text('فحص الكلاود'), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: const Text('تمام'))])); } }, child: const Text('فحص الاتصال')),
-        FilledButton.icon(onPressed: () { Navigator.pop(dc); Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudAccountScreen())); }, icon: const Icon(Icons.cloud), label: const Text('حساب الكلاود')),
+        FilledButton.icon(
+          onPressed: () async {
+            Navigator.pop(dc);
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudAccountScreen()));
+            if (!mounted) return;
+            // Cloud login/company linking may have changed the authenticated user
+            // or company while this Hub was still alive. Rebind Realtime now.
+            final oldChannel = _companyRealtimeChannel;
+            if (oldChannel != null) {
+              await Supabase.instance.client.removeChannel(oldChannel);
+            }
+            _companyRealtimeChannel = null;
+            _companyRealtimeStarted = false;
+            await load();
+          },
+          icon: const Icon(Icons.cloud),
+          label: const Text('حساب الكلاود'),
+        ),
         TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
       ],
     ),
