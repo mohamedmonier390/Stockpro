@@ -274,6 +274,7 @@ class Site{String name,client;double b,l,d;Site(this.name,this.client,this.b,thi
 class Day{String site;DateTime date;int b,l,d,e;String id;Day(this.site,this.date,this.b,this.l,this.d,this.e,{String? id}):id=id??DateTime.now().microsecondsSinceEpoch.toString();Map j()=>{'s':site,'t':date.toIso8601String(),'b':b,'l':l,'d':d,'e':e,'id':id};}
 class Item{String n,code,unit;double cost,q,min;Item(this.n,this.code,this.unit,this.cost,this.q,this.min);Map j()=>{'n':n,'c':code,'u':unit,'cost':cost,'q':q,'min':min};}
 class Movement{String item,type,note,warehouse,ref;double qty;DateTime date;double? unitCost;Movement(this.item,this.type,this.qty,this.note,this.date,[this.warehouse='',this.ref='',this.unitCost]);Map j()=>{'i':item,'t':type,'q':qty,'n':note,'d':date.toIso8601String(),'w':warehouse,'ref':ref,'cost':unitCost};}
+bool canEditManualStockMovement(Movement movement) => movement.ref.isEmpty && const ['استلام','صرف','صرف للموقع'].contains(movement.type);
 class Recipe{String item,meal;double qty;Recipe(this.item,this.meal,this.qty);Map j()=>{'i':item,'m':meal,'q':qty};}
 class Warehouse{String name,site,manager;bool main;Warehouse(this.name,this.site,this.manager,this.main);Map j()=>{'n':name,'s':site,'m':manager,'main':main};}
 class Expense{String id,site,category,note;DateTime date;double amount;Expense(this.id,this.site,this.category,this.note,this.date,this.amount);Map j()=>{'id':id,'s':site,'c':category,'n':note,'d':date.toIso8601String(),'a':amount};factory Expense.fromMap(dynamic x)=>Expense(x['id']??DateTime.now().microsecondsSinceEpoch.toString(),x['s']??'',x['c']??'أخرى',x['n']??'',DateTime.tryParse(x['d']??'')??DateTime.now(),(x['a'] as num?)?.toDouble()??0);}
@@ -1119,14 +1120,14 @@ addAudit('تحويل','مخزون',selected.n+' • '+qtyText(amount)+' '+select
 },child:Text(translateEnglish('اعتماد التحويل')))])));
 }
 Future<void> editMovement(Movement m)async{
-  if(m.ref.isNotEmpty||!['استلام','صرف','صرف للموقع'].contains(m.type))return;
+  if(!canEditManualStockMovement(m))return;
   if(!current.admin&&!current.warehouses.contains(m.warehouse))return;
   final qty=TextEditingController(text:qtyText(m.qty));
   final note=TextEditingController(text:m.note);
   await showDialog<void>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('تعديل حركة المخزون')),content:Column(mainAxisSize:MainAxisSize.min,children:[Text(translateEnglish(m.type)+' • '+m.item+' • '+m.warehouse),field(qty,translateEnglish('الكمية'),numeric:true),field(note,translateEnglish('ملاحظات'))]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()async{final amount=double.tryParse(qty.text.trim().replaceAll(',','.'));if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أدخل كمية صحيحة'))));return;}final old=m.qty;final currentBalance=balance(items.firstWhere((i)=>i.n==m.item),m.warehouse);final next=m.type=='استلام'?currentBalance+(amount-old):currentBalance+(old-amount);if(next< -0.000001){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('الرصيد غير كافٍ لتعديل الحركة'))));return;}final item=items.firstWhere((i)=>i.n==m.item);setBalance(item,m.warehouse,next<0?0:next);m.qty=amount;m.note=note.text.trim();addAudit('تعديل','حركة مخزون',m.item+' • '+m.type+' • '+qtyText(old)+' → '+qtyText(amount)+' • '+m.warehouse);await save();if(mounted)setState((){});if(dc.mounted)Navigator.pop(dc);},child:Text(translateEnglish('حفظ التعديلات')))]));
 }
 Future<void> deleteMovement(Movement m)async{
-  if(m.ref.isNotEmpty||!['استلام','صرف','صرف للموقع'].contains(m.type))return;
+  if(!canEditManualStockMovement(m))return;
   if(!current.admin&&!current.warehouses.contains(m.warehouse))return;
   final confirm=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('حذف حركة المخزون')),content:Text(translateEnglish('سيتم عكس أثر الحركة على الرصيد. هل تريد الحذف؟')+'\n'+m.item+' • '+m.type+' • '+qtyText(m.qty)+' • '+m.warehouse),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:Text(translateEnglish('حذف')))]));
   if(confirm!=true)return;
@@ -1161,7 +1162,7 @@ Future<void> movementHistoryDialog() async {
                 ),
                 title: Text(translateEnglish('${m.item} • ${m.type} • ${qtyText(m.qty)}')),
                 subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\n'+m.note}'),
-                trailing: m.ref.isEmpty&&['استلام','صرف','صرف للموقع'].contains(m.type) ? Wrap(spacing:0,children:[IconButton(tooltip:translateEnglish('تعديل'),icon:const Icon(Icons.edit_outlined),onPressed:()=>editMovement(m)),IconButton(tooltip:translateEnglish('حذف'),icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteMovement(m))]) : null,
+                trailing: canEditManualStockMovement(m) ? Wrap(spacing:0,children:[IconButton(tooltip:translateEnglish('تعديل'),icon:const Icon(Icons.edit_outlined),onPressed:()=>editMovement(m)),IconButton(tooltip:translateEnglish('حذف'),icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteMovement(m))]) : null,
               )).toList(),
             ),
       ),
