@@ -9,8 +9,14 @@ import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'cloud_connection.dart';
 import 'cloud_account_screen.dart';
+ValueNotifier<String> appLanguage = ValueNotifier<String>('ar');
+String languageText(String arabic, String english) => appLanguage.value == 'en' ? english : arabic;
+String translateEnglish(String input){ if(appLanguage.value!='en') return input; final translations=<String,String>{"لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro وتأكد من وجود أعمدة كود الصنف واسم الصنف ووحدة القياس والمخزن.":"No valid header row found. Use the StockPro template and ensure columns for item code, item name, unit and warehouse.","زر فحص الاتصال يتحقق من الوصول إلى قاعدة StockPro فقط، ولا ينقل أو يرفع بيانات الجهاز.":"The connection check only verifies access to StockPro database; it does not upload or transfer device data.","استخدم أسماء المخازن المطابقة تماماً للمخازن المسجلة. يمكنك استخدام المخزن الرئيسي.":"Use warehouse names exactly as registered. You may use the main warehouse.","لا يمكن حذف خامة مرتبطة بحركات مخزون أو وصفات. يمكنك تعديل بياناتها بدلاً من ذلك.":"Cannot delete an item linked to inventory movements or recipes. You can edit it instead.","لا يمكن حذف سجل قديم غير مرتبط بحركات الاستهلاك؛ حفاظاً على دقة أرصدة المخازن.":"Cannot delete an older record not linked to consumption movements, to protect inventory accuracy.","كل صنف يجب أن يكون له كود فريد واسم ووحدة قياس ومخزن موجود داخل البرنامج.":"Each item must have a unique code, name, unit and an existing warehouse.","احذف صف المثال، ثم احفظ الملف بصيغة Excel .xlsx واستورده من شاشة المخزون.":"Delete the sample row, save as Excel .xlsx, then import it from Inventory.","إدارة مواقع التغذية والمخازن والوجبات والمصروفات في مكان واحد.":"Manage catering sites, warehouses, meals and expenses in one place.","لا توجد وجبات مسجلة خلال الفترة المختارة للمواقع المسموح بها.":"No meal records in the selected period for permitted sites.","لم أستطع قراءة الملف. احفظه بصيغة Excel .xlsx وحاول مرة أخرى.":"Could not read the file. Save it as Excel .xlsx and try again.","تمت الاستعادة. سيتم إعادة فتح البرنامج بالبيانات المستعادة.":"Backup restored. The app will reopen with restored data.","الاستلام والصرف والتحويلات تُسجل على المخزن المحدد.":"Receipts, issues and transfers are recorded against the selected warehouse.","• إدارة المواقع والعقود وتسجيل الوجبات اليومية.":"• Manage sites, contracts and daily meal records.","الوجبات • المخزون • الإيرادات • متابعة المواقع":"Meals • Inventory • Revenue • Site tracking","لازم يكون عندك مخزنان على الأقل لإجراء التحويل":"At least two warehouses are required for a transfer","عند تسجيل الوجبات سيتم خصم الاستهلاك تلقائيًا.":"Consumption will be deducted automatically when meals are recorded.","راجع البيانات وأدخل أرقامًا صحيحة غير سالبة":"Check the fields and enter valid non-negative numbers","التنبيه عند تجاوز الاستهلاك المتوقع بنسبة ":"Alert when consumption exceeds expected by ","• وصفات واستهلاك خامات وتقارير ومصروفات.":"• Recipes, material consumption, reports and expenses.","من الأعلى تكلفة إلى الأقل — الشهر الحالي":"Highest to lowest cost — current month","لا توجد خامات أو لا توجد مخازن مسموح بها":"No items or no permitted warehouses","أدخل اسم الموقع وأسعارًا صحيحة غير سالبة":"Enter a site name and valid non-negative prices","الكمية غير صحيحة أو رصيد المصدر غير كافٍ":"Invalid quantity or insufficient source balance","StockPro Business - قالب استيراد المخزون":"StockPro Business - Inventory import template","• استيراد Excel ونسخ احتياطي واستعادة.":"• Excel import, backup and restore.","• مخازن مستقلة وتحويلات وجرد وتسويات.":"• Separate warehouses, transfers, stock counts and adjustments.","StockPro Business • إصدار تجهيز تجاري":"StockPro Business • Commercial edition","ترتيب الهالك والانحراف — الشهر الحالي":"Waste & variance ranking — current month","تكلفة الخامات المصروفة فعليًا للمواقع":"Actual materials cost issued to sites","بحث بالمستخدم أو العملية أو التفاصيل":"Search user, action or details","مراقبة الاستهلاك والانحراف عن الوصفة":"Monitor consumption and recipe variance","اختيار الحد الذي يبدأ عنده التنبيه":"Set the threshold that triggers alerts","لا توجد وصفات أو صرف يدوي للمقارنة":"No recipes or manual issues to compare","لا يوجد مخزن موقع مسموح بالصرف منه":"No permitted site warehouse for issuing","لا يوجد مخزن مسموح لك بالتعامل معه":"No warehouse is permitted for your account","الرصيد الفعلي مطابق للرصيد الدفتري":"Actual balance matches book balance","لا توجد تنبيهات خلال الشهر الحالي":"No alerts this month","تم حفظ قالب استيراد المخزون بنجاح":"Inventory template saved successfully","تم إنشاء النسخة الاحتياطية بنجاح":"Backup created successfully","مراجعات تنبيهات الهالك غير سليمة":"Waste alert reviews are invalid","• مستخدمون وصلاحيات وسجل تدقيق.":"• Users, permissions and audit log.","سبب الانحراف / الإجراء التصحيحي":"Variance reason / corrective action","إدارة مواقع التغذية\\nبكل سهولة":"Easy catering site management","تنبيه لم يُراجع • الشهر الحالي":"unreviewed alert • this month","ممتاز! لا توجد تنبيهات حسب حد ":"Excellent! No alerts at threshold "," تنبيه إضافي في تقرير الانحراف":" additional alerts in variance report","إجمالي تكلفة الصنف خلال الفترة":"Total item cost for period","مثال - احذف الصف قبل الاستيراد":"Example - delete this row before import","تعذر تجهيز ملف Excel للاستيراد":"Could not prepare Excel file for import","؟ سيتم حذف أرصدتها من المخازن.":"? Its warehouse balances will be deleted.","الملف فارغ أو غير قابل للقراءة":"File is empty or unreadable","الملف ليس نسخة StockPro معتمدة":"This is not a valid StockPro backup","اسم المستخدم والـ PIN مطلوبان":"Username and PIN are required","تكلفة الخامات المصروفة فعليًا":"Actual materials cost issued","تحديد استهلاك الخامة لكل وجبة":"Set material consumption per meal","الكمية لكل وجبة بوحدة المخزون":"Quantity per meal in inventory unit","فشل إنشاء النسخة الاحتياطية: ":"Backup creation failed: ","تغيير نسبة التنبيه الحالية: ":"Current alert threshold: ","تكلفة الموقع من الصرف الفعلي":"Site cost from actual issues","متوسط تكلفة الخامات لكل وجبة":"Average material cost per meal","أدخل أعداداً صحيحة غير سالبة":"Enter valid non-negative whole numbers","لا توجد خامات أو مخازن متاحة":"No materials or warehouses available","مصروفات المواقع خلال الفترة":"Site expenses during period"," • أسعار الوجبات تم تحديثها":" • Meal prices updated","تنبيهات الهالك والانحراف (":"Waste & variance alerts (","أعلى موقع في تكلفة الخامات":"Site with highest material cost","الاستعادة متاحة للمدير فقط":"Restore is available to administrators only","اسم المستخدم موجود بالفعل":"Username already exists","عرض ترتيب جميع الانحرافات":"View all variances ranked","أدخل رصيدًا فعليًا صحيحًا":"Enter a valid actual balance","فتح تقرير تحليل الانحراف":"Open variance analysis report","الفائض بعد تكلفة الخامات":"Surplus after materials cost","صافي الربح بعد المصروفات":"Net profit after expenses","تقرير الوجبات والإيرادات":"Meals & revenue report","تكلفة الانحراف الصافية: ":"Net variance cost: ","تفصيل التكلفة حسب الخامة":"Cost breakdown by item","حالة البيانات والخصوصية":"Data & privacy status","متابعة الهالك والانحراف":"Waste & variance monitoring","تصدير التقرير إلى Excel":"Export report to Excel","تفصيل الأداء حسب الموقع":"Performance by site","اسم الموقع موجود بالفعل":"Site name already exists","اسم الخامة موجود بالفعل":"Material name already exists","أرصدة المخازن غير سليمة":"Warehouse balances are invalid","الرصيد الفعلي بعد الجرد":"Actual counted balance","إجمالي مصروفات المواقع":"Total site expenses","تكرر خلال آخر 3 شهور: ":"Repeated in last 3 months: ","استيراد بيانات المخزون":"Import inventory","إيراد الوجبات المسعّرة":"Revenue from priced meals","تحليل الانحراف والهالك":"Variance & waste analysis","تم تصدير التقرير بنجاح":"Report exported successfully","يوجد مخزن رئيسي بالفعل":"A main warehouse already exists","وجبات إضافية غير مسعرة":"Unpriced extra meals","المستخدمون والصلاحيات":"Users & permissions","خامات وصلت حد التنبيه":"Items at reorder threshold","صرف للاستهلاك بالموقع":"Issue to site consumption","تسجيل الوجبات اليومية":"Record daily meals","رصيد غير كافٍ بالمخزن":"Insufficient warehouse stock","تعذر إنشاء قالب Excel":"Could not create Excel template","استعادة نسخة احتياطية":"Restore backup","تعذر استعادة النسخة: ":"Restore failed: ","مدير — صلاحيات كاملة":"Administrator — Full access","تحميل قالب الاستيراد":"Download import template","تعذر إنشاء ملف Excel":"Could not create Excel file","تم إلغاء حفظ التقرير":"Report save cancelled","الموقع / نطاق المخزن":"Site / warehouse scope","تعديل الموقع / العقد":"Edit site / contract","اختار مخزنين مختلفين":"Select two different warehouses","بيانات غير سليمة في ":"Invalid data in ","المواقع المسموح بها":"Allowed sites","المخازن المسموح بها":"Allowed warehouses","التكلفة التقديرية: ":"Estimated cost: ","رصيد مستقل لكل مخزن":"Separate balance for each warehouse","تعديل الموقع والعقد":"Edit site and contract","لا توجد حركات مسجلة":"No movements recorded","صرف الخامات للمواقع":"Material issues to sites","الصرف الفعلي اليدوي":"Manual actual issue","فشل تصدير التقرير: ":"Report export failed: ","سجل موقع وعقد أولاً":"Add a site and contract first","تعديل تسجيل الوجبات":"Edit meal record","ملاحظات / رقم الإذن":"Notes / voucher number","تم إلغاء حفظ القالب":"Template save cancelled","الكود مستخدم بالفعل":"Code already in use","تم إلغاء حفظ النسخة":"Backup save cancelled","StockPro | التغذية":"StockPro | Catering","مراجعة الانحراف • ":"Review variance • ","تمت مراجعة التنبيه":"Alert reviewed","لا توجد بيانات بعد":"No data yet","اختر بداية التقرير":"Select report start date","اختر نهاية التقرير":"Select report end date","فشل إنشاء القالب: ":"Failed to create template: ","مخازن غير مطابقة: ":"Unmatched warehouses: ","سجل المواقع أولاً":"Add a site first","حد تنبيه الانحراف":"Variance alert threshold","اكتب الملاحظة هنا":"Enter your note here","آخر حركات المخزون":"Recent inventory movements","الفترة المختارة: ":"Selected period: ","رصيد غير كافٍ في ":"Insufficient stock in ","سجل حركات المخزون":"Inventory movement log","جرد وتسوية مخزنية":"Stock count & adjustment","رقم PIN (إجباري)":"PIN (required)","المميزات الحالية":"Current features","المخزون والخامات":"Inventory & materials","الاستهلاك النظري":"Theoretical consumption","حدد فترة التقرير":"Select report period","إضافة موقع / عقد":"Add site / contract","الرصيد الافتتاحي":"Opening balance","الرصيد الدفتري: ":"Book balance: ","مصروفات المواقع":"Site expenses","المستخدم الحالي":"Current user","لا توجد تنبيهات":"No alerts","بدون وصفة مسجلة":"without a recorded recipe","المواقع والعقود":"Sites & contracts","تفصيل التسجيلات":"Record details","الزيادة / العجز":"Excess / shortage","نسبة الانحراف %":"Variance %","اكتب اسم المخزن":"Enter warehouse name","حذف سجل الوجبات":"Delete meal record","الرصيد الحالي: ":"Current balance: ","أدخل كمية صحيحة":"Enter a valid quantity","إذن تحويل مخزني":"Warehouse transfer voucher","أضف خامات أولاً":"Add materials first","فشل الاستيراد: ":"Import failed: ","تاريخ غير معروف":"Unknown date","المخزن الرئيسي":"Main warehouse","مصروفات الموقع":"Site expenses","المبلغ بالجنيه":"Amount (EGP)","أدخل مبلغ صحيح":"Enter a valid amount","تعديل المستخدم":"Edit user","تقرير StockPro":"StockPro report","إجمالي الوجبات":"Total meals","إجمالي التكلفة":"Total cost","تكلفة الانحراف":"Variance cost","ملاحظة محاسبية":"Accounting note","أضف خامة أولاً":"Add an item first","الكمية للتحويل":"Transfer quantity","اعتماد التحويل":"Approve transfer","بيانات المخزون":"Inventory data","لا توجد سجلات":"No records","إعداد الكلاود":"Cloud setup","إجراءات سريعة":"Quick actions","نسخة احتياطية":"Backup","إدارة المخازن":"Warehouse management","قيمة الرصيد: ":"Balance value: ","وصفات الوجبات":"Meal recipes","تفصيل المواقع":"Site details","تكلفة الخامات":"Material cost","وجبة • إيراد ":"meals • Revenue ","أسعار العقد: ":"Contract prices: ","حفظ التعديلات":"Save changes","الكمية بوحدة ":"Quantity in ","رصيد المصدر: ":"Source balance: ","رصيد الوجهة: ":"Destination balance: ","رقم التحويل: ":"Transfer number: ","لا توجد حركات":"No movements","متوسط التكلفة":"Average cost","أكواد مكررة: ":"Duplicate codes: ","PIN غير صحيح":"Incorrect PIN","حول StockPro":"About StockPro","تسجيل الخروج":"Log out","إضافة مستخدم":"Add user","اسم المستخدم":"Username","حساب الكلاود":"Cloud account","مراجعة تنبيه":"Review alert","تحديث ملاحظة":"Update note","انحراف مخزون":"Inventory variance","حفظ المراجعة":"Save review","صرف بلا وصفة":"Issue without recipe","قيمة المخزون":"Inventory value","استعادة نسخة":"Restore backup","استلام خامات":"Receive materials","تعديل الخامة":"Edit item","ملخص التقرير":"Report summary","وجبات إضافية":"Extra meals","تكلفة الوحدة":"Unit cost","لا توجد وصفة":"No recipe","الشهر الحالي":"Current month","تعديل المخزن":"Edit warehouse","اعتماد الجرد":"Confirm stock count","تغيير اللغة":"Change language","إضافة مصروف":"Add expense","تعديل مصروف":"Edit expense","نوع المصروف":"Expense category","حذف المصروف":"Delete expense","سجل التدقيق":"Audit log","أمان الدخول":"Login security","فحص الكلاود":"Cloud check","فحص الاتصال":"Check connection","لوحة التحكم":"Dashboard","إيراد اليوم":"Today’s revenue","وجبات اليوم":"Meals today","عدد المواقع":"Sites","عدد الخامات":"Items","تسجيل وجبات":"Record meals","تحويل مخزني":"Warehouse transfer","سجل الحركات":"Movement log","سجل الوجبات":"Meal records","حد التنبيه ":"Alert threshold ","سعر الإفطار":"Breakfast price","عدد الإفطار":"Breakfast count","\$type خامات":"\$type materials","وحدة القياس":"Unit of measure","تم استيراد ":"Imported ","تسوية زيادة":"Positive adjustment","المستخدمون":"Users","حذف مصروف ":"Delete expense ","مصروف جديد":"New expense","السماح بـ ":"Allow ","ملخص اليوم":"Today’s summary","إضافة موقع":"Add site","إضافة خامة":"Add item","جرد وتسوية":"Stock count & adjustment","مخزن رئيسي":"Main warehouse","حذف الخامة":"Delete item","صافي الربح":"Net profit","نوع الحركة":"Movement type","آخر 30 يوم":"Last 30 days","غير مسعّرة":"Unpriced","إضافة مخزن":"Add warehouse","اسم المخزن":"Warehouse name","اسم الموقع":"Site name","سعر الغداء":"Lunch price","سعر العشاء":"Dinner price","موقع / عقد":"Site / contract","عدد الغداء":"Lunch count","عدد العشاء":"Dinner count","حركة مخزون":"Inventory movement","إلى المخزن":"To warehouse","تحويل صادر":"Transfer out","تحويل وارد":"Transfer in","حفظ الوصفة":"Save recipe","حد التنبيه":"Alert threshold","اسم المادة":"Material name","كود/باركود":"Code / barcode","المصروفات":"Expenses","كل الشركة":"Entire company","التاريخ: ":"Date: ","صلاحيات: ":"Permissions: ","نظرة عامة":"Overview"," • متكرر ":" • Repeated ","مخزن جديد":"New warehouse","مخزن فرعي":"Site warehouse"," | إفطار ":" | Breakfast ","صرف خامات":"Issue materials"," • إفطار ":" • Breakfast ","من المخزن":"From warehouse","كود الصنف":"Item code","اسم الصنف":"Item name","مثال: أرز":"Example: Rice","تسوية عجز":"Negative adjustment","الرئيسية":"Home","التقارير":"Reports"," أو أكثر":" or more"," الحالي.":" currently."," / غداء ":" / Lunch "," / عشاء ":" / Dinner ","الإجمالي":"Total","إضافية: ":"Extra: ","تم تخطي ":"Skipped ","حذف خامة":"Delete material"," / فعلي ":" / Actual ","المواقع":"Sites","الوجبات":"Meals","المخزون":"Inventory","المخازن":"Warehouses","العربية":"Arabic","ملاحظات":"Notes"," إضافي ":" Extra ","التاريخ":"Date","التصنيف":"Category","الإيراد":"Revenue","مصروفات":"Expenses","إفطار: ":"Breakfast: ","المسؤول":"Manager"," (متاح ":" (Available ","تعليمات":"Instructions","المدير":"Administrator","الموقع":"Site","مستخدم":"User","زيادة ":"Excess ","إفطار ":"Breakfast "," غداء ":" Lunch "," عشاء ":" Dinner ","استلام":"Receive","المؤشر":"Metric","القيمة":"Value","المبلغ":"Amount","إضافية":"Extra","الفائض":"Surplus","الكمية":"Quantity","الوحدة":"Unit","غداء: ":"Lunch: ","عشاء: ":"Dinner: ","العميل":"Client","الخامة":"Material","الكود ":"Code ","تكلفة ":"Cost ","دفترى ":"Book ","إغلاق":"Close","عمالة":"Labor","إقامة":"Accommodation","صيانة":"Maintenance","إلغاء":"Cancel","إضافة":"Add","مصروف":"Expense","تعديل":"Edit"," مرات":" times","يوجد ":"There are ","الصنف":"Item","تأكيد":"Confirm","تحويل":"Transfer","مخزون":"Inventory","أخرى":"Other","تمام":"OK","موقع":"Site","إلى ":"To ","وارد":"Inbound","صادر":"Outbound","حذف ":"Delete "," ج.م":" EGP","نقل":"Transport","حفظ":"Save","حذف":"Delete","إلى":"To","من ":"From ","كجم":"kg","، ":" , ","من":"From"}; var out=input; for(final entry in translations.entries){out=out.replaceAll(entry.key,entry.value);} return out; }
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  appLanguage.value = prefs.getString('appLanguage') == 'en' ? 'en' : 'ar';
   await CloudConnection.initialize(); // Cloud errors never prevent offline use.
   runApp(const App());
 }
@@ -77,6 +83,13 @@ class App extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         ),
       ),
+      builder: (context, child) => ValueListenableBuilder<String>(
+        valueListenable: appLanguage,
+        builder: (context, language, _) => Directionality(
+          textDirection: language == 'en' ? TextDirection.ltr : TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
       home: const AnimatedSplash(),
     );
   }
@@ -86,7 +99,7 @@ class LoginState extends State<LoginScreen>{
   final pin=TextEditingController();List<AppUser> users=[];AppUser? selected;bool loading=true;bool showPin=false;
   @override void initState(){super.initState();loadUsers();}
   Future<void> loadUsers()async{final p=await SharedPreferences.getInstance();try{users=(jsonDecode(p.getString('users')??'[]') as List).map((x)=>AppUser(x['n'],x['pin']??'',x['admin']??false,Set<String>.from(x['p']??AppUser.modules),Set<String>.from(x['sites']??[]),Set<String>.from(x['warehouses']??[]))).toList();}catch(_){}if(users.isEmpty){users=[AppUser('المدير','',true,Set<String>.from(AppUser.modules))];await p.setString('users',jsonEncode(users.map((u)=>u.j()).toList()));}selected=users.first;setState(()=>loading=false);}
-  Future<void> enter()async{if(selected==null)return;if(pin.text!=selected!.pin){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PIN غير صحيح')));return;}final p=await SharedPreferences.getInstance();await p.setString('activeUser',selected!.name);if(!mounted)return;Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const Hub()));}
+  Future<void> enter()async{if(selected==null)return;if(pin.text!=selected!.pin){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('PIN غير صحيح'))));return;}final p=await SharedPreferences.getInstance();await p.setString('activeUser',selected!.name);if(!mounted)return;Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>Hub()));}
   @override
   Widget build(BuildContext c) {
     if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -111,7 +124,7 @@ class LoginState extends State<LoginScreen>{
             value: selected,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.person, color: Color(0xff092d50)),
-              hintText: 'Username', filled: true, fillColor: const Color(0xfff7f9fc),
+              hintText: translateEnglish('Username'), filled: true, fillColor: Color(0xfff7f9fc),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xffc5cedb), width: 1.5)),
             ),
@@ -123,7 +136,7 @@ class LoginState extends State<LoginScreen>{
             controller: pin, obscureText: !showPin, keyboardType: TextInputType.number,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.lock_rounded, color: Color(0xff092d50)),
-              hintText: 'Password / PIN',
+              hintText: translateEnglish('Password / PIN'),
               suffixIcon: IconButton(onPressed: () => setState(() => showPin = !showPin), icon: Icon(showPin ? Icons.visibility : Icons.visibility_off, color: const Color(0xff59647a))),
               filled: true, fillColor: const Color(0xfff7f9fc),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
@@ -261,6 +274,7 @@ class Site{String name,client;double b,l,d;Site(this.name,this.client,this.b,thi
 class Day{String site;DateTime date;int b,l,d,e;String id;Day(this.site,this.date,this.b,this.l,this.d,this.e,{String? id}):id=id??DateTime.now().microsecondsSinceEpoch.toString();Map j()=>{'s':site,'t':date.toIso8601String(),'b':b,'l':l,'d':d,'e':e,'id':id};}
 class Item{String n,code,unit;double cost,q,min;Item(this.n,this.code,this.unit,this.cost,this.q,this.min);Map j()=>{'n':n,'c':code,'u':unit,'cost':cost,'q':q,'min':min};}
 class Movement{String item,type,note,warehouse,ref;double qty;DateTime date;double? unitCost;Movement(this.item,this.type,this.qty,this.note,this.date,[this.warehouse='',this.ref='',this.unitCost]);Map j()=>{'i':item,'t':type,'q':qty,'n':note,'d':date.toIso8601String(),'w':warehouse,'ref':ref,'cost':unitCost};}
+bool canEditManualStockMovement(Movement movement) => movement.ref.isEmpty && const ['استلام','صرف','صرف للموقع'].contains(movement.type);
 class Recipe{String item,meal;double qty;Recipe(this.item,this.meal,this.qty);Map j()=>{'i':item,'m':meal,'q':qty};}
 class Warehouse{String name,site,manager;bool main;Warehouse(this.name,this.site,this.manager,this.main);Map j()=>{'n':name,'s':site,'m':manager,'main':main};}
 class Expense{String id,site,category,note;DateTime date;double amount;Expense(this.id,this.site,this.category,this.note,this.date,this.amount);Map j()=>{'id':id,'s':site,'c':category,'n':note,'d':date.toIso8601String(),'a':amount};factory Expense.fromMap(dynamic x)=>Expense(x['id']??DateTime.now().microsecondsSinceEpoch.toString(),x['s']??'',x['c']??'أخرى',x['n']??'',DateTime.tryParse(x['d']??'')??DateTime.now(),(x['a'] as num?)?.toDouble()??0);}
@@ -284,7 +298,7 @@ Timer? _cloudSyncTimer;
 bool _cloudSyncing=false;
 Future<void> save()async{final p=await SharedPreferences.getInstance();await p.setString('sites',jsonEncode(sites.map((x)=>x.j()).toList()));await p.setString('days',jsonEncode(days.map((x)=>x.j()).toList()));await p.setString('items',jsonEncode(items.map((x)=>x.j()).toList()));await p.setString('movements',jsonEncode(movements.map((x)=>x.j()).toList()));await p.setString('recipes',jsonEncode(recipes.map((x)=>x.j()).toList()));await p.setString('warehouses',jsonEncode(warehouses.map((x)=>x.j()).toList()));await p.setString('stockBalances',jsonEncode(stockBalances));await p.setString('users',jsonEncode(users.map((x)=>x.j()).toList()));await p.setString('activeUser',activeUser);await p.setString('auditLogs',jsonEncode(auditLogs.map((x)=>x.j()).toList()));await p.setString('expenses',jsonEncode(expenses.map((x)=>x.j()).toList()));_queueCloudBackup();}
 void _queueCloudBackup(){_cloudSyncTimer?.cancel();_cloudSyncTimer=Timer(const Duration(seconds:3),_autoCloudBackup);}
-Future<void> _startCompanyRealtime() async { if(_companyRealtimeStarted || !CloudConnection.initialized) return; _companyRealtimeStarted=true; try { final client=Supabase.instance.client; final user=client.auth.currentUser; final p=await SharedPreferences.getInstance(); final companyId=p.getString('cloudCompanyId'); final linkedUser=p.getString('cloudCompanyUserId'); if(user==null || companyId==null || companyId.isEmpty || linkedUser!=user.id){_companyRealtimeStarted=false;return;} _companyRealtimeChannel=client.channel('stockpro-company-$companyId').onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',table:'company_data_snapshots',filter:PostgresChangeFilter(type:PostgresChangeFilterType.eq,column:'company_id',value:companyId),callback:(payload) async { final row=payload.newRecord; final revision=int.tryParse(row['revision']?.toString()??'')??0; final prefs=await SharedPreferences.getInstance(); final baseline=prefs.getInt('cloudSharedRevisionBaseline'); if(revision<= (baseline??0) || !mounted) return; if(_cloudSyncing || (_cloudSyncTimer?.isActive??false)){await prefs.setString('cloudSharedSyncStatus','وصل تحديث Revision $revision لكن عندك تغييرات محلية قيد الحفظ؛ تم تأجيل التنزيل لتجنب فقدها.'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تحديث من الجهاز الآخر مؤجل لحماية تعديلاتك المحلية.'))); return;} if(baseline==null){await prefs.setString('cloudSharedSyncStatus','وصل تحديث Revision $revision. يلزم تنزيل أول نسخة يدويًا لمقارنة البيانات المحلية بأمان.'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:const Text('وصل تحديث من الجهاز الآخر. نزّل النسخة الأولى يدويًا لتفعيل التحديث التلقائي.'))); return;} try { final response=await client.rpc('get_company_snapshot',params:{'target_company':companyId}); if(response is! List || response.isEmpty) return; final cloudRow=response.first as Map; final remoteRevision=int.tryParse(cloudRow['revision'].toString())??0; if(remoteRevision<=baseline) return; final payload=cloudRow['payload']; if(payload is! Map || payload['app']!='StockPro' || payload['schema']!=1) throw Exception('نسخة سحابية غير متوافقة'); const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews']; final backup=<String,dynamic>{'createdAt':DateTime.now().toIso8601String()}; for(final key in keys){backup[key]=prefs.get(key);} await prefs.setString('cloudRestoreSafetyBackup',jsonEncode(backup)); for(final key in keys){if(payload.containsKey(key)){final value=payload[key];if(value==null){await prefs.remove(key);}else if(value is String){await prefs.setString(key,value);}else{await prefs.setString(key,jsonEncode(value));}}} await prefs.setInt('cloudSharedRevisionBaseline',remoteRevision); await prefs.setString('cloudSharedSyncStatus','تم تنزيل تحديث تلقائي من جهاز آخر — Revision $remoteRevision'); await load(); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تمت مزامنة تحديث الجهاز الآخر تلقائيًا — Revision $remoteRevision')));} catch(e){await prefs.setString('cloudSharedSyncStatus','وصل تحديث لكن تعذر تنزيله تلقائيًا: $e'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وصل تحديث لكن لم يتم تنزيله؛ راجع صفحة الكلاود.')));} }).subscribe(); } catch(_) { _companyRealtimeStarted=false; } }
+Future<void> _startCompanyRealtime() async { if(_companyRealtimeStarted || !CloudConnection.initialized) return; _companyRealtimeStarted=true; try { final client=Supabase.instance.client; final user=client.auth.currentUser; final p=await SharedPreferences.getInstance(); final companyId=p.getString('cloudCompanyId'); final linkedUser=p.getString('cloudCompanyUserId'); if(user==null || companyId==null || companyId.isEmpty || linkedUser!=user.id){_companyRealtimeStarted=false;return;} _companyRealtimeChannel=client.channel('stockpro-company-$companyId').onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',table:'company_data_snapshots',filter:PostgresChangeFilter(type:PostgresChangeFilterType.eq,column:'company_id',value:companyId),callback:(payload) async { final row=payload.newRecord; final revision=int.tryParse(row['revision']?.toString()??'')??0; final prefs=await SharedPreferences.getInstance(); final baseline=prefs.getInt('cloudSharedRevisionBaseline'); if(revision<= (baseline??0) || !mounted) return; if(_cloudSyncing || (_cloudSyncTimer?.isActive??false)){await prefs.setString('cloudSharedSyncStatus','وصل تحديث Revision $revision لكن عندك تغييرات محلية قيد الحفظ؛ تم تأجيل التنزيل لتجنب فقدها.'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('تحديث من الجهاز الآخر مؤجل لحماية تعديلاتك المحلية.')))); return;} if(baseline==null){await prefs.setString('cloudSharedSyncStatus','وصل تحديث Revision $revision. يلزم تنزيل أول نسخة يدويًا لمقارنة البيانات المحلية بأمان.'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:Duration(seconds:8),content:Text(translateEnglish('وصل تحديث من الجهاز الآخر. نزّل النسخة الأولى يدويًا لتفعيل التحديث التلقائي.')))); return;} try { final response=await client.rpc('get_company_snapshot',params:{'target_company':companyId}); if(response is! List || response.isEmpty) return; final cloudRow=response.first as Map; final remoteRevision=int.tryParse(cloudRow['revision'].toString())??0; if(remoteRevision<=baseline) return; final payload=cloudRow['payload']; if(payload is! Map || payload['app']!='StockPro' || payload['schema']!=1) throw Exception('نسخة سحابية غير متوافقة'); final keys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews']; final backup=<String,dynamic>{'createdAt':DateTime.now().toIso8601String()}; for(final key in keys){backup[key]=prefs.get(key);} await prefs.setString('cloudRestoreSafetyBackup',jsonEncode(backup)); for(final key in keys){if(payload.containsKey(key)){final value=payload[key];if(value==null){await prefs.remove(key);}else if(value is String){await prefs.setString(key,value);}else{await prefs.setString(key,jsonEncode(value));}}} await prefs.setInt('cloudSharedRevisionBaseline',remoteRevision); await prefs.setString('cloudSharedSyncStatus','تم تنزيل تحديث تلقائي من جهاز آخر — Revision $remoteRevision'); await load(); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('تمت مزامنة تحديث الجهاز الآخر تلقائيًا — Revision $remoteRevision'))));} catch(e){await prefs.setString('cloudSharedSyncStatus','وصل تحديث لكن تعذر تنزيله تلقائيًا: $e'); if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('وصل تحديث لكن لم يتم تنزيله؛ راجع صفحة الكلاود.'))));} }).subscribe(); } catch(_) { _companyRealtimeStarted=false; } }
 Future<void> _autoCloudBackup()async{if(_cloudSyncing||!CloudConnection.initialized)return;final client=Supabase.instance.client;final user=client.auth.currentUser;if(user==null)return;final p=await SharedPreferences.getInstance();final companyId=p.getString('cloudCompanyId');final linkedUser=p.getString('cloudCompanyUserId');if(companyId==null||companyId.isEmpty||linkedUser!=user.id)return;_cloudSyncing=true;try{const keys=['sites','days','items','movements','recipes','warehouses','stockBalances','users','activeUser','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];final snapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};for(final key in keys){snapshot[key]=p.get(key);}try{await client.rpc('save_user_snapshot',params:{'target_company':companyId,'snapshot':snapshot});await p.setString('cloudLastAutoSync',DateTime.now().toIso8601String());}catch(e){await p.setString('cloudSnapshotSyncStatus','تعذر تحديث النسخة الشخصية: $e');}const sharedKeys=['sites','days','items','movements','recipes','warehouses','stockBalances','auditLogs','expenses','wasteAlertThreshold','wasteAlertReviews'];final sharedSnapshot=<String,dynamic>{'app':'StockPro','schema':1,'savedAt':DateTime.now().toIso8601String()};for(final key in sharedKeys){sharedSnapshot[key]=p.get(key);}await _autoCompanySync(client,p,companyId,sharedSnapshot);}catch(e){await p.setString('cloudSharedSyncStatus','تعذر بدء المزامنة: $e');}finally{_cloudSyncing=false;}}
 Future<void> _autoCompanySync(SupabaseClient client,SharedPreferences p,String companyId,Map<String,dynamic> snapshot)async{try{final rows=await client.rpc('get_company_snapshot',params:{'target_company':companyId});final remoteRevision=rows is List&&rows.isNotEmpty?(int.tryParse((rows.first as Map)['revision'].toString())??0):0;final baseline=p.getInt('cloudSharedRevisionBaseline');if(baseline==null&&remoteRevision>0){await p.setString('cloudSharedSyncStatus','توجد بيانات مشتركة أحدث أو لم يتم تنزيلها بعد؛ تم إيقاف الرفع التلقائي لحماية البيانات.');return;}if(baseline!=null&&remoteRevision!=baseline){await p.setString('cloudSharedSyncStatus','تعارض مزامنة: نسخة الشركة تغيرت على جهاز آخر. نزّل النسخة المشتركة قبل أي رفع جديد.');return;}final expected=baseline??0;final next=await client.rpc('save_company_snapshot',params:{'target_company':companyId,'snapshot':snapshot,'expected_revision':expected});final revision=int.tryParse(next.toString())??expected+1;await p.setInt('cloudSharedRevisionBaseline',revision);await p.setString('cloudSharedSyncStatus','تمت المزامنة التلقائية لبيانات الشركة — Revision $revision');await p.setString('cloudSharedLastAutoSync',DateTime.now().toIso8601String());}catch(e){await p.setString('cloudSharedSyncStatus','المزامنة التلقائية متوقفة: '+e.toString());}}
 void addAudit(String action,String entity,String details){auditLogs.insert(0,AuditEntry(activeUser,action,entity,details,DateTime.now()));if(auditLogs.length>1000)auditLogs.removeRange(1000,auditLogs.length);}
@@ -305,6 +319,43 @@ bool can(String module)=>users.firstWhere((u)=>u.name==activeUser,orElse:()=>App
  List<Movement> manualSiteIssueMovements(String site,DateTime from,DateTime to){final start=DateTime(from.year,from.month,from.day),end=DateTime(to.year,to.month,to.day);return movements.where((m){final date=DateTime(m.date.year,m.date.month,m.date.day);if(date.isBefore(start)||date.isAfter(end)||movementSite(m)!=site)return false;if(m.type=='استهلاك وجبات')return false;return m.type=='صرف للموقع'||m.type=='صرف';}).toList();}
  Map<Item,double> actualSiteIssues(String site,DateTime from,DateTime to){final result=<Item,double>{};for(final m in manualSiteIssueMovements(site,from,to)){final item=items.where((i)=>i.n==m.item).firstOrNull;if(item!=null)result[item]=(result[item]??0)+m.qty;}return result;}
 @override void dispose(){_cloudSyncTimer?.cancel();final channel=_companyRealtimeChannel;if(channel!=null){Supabase.instance.client.removeChannel(channel);}super.dispose();}
+  Future<void> showLanguageDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(translateEnglish('🌐 Language / اللغة')),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Text('🇪🇬', style: TextStyle(fontSize: 24)),
+            title: Text(translateEnglish('العربية')),
+            subtitle: Text(translateEnglish('Right-to-left (RTL)')),
+            trailing: appLanguage.value == 'ar' ? const Icon(Icons.check_circle, color: Colors.teal) : null,
+            onTap: () async {
+              appLanguage.value = 'ar';
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('appLanguage', 'ar');
+              if (mounted) setState(() {});
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+          ),
+          ListTile(
+            leading: const Text('🇬🇧', style: TextStyle(fontSize: 24)),
+            title: Text(translateEnglish('English')),
+            subtitle: Text(translateEnglish('Left-to-right (LTR)')),
+            trailing: appLanguage.value == 'en' ? const Icon(Icons.check_circle, color: Colors.teal) : null,
+            onTap: () async {
+              appLanguage.value = 'en';
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('appLanguage', 'en');
+              if (mounted) setState(() {});
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+          ),
+        ]),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(languageText('إغلاق','Close')))],
+      ),
+    );
+  }
 @override
 Widget build(BuildContext c) {
   if (!ready) return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -316,19 +367,20 @@ Widget build(BuildContext c) {
   }).toList();
   if (!allowedTabs.contains(tab)) tab = allowedTabs.isEmpty ? 0 : allowedTabs.first;
   final icons = [Icons.home,Icons.apartment,Icons.restaurant,Icons.inventory,Icons.analytics,Icons.warehouse,Icons.people,Icons.receipt_long];
-  final labels = ['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];
+  final labels = appLanguage.value == 'en' ? ['Home','Sites','Meals','Inventory','Reports','Warehouses','Users','Expenses'] : ['الرئيسية','المواقع','الوجبات','المخزون','التقارير','المخازن','المستخدمون','المصروفات'];
   final colors = Theme.of(c).colorScheme;
   return Directionality(
-    textDirection: TextDirection.rtl,
+    textDirection: appLanguage.value == 'en' ? TextDirection.ltr : TextDirection.rtl,
     child: Scaffold(
       appBar: AppBar(
         title: Row(mainAxisSize: MainAxisSize.min, children: [
           const MonierBrand(size: 27), const SizedBox(width: 6),
-          const Flexible(child: Text('StockPro | التغذية', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+          Flexible(child: Text(languageText('StockPro | التغذية', 'StockPro | Catering'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
         ]),
         actions: [
-          IconButton(tooltip: 'حول StockPro', icon: const Icon(Icons.info_outline), onPressed: showStockProAbout),
-          IconButton(tooltip: 'تسجيل الخروج', icon: const Icon(Icons.logout), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()))),
+          IconButton(tooltip: languageText('تغيير اللغة', 'Change language'), icon: const Icon(Icons.language), onPressed: showLanguageDialog),
+          IconButton(tooltip: translateEnglish('حول StockPro'), icon: Icon(Icons.info_outline), onPressed: showStockProAbout),
+          IconButton(tooltip: translateEnglish('تسجيل الخروج'), icon: Icon(Icons.logout), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()))),
         ],
       ),
       body: views[tab](),
@@ -365,7 +417,7 @@ Widget build(BuildContext c) {
 }
 Future<void> expenseDialog({Expense? existing}) async {
   if (visibleSites.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سجل المواقع أولاً')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translateEnglish('سجل المواقع أولاً'))));
     return;
   }
   final categories = ['عمالة', 'نقل', 'إقامة', 'مصروفات الموقع', 'صيانة', 'أخرى'];
@@ -383,13 +435,13 @@ Future<void> expenseDialog({Expense? existing}) async {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             DropdownButtonFormField<Site>(
               value: chosen,
-              decoration: const InputDecoration(labelText: 'الموقع'),
+              decoration: InputDecoration(labelText: translateEnglish('الموقع')),
               items: visibleSites.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
               onChanged: (v) { if (v != null) refresh(() => chosen = v); },
             ),
             DropdownButtonFormField<String>(
               value: category,
-              decoration: const InputDecoration(labelText: 'نوع المصروف'),
+              decoration: InputDecoration(labelText: translateEnglish('نوع المصروف')),
               items: categories.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
               onChanged: (v) { if (v != null) refresh(() => category = v); },
             ),
@@ -399,19 +451,19 @@ Future<void> expenseDialog({Expense? existing}) async {
                 if (picked != null) refresh(() => date = picked);
               },
               icon: const Icon(Icons.date_range),
-              label: Text('التاريخ: ${reportDateText(date)}'),
+              label: Text(translateEnglish('التاريخ: ${reportDateText(date)}')),
             ),
-            field(amount, 'المبلغ بالجنيه', numeric: true),
-            field(note, 'ملاحظات'),
+            field(amount, translateEnglish('المبلغ بالجنيه'), numeric: true),
+            field(note, translateEnglish('ملاحظات')),
           ]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(translateEnglish('إلغاء'))),
           FilledButton(
             onPressed: () {
               final value = double.tryParse(amount.text.trim().replaceAll(',', '.')) ?? 0;
               if (value <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل مبلغ صحيح')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translateEnglish('أدخل مبلغ صحيح'))));
                 return;
               }
               if (existing == null) {
@@ -429,72 +481,72 @@ Future<void> expenseDialog({Expense? existing}) async {
               setState(() {});
               Navigator.pop(dialogContext);
             },
-            child: const Text('حفظ'),
+            child: Text(translateEnglish('حفظ')),
           ),
         ],
       ),
     ),
   );
 }
-Future<void> deleteExpense(Expense x)async{final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف المصروف'),content:Text('حذف مصروف ${cash(x.amount)} — ${x.site}؟'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));if(ok==true){expenses.remove(x);addAudit('حذف','مصروف',x.site+' • '+cash(x.amount));await save();if(mounted)setState((){});}}
-Widget expensePage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:const Icon(Icons.add),label:const Text('مصروف جديد'))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'\n'+x.note)),leading:const Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:const Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
-Widget userPage()=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[const Expanded(child:Text('المستخدمون والصلاحيات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:userDialog,icon:const Icon(Icons.person_add),label:const Text('إضافة مستخدم')),if(current.admin)OutlinedButton.icon(onPressed:auditLogDialog,icon:const Icon(Icons.history),label:const Text('سجل التدقيق'))]),Card(child:ListTile(leading:const Icon(Icons.account_circle),title:const Text('المستخدم الحالي'),subtitle:Text(activeUser),trailing:const Icon(Icons.verified_user,color:Colors.teal))),const Card(child:ListTile(title:Text('أمان الدخول'),subtitle:Text('تغيير المستخدم يتم بعد تسجيل الخروج وإدخال PIN الخاص به. الحسابات والصلاحيات محلية على هذا الجهاز.'))),...users.map((u)=>Card(child:ListTile(leading:Icon(u.admin?Icons.admin_panel_settings:Icons.person),title:Text(u.name),subtitle:Text(u.admin?'مدير — صلاحيات كاملة':'صلاحيات: '+u.permissions.join('، ')),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>userDialog(existing:u)))))]); 
+Future<void> deleteExpense(Expense x)async{final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('حذف المصروف')),content:Text(translateEnglish('حذف مصروف ${cash(x.amount)} — ${x.site}؟')),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:Text(translateEnglish('حذف')))]));if(ok==true){expenses.remove(x);addAudit('حذف','مصروف',x.site+' • '+cash(x.amount));await save();if(mounted)setState((){});}}
+Widget expensePage()=>ListView(padding:EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text('مصروفات المواقع',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:expenseDialog,icon:Icon(Icons.add),label:Text(translateEnglish('مصروف جديد')))]),metric('إجمالي مصروفات المواقع',cash(expenses.where((x)=>current.admin||current.sites.contains(x.site)).fold<double>(0.0,(double a,Expense x)=>a+x.amount)),Icons.receipt_long),...expenses.where((x)=>current.admin||current.sites.contains(x.site)).toList().reversed.map((x)=>Card(child:ListTile(title:Text(x.site+' • '+x.category),subtitle:Text(reportDateText(x.date)+(x.note.isEmpty?'':'\n'+x.note)),leading:Icon(Icons.money_off),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(x.amount)),IconButton(icon:Icon(Icons.edit),onPressed:()=>expenseDialog(existing:x)),IconButton(icon:Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteExpense(x))]))))]);
+Widget userPage()=>ListView(padding:EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text('المستخدمون والصلاحيات',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:userDialog,icon:Icon(Icons.person_add),label:Text(translateEnglish('إضافة مستخدم'))),if(current.admin)OutlinedButton.icon(onPressed:auditLogDialog,icon:Icon(Icons.history),label:Text(translateEnglish('سجل التدقيق')))]),Card(child:ListTile(leading:Icon(Icons.account_circle),title:Text(translateEnglish('المستخدم الحالي')),subtitle:Text(activeUser),trailing:Icon(Icons.verified_user,color:Colors.teal))),Card(child:ListTile(title:Text(translateEnglish('أمان الدخول')),subtitle:Text(translateEnglish('تغيير المستخدم يتم بعد تسجيل الخروج وإدخال PIN الخاص به. الحسابات والصلاحيات محلية على هذا الجهاز.')))),...users.map((u)=>Card(child:ListTile(leading:Icon(u.admin?Icons.admin_panel_settings:Icons.person),title:Text(u.name),subtitle:Text(u.admin?'مدير — صلاحيات كاملة':'صلاحيات: '+u.permissions.join('، ')),trailing:IconButton(icon:Icon(Icons.edit),onPressed:()=>userDialog(existing:u)))))]); 
 Future<void> userDialog({AppUser? existing})async{
   final name=TextEditingController(text:existing?.name??'');final pin=TextEditingController(text:existing?.pin??'');bool admin=existing?.admin??false;
   final perms=Set<String>.from(existing?.permissions??{});final siteScope=Set<String>.from(existing?.sites??{});final warehouseScope=Set<String>.from(existing?.warehouses??{});
   await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(
     title:Text(existing==null?'إضافة مستخدم':'تعديل المستخدم'),
     content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-      field(name,'اسم المستخدم'),field(pin,'رقم PIN (إجباري)',numeric:true,decimal:false),
-      CheckboxListTile(value:admin,title:const Text('مدير — صلاحيات كاملة'),onChanged:(v)=>set(()=>admin=v??false)),
-      const Divider(),...AppUser.modules.map((m)=>CheckboxListTile(dense:true,value:perms.contains(m),title:Text('السماح بـ $m'),onChanged:(v)=>set(()=>v==true?perms.add(m):perms.remove(m)))),
-      const Divider(),const Text('المواقع المسموح بها'),...sites.map((site)=>CheckboxListTile(dense:true,value:siteScope.contains(site.name),title:Text(site.name),onChanged:(v)=>set(()=>v==true?siteScope.add(site.name):siteScope.remove(site.name)))),
-      const Text('المخازن المسموح بها'),...warehouses.map((wh)=>CheckboxListTile(dense:true,value:warehouseScope.contains(wh.name),title:Text(wh.name),onChanged:(v)=>set(()=>v==true?warehouseScope.add(wh.name):warehouseScope.remove(wh.name))))
+      field(name, translateEnglish('اسم المستخدم')),field(pin, translateEnglish('رقم PIN (إجباري)'),numeric:true,decimal:false),
+      CheckboxListTile(value:admin,title:Text(translateEnglish('مدير — صلاحيات كاملة')),onChanged:(v)=>set(()=>admin=v??false)),
+      Divider(),...AppUser.modules.map((m)=>CheckboxListTile(dense:true,value:perms.contains(m),title:Text(translateEnglish('السماح بـ $m')),onChanged:(v)=>set(()=>v==true?perms.add(m):perms.remove(m)))),
+      Divider(),Text(translateEnglish('المواقع المسموح بها')),...sites.map((site)=>CheckboxListTile(dense:true,value:siteScope.contains(site.name),title:Text(site.name),onChanged:(v)=>set(()=>v==true?siteScope.add(site.name):siteScope.remove(site.name)))),
+      Text(translateEnglish('المخازن المسموح بها')),...warehouses.map((wh)=>CheckboxListTile(dense:true,value:warehouseScope.contains(wh.name),title:Text(wh.name),onChanged:(v)=>set(()=>v==true?warehouseScope.add(wh.name):warehouseScope.remove(wh.name))))
     ])),
-    actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){
-      if(name.text.trim().isEmpty||pin.text.trim().isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اسم المستخدم والـ PIN مطلوبان')));return;}
-      if(existing==null){if(users.any((u)=>u.name==name.text.trim())){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اسم المستخدم موجود بالفعل')));return;}users.add(AppUser(name.text.trim(),pin.text.trim(),admin,Set<String>.from(perms),Set<String>.from(siteScope),Set<String>.from(warehouseScope)));}
+    actions:[TextButton(onPressed:()=>Navigator.pop(x),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:(){
+      if(name.text.trim().isEmpty||pin.text.trim().isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('اسم المستخدم والـ PIN مطلوبان'))));return;}
+      if(existing==null){if(users.any((u)=>u.name==name.text.trim())){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('اسم المستخدم موجود بالفعل'))));return;}users.add(AppUser(name.text.trim(),pin.text.trim(),admin,Set<String>.from(perms),Set<String>.from(siteScope),Set<String>.from(warehouseScope)));}
       else{existing.name=name.text.trim();existing.pin=pin.text.trim();existing.admin=admin;existing.permissions=Set<String>.from(perms);existing.sites=Set<String>.from(siteScope);existing.warehouses=Set<String>.from(warehouseScope);}
       addAudit(existing==null?'إضافة':'تعديل','مستخدم',name.text.trim());save();setState((){});Navigator.pop(x);
-    },child:const Text('حفظ'))])));
+    },child:Text(translateEnglish('حفظ')))])));
 }
-Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:const Text('سجل التدقيق'),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),const SizedBox(height:8),Expanded(child:list.isEmpty?const Center(child:Text('لا توجد سجلات')):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:const Icon(Icons.history),title:Text('${x.action} • ${x.entity}'),subtitle:Text('${x.user} | ${x.date.toLocal()}\n${x.details}'));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إغلاق'))]);}));}
+Future<void> auditLogDialog()async{final search=TextEditingController();await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,refresh){final q=search.text.trim().toLowerCase();final list=auditLogs.where((x)=>q.isEmpty||[x.user,x.action,x.entity,x.details].join(' ').toLowerCase().contains(q)).toList();return AlertDialog(title:Text(translateEnglish('سجل التدقيق')),content:SizedBox(width:480,height:480,child:Column(children:[TextField(controller:search,decoration:InputDecoration(prefixIcon:Icon(Icons.search),hintText:'بحث بالمستخدم أو العملية أو التفاصيل'),onChanged:(_)=>refresh((){})),SizedBox(height:8),Expanded(child:list.isEmpty?Center(child:Text(translateEnglish('لا توجد سجلات'))):ListView.builder(itemCount:list.length,itemBuilder:(c,i){final x=list[i];return ListTile(dense:true,leading:Icon(Icons.history),title:Text(translateEnglish('${x.action} • ${x.entity}')),subtitle:Text(translateEnglish('${x.user} | ${x.date.toLocal()}\n${x.details}')));}))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:Text(translateEnglish('إغلاق')))]);}));}
 Future<void> showStockProAbout() async {
   await showDialog<void>(
     context: context,
     builder: (dc) => AlertDialog(
-      title: const Text('StockPro Business'),
-      content: const SingleChildScrollView(
+      title: Text(translateEnglish('StockPro Business')),
+      content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('إدارة مواقع التغذية والمخازن والوجبات والمصروفات في مكان واحد.'),
+            Text(translateEnglish('إدارة مواقع التغذية والمخازن والوجبات والمصروفات في مكان واحد.')),
             SizedBox(height: 12),
             Text('المميزات الحالية', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 6),
-            Text('• إدارة المواقع والعقود وتسجيل الوجبات اليومية.'),
-            Text('• مخازن مستقلة وتحويلات وجرد وتسويات.'),
-            Text('• وصفات واستهلاك خامات وتقارير ومصروفات.'),
-            Text('• مستخدمون وصلاحيات وسجل تدقيق.'),
-            Text('• استيراد Excel ونسخ احتياطي واستعادة.'),
+            Text(translateEnglish('• إدارة المواقع والعقود وتسجيل الوجبات اليومية.')),
+            Text(translateEnglish('• مخازن مستقلة وتحويلات وجرد وتسويات.')),
+            Text(translateEnglish('• وصفات واستهلاك خامات وتقارير ومصروفات.')),
+            Text(translateEnglish('• مستخدمون وصلاحيات وسجل تدقيق.')),
+            Text(translateEnglish('• استيراد Excel ونسخ احتياطي واستعادة.')),
             SizedBox(height: 12),
             Text('حالة البيانات والخصوصية', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 6),
-            Text('في هذه النسخة، البيانات محفوظة محليًا على الجهاز. لا توجد مزامنة سحابية أو مشاركة تلقائية بين الأجهزة. النسخ الاحتياطي مسؤولية المستخدم ويُنصح بإنشاء نسخة دورية وحفظها في مكان آمن.'),
+            Text(translateEnglish('في هذه النسخة، البيانات محفوظة محليًا على الجهاز. لا توجد مزامنة سحابية أو مشاركة تلقائية بين الأجهزة. النسخ الاحتياطي مسؤولية المستخدم ويُنصح بإنشاء نسخة دورية وحفظها في مكان آمن.')),
             SizedBox(height: 8),
-            Text('حسابات المستخدمين وPIN محلية على الجهاز. تم تجهيز اتصال Supabase تجريبي، لكن مزامنة البيانات وتسجيل الدخول السحابي لم يتم تفعيلهما بعد.'),
+            Text(translateEnglish('حسابات المستخدمين وPIN محلية على الجهاز. تم تجهيز اتصال Supabase تجريبي، لكن مزامنة البيانات وتسجيل الدخول السحابي لم يتم تفعيلهما بعد.')),
             SizedBox(height: 12),
             Text('إعداد الكلاود', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 6),
-            Text('زر فحص الاتصال يتحقق من الوصول إلى قاعدة StockPro فقط، ولا ينقل أو يرفع بيانات الجهاز.'),
+            Text(translateEnglish('زر فحص الاتصال يتحقق من الوصول إلى قاعدة StockPro فقط، ولا ينقل أو يرفع بيانات الجهاز.')),
             SizedBox(height: 12),
             Text('StockPro Business • إصدار تجهيز تجاري', style: TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) { await showDialog<void>(context: context, builder: (x) => AlertDialog(title: const Text('فحص الكلاود'), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: const Text('تمام'))])); } }, child: const Text('فحص الاتصال')),
+        TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) { await showDialog<void>(context: context, builder: (x) => AlertDialog(title: Text(translateEnglish('فحص الكلاود')), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: Text(translateEnglish('تمام')))])); } }, child: Text(translateEnglish('فحص الاتصال'))),
         FilledButton.icon(
           onPressed: () async {
             Navigator.pop(dc);
@@ -511,9 +563,9 @@ Future<void> showStockProAbout() async {
             await load();
           },
           icon: const Icon(Icons.cloud),
-          label: const Text('حساب الكلاود'),
+          label: Text(translateEnglish('حساب الكلاود')),
         ),
-        TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
+        TextButton(onPressed: () => Navigator.pop(dc), child: Text(translateEnglish('إغلاق'))),
       ],
     ),
   );
@@ -570,13 +622,13 @@ List<Map<String,dynamic>> buildWasteAlerts(DateTime from,DateTime to,double thre
 Future<void> showWasteThresholdDialog() async {
   var selected=wasteAlertThreshold;
   final result=await showDialog<double>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,setDialog)=>AlertDialog(
-    title:const Text('حد تنبيه الانحراف'),
+    title:Text(translateEnglish('حد تنبيه الانحراف')),
     content:Column(mainAxisSize:MainAxisSize.min,children:[
       Text('التنبيه عند تجاوز الاستهلاك المتوقع بنسبة ${selected.toStringAsFixed(0)}% أو أكثر',textAlign:TextAlign.center),
       Slider(min:1,max:30,divisions:29,value:selected,onChanged:(v)=>setDialog(()=>selected=v)),
-      Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[const Text('1%'),Text('${selected.toStringAsFixed(0)}%',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:20)),const Text('30%')]),
+      Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Text(translateEnglish('1%')),Text('${selected.toStringAsFixed(0)}%',style:TextStyle(fontWeight:FontWeight.bold,fontSize:20)),Text(translateEnglish('30%'))]),
     ]),
-    actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(ctx,selected),child:const Text('حفظ'))],
+    actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(ctx,selected),child:Text(translateEnglish('حفظ')))],
   )));
   if(result==null)return;
   wasteAlertThreshold=result;
@@ -589,14 +641,14 @@ String wasteReviewKey(Map<String,dynamic> alert,DateTime period){final item=aler
 Map<String,dynamic> wasteReviewFor(Map<String,dynamic> alert,DateTime period)=>wasteAlertReviews[wasteReviewKey(alert,period)]??{};
 Future<void> reviewWasteAlert(Map<String,dynamic> alert,DateTime period)async{
  final item=alert['item'] as Item;final key=wasteReviewKey(alert,period);final old=wasteAlertReviews[key]??{};var reviewed=old['reviewed']==true;final note=TextEditingController(text:old['note']?.toString()??'');
- await showDialog<void>(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,update)=>AlertDialog(title:Text('مراجعة الانحراف • ${alert['site']}'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[Text(item.n,style:const TextStyle(fontWeight:FontWeight.bold)),const SizedBox(height:8),Text(alert['noRecipe']==true?'صرف بلا وصفة: ${qtyText(alert['actual'] as double)} ${item.unit}':'زيادة ${qtyText(alert['difference'] as double)} ${item.unit} • ${(alert['percent'] as double).toStringAsFixed(1)}%'),Text('التكلفة التقديرية: ${cash(alert['cost'] as double)}'),if((alert['repeatCount']??1)>1)Text('تكرر خلال آخر 3 شهور: ${alert['repeatCount']} مرات',style:const TextStyle(color:Colors.deepOrange,fontWeight:FontWeight.w600)),const SizedBox(height:12),CheckboxListTile(contentPadding:EdgeInsets.zero,value:reviewed,title:const Text('تمت مراجعة التنبيه'),onChanged:(v)=>update(()=>reviewed=v??false)),TextField(controller:note,maxLines:3,decoration:const InputDecoration(labelText:'سبب الانحراف / الإجراء التصحيحي',hintText:'اكتب الملاحظة هنا'))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:()async{wasteAlertReviews[key]={'reviewed':reviewed,'note':note.text.trim(),'user':activeUser,'updatedAt':DateTime.now().toIso8601String()};final prefs=await SharedPreferences.getInstance();await prefs.setString('wasteAlertReviews',jsonEncode(wasteAlertReviews));addAudit(reviewed?'مراجعة تنبيه':'تحديث ملاحظة','انحراف مخزون','${alert['site']} • ${item.n} • ${note.text.trim()}');await save();if(mounted)setState((){});if(dc.mounted)Navigator.pop(dc);},child:const Text('حفظ المراجعة'))])));
+ await showDialog<void>(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,update)=>AlertDialog(title:Text('مراجعة الانحراف • ${alert['site']}'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[Text(item.n,style:TextStyle(fontWeight:FontWeight.bold)),SizedBox(height:8),Text(alert['noRecipe']==true?'صرف بلا وصفة: ${qtyText(alert['actual'] as double)} ${item.unit}':'زيادة ${qtyText(alert['difference'] as double)} ${item.unit} • ${(alert['percent'] as double).toStringAsFixed(1)}%'),Text('التكلفة التقديرية: ${cash(alert['cost'] as double)}'),if((alert['repeatCount']??1)>1)Text('تكرر خلال آخر 3 شهور: ${alert['repeatCount']} مرات',style:TextStyle(color:Colors.deepOrange,fontWeight:FontWeight.w600)),SizedBox(height:12),CheckboxListTile(contentPadding:EdgeInsets.zero,value:reviewed,title:Text(translateEnglish('تمت مراجعة التنبيه')),onChanged:(v)=>update(()=>reviewed=v??false)),TextField(controller:note,maxLines:3,decoration:InputDecoration(labelText:'سبب الانحراف / الإجراء التصحيحي',hintText:'اكتب الملاحظة هنا'))])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()async{wasteAlertReviews[key]={'reviewed':reviewed,'note':note.text.trim(),'user':activeUser,'updatedAt':DateTime.now().toIso8601String()};final prefs=await SharedPreferences.getInstance();await prefs.setString('wasteAlertReviews',jsonEncode(wasteAlertReviews));addAudit(reviewed?'مراجعة تنبيه':'تحديث ملاحظة','انحراف مخزون','${alert['site']} • ${item.n} • ${note.text.trim()}');await save();if(mounted)setState((){});if(dc.mounted)Navigator.pop(dc);},child:Text(translateEnglish('حفظ المراجعة')))])));
 }
 int wasteOccurrenceCount(String site,Item item,DateTime from,DateTime to){final expected=expectedSiteConsumption(site,from,to)[item]??0.0;final actual=actualSiteIssues(site,from,to)[item]??0.0;if(expected>0){final diff=actual-expected;return diff>0&&diff/expected*100>=wasteAlertThreshold?1:0;}return expected<=0&&actual>0?1:0;}
 void showRankedWasteDialog(List<Map<String,dynamic>> alerts) {
   showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
-    title:const Text('ترتيب الهالك والانحراف — الشهر الحالي'),
+    title:Text(translateEnglish('ترتيب الهالك والانحراف — الشهر الحالي')),
     content:SizedBox(width:420,height:440,child:alerts.isEmpty
-      ?const Center(child:Text('لا توجد تنبيهات خلال الشهر الحالي'))
+      ?Center(child:Text(translateEnglish('لا توجد تنبيهات خلال الشهر الحالي')))
       :ListView.builder(itemCount:alerts.length,itemBuilder:(ctx,index){
         final a=alerts[index];final item=a['item'] as Item;final noRecipe=a['noRecipe']==true;
         return ListTile(
@@ -607,7 +659,7 @@ void showRankedWasteDialog(List<Map<String,dynamic>> alerts) {
           trailing:Column(mainAxisSize:MainAxisSize.min,children:[Text(cash(a['cost'] as double),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.deepOrange)),Icon(wasteReviewFor(a,DateTime.now()).isNotEmpty&&wasteReviewFor(a,DateTime.now())['reviewed']==true?Icons.task_alt:Icons.rate_review_outlined,size:18,color:Colors.teal)]),onTap:()=>reviewWasteAlert(a,DateTime.now()),
         );
       })),
-    actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('إغلاق'))],
+    actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:Text(translateEnglish('إغلاق')))],
   ));
 }
 Widget dashboard() {
@@ -629,14 +681,14 @@ Widget dashboard() {
           gradient: const LinearGradient(colors: [Color(0xff07594d), Color(0xff0b8874)], begin: Alignment.topRight, end: Alignment.bottomLeft),
           borderRadius: BorderRadius.circular(22),
         ),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('لوحة التحكم', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(languageText('لوحة التحكم', 'Dashboard'), style: const TextStyle(color: Colors.white70, fontSize: 13)),
             SizedBox(height: 8),
-            Text('إدارة مواقع التغذية\nبكل سهولة', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
+            Text(languageText('إدارة مواقع التغذية\nبكل سهولة', 'Catering site management\nmade easy'), style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800)),
             SizedBox(height: 8),
-            Text('الوجبات • المخزون • الإيرادات • متابعة المواقع', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(languageText('الوجبات • المخزون • الإيرادات • متابعة المواقع', 'Meals • Inventory • Revenue • Site tracking'), style: TextStyle(color: Colors.white70, fontSize: 12)),
           ],
         ),
       ),
@@ -657,9 +709,9 @@ Widget dashboard() {
           title: Text(wasteAlerts.isEmpty?'متابعة الهالك والانحراف':'تنبيهات الهالك والانحراف (${wasteAlerts.length})',style:const TextStyle(fontWeight:FontWeight.bold)),
           subtitle: Text(wasteAlerts.isEmpty?'لا توجد تجاوزات بنسبة ${wasteAlertThreshold.toStringAsFixed(0)}% أو صرف خامات بلا وصفة هذا الشهر':'هالك زائد مرصود: ${cash(alertCost)} • ${wasteAlerts.where((a)=>wasteReviewFor(a,DateTime.now())['reviewed']!=true).length} تنبيه لم يُراجع • الشهر الحالي'),
           children: [
-            ListTile(leading:const Icon(Icons.tune),title:Text('تغيير نسبة التنبيه الحالية: ${wasteAlertThreshold.toStringAsFixed(0)}%'),subtitle:const Text('اختيار الحد الذي يبدأ عنده التنبيه'),trailing:const Icon(Icons.chevron_left),onTap:showWasteThresholdDialog),
-            ListTile(leading:const Icon(Icons.leaderboard),title:const Text('عرض ترتيب جميع الانحرافات'),subtitle:const Text('من الأعلى تكلفة إلى الأقل — الشهر الحالي'),onTap:()=>showRankedWasteDialog(wasteAlerts)),
-            if(wasteAlerts.isEmpty) ListTile(dense:true,title:Text('ممتاز! لا توجد تنبيهات حسب حد ${wasteAlertThreshold.toStringAsFixed(0)}% الحالي.')),
+            ListTile(leading:Icon(Icons.tune),title:Text(translateEnglish('تغيير نسبة التنبيه الحالية: ${wasteAlertThreshold.toStringAsFixed(0)}%')),subtitle:Text(translateEnglish('اختيار الحد الذي يبدأ عنده التنبيه')),trailing:Icon(Icons.chevron_left),onTap:showWasteThresholdDialog),
+            ListTile(leading:Icon(Icons.leaderboard),title:Text(translateEnglish('عرض ترتيب جميع الانحرافات')),subtitle:Text(translateEnglish('من الأعلى تكلفة إلى الأقل — الشهر الحالي')),onTap:()=>showRankedWasteDialog(wasteAlerts)),
+            if(wasteAlerts.isEmpty) ListTile(dense:true,title:Text(translateEnglish('ممتاز! لا توجد تنبيهات حسب حد ${wasteAlertThreshold.toStringAsFixed(0)}% الحالي.'))),
             ...wasteAlerts.take(8).map((a){
               final item=a['item'] as Item;
               final missing=a['noRecipe']==true;
@@ -671,8 +723,8 @@ Widget dashboard() {
                 trailing:Column(mainAxisSize:MainAxisSize.min,children:[Text(cash(a['cost'] as double),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.deepOrange)),Icon(wasteReviewFor(a,DateTime.now()).isNotEmpty&&wasteReviewFor(a,DateTime.now())['reviewed']==true?Icons.task_alt:Icons.rate_review_outlined,size:18,color:Colors.teal)]),onTap:()=>reviewWasteAlert(a,DateTime.now()),
               );
             }),
-            if(wasteAlerts.length>8) ListTile(title:Text('يوجد ${wasteAlerts.length-8} تنبيه إضافي في تقرير الانحراف')),
-            if(can('التقارير')) ListTile(leading:const Icon(Icons.analytics),title:const Text('فتح تقرير تحليل الانحراف'),onTap:(){setState(()=>tab=4);}),
+            if(wasteAlerts.length>8) ListTile(title:Text(translateEnglish('يوجد ${wasteAlerts.length-8} تنبيه إضافي في تقرير الانحراف'))),
+            if(can('التقارير')) ListTile(leading:Icon(Icons.analytics),title:Text(translateEnglish('فتح تقرير تحليل الانحراف')),onTap:(){setState(()=>tab=4);}),
           ],
         ),
       ),
@@ -682,11 +734,11 @@ Widget dashboard() {
         spacing: 8,
         runSpacing: 8,
         children: [
-          if (can('المواقع')) FilledButton.icon(onPressed: () => siteDialog(), icon: const Icon(Icons.add_business), label: const Text('إضافة موقع')),
-          if (can('الوجبات')) FilledButton.icon(onPressed: () => dayDialog(), icon: const Icon(Icons.restaurant), label: const Text('تسجيل وجبات')),
-          if (can('المخزون') && (current.admin || visibleWarehouses.any((w) => w.main))) FilledButton.icon(onPressed: () => itemDialog(), icon: const Icon(Icons.add_box), label: const Text('إضافة خامة')),
-          if (current.admin) OutlinedButton.icon(onPressed: exportBackup, icon: const Icon(Icons.backup), label: const Text('نسخة احتياطية')),
-          if (current.admin) OutlinedButton.icon(onPressed: restoreBackup, icon: const Icon(Icons.restore), label: const Text('استعادة نسخة')),
+          if (can('المواقع')) FilledButton.icon(onPressed: () => siteDialog(), icon: Icon(Icons.add_business), label: Text(translateEnglish('إضافة موقع'))),
+          if (can('الوجبات')) FilledButton.icon(onPressed: () => dayDialog(), icon: Icon(Icons.restaurant), label: Text(translateEnglish('تسجيل وجبات'))),
+          if (can('المخزون') && (current.admin || visibleWarehouses.any((w) => w.main))) FilledButton.icon(onPressed: () => itemDialog(), icon: Icon(Icons.add_box), label: Text(translateEnglish('إضافة خامة'))),
+          if (current.admin) OutlinedButton.icon(onPressed: exportBackup, icon: Icon(Icons.backup), label: Text(translateEnglish('نسخة احتياطية'))),
+          if (current.admin) OutlinedButton.icon(onPressed: restoreBackup, icon: Icon(Icons.restore), label: Text(translateEnglish('استعادة نسخة'))),
         ],
       ),
     ],
@@ -694,14 +746,14 @@ Widget dashboard() {
 }
 
 Widget warehousePage() => ListView(padding:const EdgeInsets.all(12),children:[
-Row(children:[const Expanded(child:Text('إدارة المخازن',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:warehouseDialog,icon:const Icon(Icons.add),label:const Text('مخزن جديد'))]),
-Wrap(spacing:6,children:[FilledButton.icon(onPressed:transferDialog,icon:const Icon(Icons.swap_horiz),label:const Text('تحويل مخزني')),OutlinedButton.icon(onPressed:stockCountDialog,icon:const Icon(Icons.fact_check),label:const Text('جرد وتسوية')),OutlinedButton.icon(onPressed:movementHistoryDialog,icon:const Icon(Icons.history),label:const Text('سجل الحركات'))]),
-const Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text('رصيد مستقل لكل مخزن'),subtitle:Text('الاستلام والصرف والتحويلات تُسجل على المخزن المحدد.'))),
+Row(children:[Expanded(child:Text('إدارة المخازن',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:warehouseDialog,icon:Icon(Icons.add),label:Text(translateEnglish('مخزن جديد')))]),
+Wrap(spacing:6,children:[FilledButton.icon(onPressed:transferDialog,icon:Icon(Icons.swap_horiz),label:Text(translateEnglish('تحويل مخزني'))),OutlinedButton.icon(onPressed:stockCountDialog,icon:Icon(Icons.fact_check),label:Text(translateEnglish('جرد وتسوية'))),OutlinedButton.icon(onPressed:movementHistoryDialog,icon:Icon(Icons.history),label:Text(translateEnglish('سجل الحركات')))]),
+Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text(translateEnglish('رصيد مستقل لكل مخزن')),subtitle:Text(translateEnglish('الاستلام والصرف والتحويلات تُسجل على المخزن المحدد.')))),
   ...visibleWarehouses.map((w)=>Card(child:ListTile(leading:Icon(w.main?Icons.warehouse:Icons.store,color:Colors.teal),title:Text(w.name),subtitle:Text((w.main?'مخزن رئيسي':'مخزن فرعي')+' • '+w.site+'\nقيمة الرصيد: '+cash(items.fold(0.0,(sum,it)=>sum+balance(it,w.name)*it.cost))),trailing:IconButton(icon:const Icon(Icons.edit),onPressed:()=>warehouseDialog(existing:w)))))
 ]);
 Widget sitePage()=>ListView(padding:const EdgeInsets.all(12),children:[
-Row(children:[const Expanded(child:Text('المواقع والعقود',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:()=>siteDialog(),icon:const Icon(Icons.add),label:const Text('إضافة موقع'))]),
-if(visibleSites.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),
+Row(children:[Expanded(child:Text('المواقع والعقود',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:()=>siteDialog(),icon:Icon(Icons.add),label:Text(translateEnglish('إضافة موقع')))]),
+if(visibleSites.isEmpty)Card(child:Padding(padding:EdgeInsets.all(20),child:Text(translateEnglish('لا توجد بيانات بعد')))),
 ...visibleSites.map((s)=>Card(child:ListTile(title:Text(s.name),subtitle:Text(s.client+'\nإفطار '+cash(s.b)+' / غداء '+cash(s.l)+' / عشاء '+cash(s.d)),trailing:IconButton(tooltip:'تعديل الموقع والعقد',icon:const Icon(Icons.edit),onPressed:()=>siteDialog(existing:s))))),
 ]);
 Widget dayPage()=>listPage('سجل الوجبات',visibleDays.reversed.map((x)=>Card(child:ListTile(title:Text(x.site),subtitle:Text(x.date.day.toString()+'/'+x.date.month.toString()+' | إفطار '+x.b.toString()+' غداء '+x.l.toString()+' عشاء '+x.d.toString()+' إضافي '+x.e.toString()),trailing:Row(mainAxisSize:MainAxisSize.min,children:[Text(cash(rev(x))),IconButton(tooltip:'تعديل',icon:const Icon(Icons.edit),onPressed:()=>dayDialog(existing:x)),IconButton(tooltip:'حذف',icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteDay(x))])))).toList(),dayDialog,'تسجيل وجبات');
@@ -711,20 +763,20 @@ Widget itemPage() => ListView(
     Row(children: [
       const Expanded(child: Text('المخزون والخامات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
       if (current.admin || visibleWarehouses.any((w) => w.main))
-        FilledButton(onPressed: itemDialog, child: const Text('إضافة خامة')),
+        FilledButton(onPressed: itemDialog, child: Text(translateEnglish('إضافة خامة'))),
     ]),
     if (visibleWarehouses.isNotEmpty)
       Wrap(spacing: 8, children: [
-        OutlinedButton.icon(onPressed: () => movementDialog('صرف للموقع'), icon: const Icon(Icons.output), label: const Text('صرف للاستهلاك بالموقع')),
-        OutlinedButton.icon(onPressed: importExcel, icon: const Icon(Icons.upload_file), label: const Text('استيراد بيانات المخزون')), 
-        OutlinedButton.icon(onPressed: exportImportTemplate, icon: const Icon(Icons.download), label: const Text('تحميل قالب الاستيراد')),
-        OutlinedButton.icon(onPressed: () => movementDialog('استلام'), icon: const Icon(Icons.add_box), label: const Text('استلام خامات')),
-        OutlinedButton.icon(onPressed: () => movementDialog('صرف'), icon: const Icon(Icons.remove_circle), label: const Text('صرف خامات')),
-        OutlinedButton.icon(onPressed: recipeDialog, icon: const Icon(Icons.menu_book), label: const Text('وصفات الوجبات')),
+        OutlinedButton.icon(onPressed: () => movementDialog('صرف للموقع'), icon: Icon(Icons.output), label: Text(translateEnglish('صرف للاستهلاك بالموقع'))),
+        OutlinedButton.icon(onPressed: importExcel, icon: Icon(Icons.upload_file), label: Text(translateEnglish('استيراد بيانات المخزون'))), 
+        OutlinedButton.icon(onPressed: exportImportTemplate, icon: Icon(Icons.download), label: Text(translateEnglish('تحميل قالب الاستيراد'))),
+        OutlinedButton.icon(onPressed: () => movementDialog('استلام'), icon: Icon(Icons.add_box), label: Text(translateEnglish('استلام خامات'))),
+        OutlinedButton.icon(onPressed: () => movementDialog('صرف'), icon: Icon(Icons.remove_circle), label: Text(translateEnglish('صرف خامات'))),
+        OutlinedButton.icon(onPressed: recipeDialog, icon: Icon(Icons.menu_book), label: Text(translateEnglish('وصفات الوجبات'))),
       ]),
-    const Card(child:ListTile(leading:Icon(Icons.info_outline,color:Colors.teal),title:Text('تكلفة الموقع من الصرف الفعلي'),subtitle:Text('التحويل بين المخازن لا يُحسب تكلفة. صرف الخامات للاستهلاك من مخزن الموقع يُضاف تلقائيًا لتكلفة الموقع، مع حفظ تكلفة الوحدة وقت الصرف.'))),
+    Card(child:ListTile(leading:Icon(Icons.info_outline,color:Colors.teal),title:Text(translateEnglish('تكلفة الموقع من الصرف الفعلي')),subtitle:Text(translateEnglish('التحويل بين المخازن لا يُحسب تكلفة. صرف الخامات للاستهلاك من مخزن الموقع يُضاف تلقائيًا لتكلفة الموقع، مع حفظ تكلفة الوحدة وقت الصرف.')))),
     if (visibleItems.isEmpty)
-      const Card(child: Padding(padding: EdgeInsets.all(18), child: Text('لا توجد خامات أو لا توجد مخازن مسموح بها'))),
+      Card(child: Padding(padding: EdgeInsets.all(18), child: Text(translateEnglish('لا توجد خامات أو لا توجد مخازن مسموح بها')))),
     ...visibleItems.map((x) => Card(
       child: ListTile(
         title: Text(x.n),
@@ -734,13 +786,13 @@ Widget itemPage() => ListView(
             Text(qtyText(visibleWarehouses.fold(0.0, (sum, w) => sum + balance(x, w.name))) + ' ' + x.unit),
             Text(cash(visibleWarehouses.fold(0.0, (sum, w) => sum + balance(x, w.name)) * x.cost), style: const TextStyle(fontSize: 11)),
           ]),
-          IconButton(tooltip: 'تعديل الخامة', icon: const Icon(Icons.edit), onPressed: () => itemDialog(existing: x)),
-          IconButton(tooltip: 'حذف الخامة', icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => deleteItem(x)),
+          IconButton(tooltip: translateEnglish('تعديل الخامة'), icon: Icon(Icons.edit), onPressed: () => itemDialog(existing: x)),
+          IconButton(tooltip: translateEnglish('حذف الخامة'), icon: Icon(Icons.delete_outline, color: Colors.red), onPressed: () => deleteItem(x)),
         ]),
       ),
     )),
     const Padding(padding: EdgeInsets.only(top: 12), child: Text('آخر حركات المخزون', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-    if (visibleMovements.isEmpty) const Text('لا توجد حركات مسجلة'),
+    if (visibleMovements.isEmpty) Text(translateEnglish('لا توجد حركات مسجلة')),
     ...visibleMovements.reversed.take(30).map((m) => Card(
       child: ListTile(
         leading: Icon(m.type == 'استلام' ? Icons.arrow_downward : Icons.arrow_upward, color: m.type == 'استلام' ? Colors.green : Colors.orange),
@@ -797,7 +849,7 @@ Future<void> exportReportExcel(List<Day> periodDays,DateTime from,DateTime to)as
   if(!mounted)return;
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(saved==null?'تم إلغاء حفظ التقرير':'تم تصدير التقرير بنجاح')));
  }catch(e){
-  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل تصدير التقرير: $e')));
+  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('فشل تصدير التقرير: $e'))));
  }
 }
 Widget reportPage(){
@@ -827,23 +879,23 @@ Widget reportPage(){
       const Text('حدد فترة التقرير',style:TextStyle(fontWeight:FontWeight.bold)),
       const SizedBox(height:8),
       Wrap(spacing:8,runSpacing:8,children:[
-        OutlinedButton.icon(onPressed:()=>pickReportDate(true),icon:const Icon(Icons.calendar_today),label:Text('من: ${reportDateText(from)}')),
-        OutlinedButton.icon(onPressed:()=>pickReportDate(false),icon:const Icon(Icons.event),label:Text('إلى: ${reportDateText(to)}')),
-        TextButton(onPressed:()=>setState((){reportFrom=DateTime(now.year,now.month,1);reportTo=DateTime(now.year,now.month,now.day);}),child:const Text('الشهر الحالي')),
-        TextButton(onPressed:()=>setState((){reportTo=DateTime(now.year,now.month,now.day);reportFrom=DateTime(now.year,now.month,now.day).subtract(const Duration(days:29));}),child:const Text('آخر 30 يوم')),
+        OutlinedButton.icon(onPressed:()=>pickReportDate(true),icon:Icon(Icons.calendar_today),label:Text(translateEnglish('من: ${reportDateText(from)}'))),
+        OutlinedButton.icon(onPressed:()=>pickReportDate(false),icon:Icon(Icons.event),label:Text(translateEnglish('إلى: ${reportDateText(to)}'))),
+        TextButton(onPressed:()=>setState((){reportFrom=DateTime(now.year,now.month,1);reportTo=DateTime(now.year,now.month,now.day);}),child:Text(translateEnglish('الشهر الحالي'))),
+        TextButton(onPressed:()=>setState((){reportTo=DateTime(now.year,now.month,now.day);reportFrom=DateTime(now.year,now.month,now.day).subtract(Duration(days:29));}),child:Text(translateEnglish('آخر 30 يوم'))),
       ]),
       Text('الفترة المختارة: ${reportDateText(from)} — ${reportDateText(to)}',style:const TextStyle(color:Colors.teal,fontWeight:FontWeight.w600)),
       const SizedBox(height:10),
-      FilledButton.icon(onPressed:()=>exportReportExcel(periodDays,from,to),icon:const Icon(Icons.file_download),label:const Text('تصدير التقرير إلى Excel'),),
+      FilledButton.icon(onPressed:()=>exportReportExcel(periodDays,from,to),icon:Icon(Icons.file_download),label:Text(translateEnglish('تصدير التقرير إلى Excel')),),
     ]))),
     Card(child:Padding(padding:const EdgeInsets.all(14),child:Wrap(spacing:8,runSpacing:8,children:[
-      Chip(label:Text('إفطار: $breakfast')),
-      Chip(label:Text('غداء: $lunch')),
-      Chip(label:Text('عشاء: $dinner')),
-      Chip(label:Text('إضافية: $extra')),
+      Chip(label:Text(translateEnglish('إفطار: $breakfast'))),
+      Chip(label:Text(translateEnglish('غداء: $lunch'))),
+      Chip(label:Text(translateEnglish('عشاء: $dinner'))),
+      Chip(label:Text(translateEnglish('إضافية: $extra'))),
     ]))),
     const Padding(padding:EdgeInsets.only(top:14,bottom:6),child:Text('مراقبة الاستهلاك والانحراف عن الوصفة',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
-    Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('مقارنة الصرف اليدوي للمواقع بالاستهلاك النظري المحسوب من الوجبات والوصفات. حركات استهلاك الوجبات التلقائية لا تدخل في الصرف الفعلي هنا لتجنب احتسابها مرتين.'),const SizedBox(height:8),Text('تكلفة الانحراف الصافية: '+cash(varianceSites.fold<double>(0,(sum,s)=>sum+(s['cost'] as double))),style:const TextStyle(fontWeight:FontWeight.bold))]))),
+    Card(child:Padding(padding:EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(translateEnglish('مقارنة الصرف اليدوي للمواقع بالاستهلاك النظري المحسوب من الوجبات والوصفات. حركات استهلاك الوجبات التلقائية لا تدخل في الصرف الفعلي هنا لتجنب احتسابها مرتين.')),SizedBox(height:8),Text('تكلفة الانحراف الصافية: '+cash(varianceSites.fold<double>(0,(sum,s)=>sum+(s['cost'] as double))),style:TextStyle(fontWeight:FontWeight.bold))]))),
     ...varianceSites.map((s) {
       final rows = s['rows'] as List<Map<String, dynamic>>;
       return Card(
@@ -852,7 +904,7 @@ Widget reportPage(){
           title: Text(s['site'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
           subtitle: Text('نظري ${qtyText(s['expected'] as double)} • فعلي ${qtyText(s['actual'] as double)} • تكلفة الانحراف ${cash(s['cost'] as double)}'),
           children: rows.isEmpty
-              ? [const ListTile(title: Text('لا توجد وصفات أو صرف يدوي للمقارنة'))]
+              ? [ListTile(title: Text(translateEnglish('لا توجد وصفات أو صرف يدوي للمقارنة')))]
               : rows.map((r) {
                   final item = r['item'] as Item;
                   final e = r['expected'] as double;
@@ -874,9 +926,9 @@ Widget reportPage(){
     metric('إيراد الوجبات المسعّرة',cash(revenue),Icons.payments),
     metric('تكلفة الخامات المصروفة فعليًا',cash(rawCost),Icons.calculate),
     metric('متوسط تكلفة الخامات لكل وجبة',cash(averageMaterialCostPerMeal),Icons.analytics),
-    if(siteCostRanking.isNotEmpty) Card(child:ListTile(leading:const Icon(Icons.leaderboard,color:Colors.deepOrange),title:const Text('أعلى موقع في تكلفة الخامات'),subtitle:Text(siteCostRanking.first.key),trailing:Text(cash(siteCostRanking.first.value),style:const TextStyle(fontWeight:FontWeight.bold)))),
+    if(siteCostRanking.isNotEmpty) Card(child:ListTile(leading:Icon(Icons.leaderboard,color:Colors.deepOrange),title:Text(translateEnglish('أعلى موقع في تكلفة الخامات')),subtitle:Text(siteCostRanking.first.key),trailing:Text(cash(siteCostRanking.first.value),style:TextStyle(fontWeight:FontWeight.bold)))),
     metric('الفائض بعد تكلفة الخامات',cash(revenue-rawCost),Icons.trending_up),metric('مصروفات المواقع خلال الفترة',cash(expensesTotal),Icons.receipt_long),metric('صافي الربح بعد المصروفات',cash(revenue-rawCost-expensesTotal),Icons.account_balance),
-    Card(child:ListTile(leading:const Icon(Icons.info_outline),title:const Text('ملاحظة محاسبية'),subtitle:Text('الوجبات الإضافية: $extra وجبة. لا تدخل في الإيراد أو تكلفة الوصفات حاليًا لعدم وجود سعر تعاقدي ووصفة محددة لها. الفائض المعروض لا يشمل العمالة أو النقل أو المصروفات التشغيلية.'))),
+    Card(child:ListTile(leading:Icon(Icons.info_outline),title:Text(translateEnglish('ملاحظة محاسبية')),subtitle:Text(translateEnglish('الوجبات الإضافية: $extra وجبة. لا تدخل في الإيراد أو تكلفة الوصفات حاليًا لعدم وجود سعر تعاقدي ووصفة محددة لها. الفائض المعروض لا يشمل العمالة أو النقل أو المصروفات التشغيلية.')))),
     const Padding(padding:EdgeInsets.only(top:12,bottom:6),child:Text('تفصيل الأداء حسب الموقع',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
   ];
   for(final site in visibleSites){
@@ -891,26 +943,26 @@ Widget reportPage(){
     rows.add(Card(child:ExpansionTile(
       leading:const Icon(Icons.apartment,color:Colors.teal),
       title:Text(site.name,style:const TextStyle(fontWeight:FontWeight.bold)),
-      subtitle:Text('$count وجبة • إيراد ${cash(amount)}'),
+      subtitle:Text(translateEnglish('$count وجبة • إيراد ${cash(amount)}')),
       children:[
-        ListTile(dense:true,title:const Text('إفطار'),trailing:Text('$b وجبة × ${cash(site.b)} = ${cash(b*site.b)}')),
-        ListTile(dense:true,title:const Text('غداء'),trailing:Text('$l وجبة × ${cash(site.l)} = ${cash(l*site.l)}')),
-        ListTile(dense:true,title:const Text('عشاء'),trailing:Text('$d وجبة × ${cash(site.d)} = ${cash(d*site.d)}')),
-        ListTile(dense:true,title:const Text('وجبات إضافية'),trailing:Text('$e وجبة • غير مسعّرة')),
+        ListTile(dense:true,title:Text(translateEnglish('إفطار')),trailing:Text(translateEnglish('$b وجبة × ${cash(site.b)} = ${cash(b*site.b)}'))),
+        ListTile(dense:true,title:Text(translateEnglish('غداء')),trailing:Text(translateEnglish('$l وجبة × ${cash(site.l)} = ${cash(l*site.l)}'))),
+        ListTile(dense:true,title:Text(translateEnglish('عشاء')),trailing:Text(translateEnglish('$d وجبة × ${cash(site.d)} = ${cash(d*site.d)}'))),
+        ListTile(dense:true,title:Text(translateEnglish('وجبات إضافية')),trailing:Text(translateEnglish('$e وجبة • غير مسعّرة'))),
         const Divider(),
-        ListTile(dense:true,title:const Text('تكلفة الخامات المصروفة فعليًا'),trailing:Text(cash(cost))),
+        ListTile(dense:true,title:Text(translateEnglish('تكلفة الخامات المصروفة فعليًا')),trailing:Text(cash(cost))),
         if(sortedItemCosts.isNotEmpty)const ListTile(dense:true,title:Text('تفصيل التكلفة حسب الخامة',style:TextStyle(fontWeight:FontWeight.bold))),
-        ...sortedItemCosts.map((entry)=>ListTile(dense:true,leading:const Icon(Icons.inventory_2_outlined),title:Text(entry.key),subtitle:Text('إجمالي تكلفة الصنف خلال الفترة'),trailing:Text(cash(entry.value)))),
+        ...sortedItemCosts.map((entry)=>ListTile(dense:true,leading:Icon(Icons.inventory_2_outlined),title:Text(entry.key),subtitle:Text(translateEnglish('إجمالي تكلفة الصنف خلال الفترة')),trailing:Text(cash(entry.value)))),
         const Divider(),
         ...siteCostMovements(site.name,from,to).map((m)=>ListTile(dense:true,leading:const Icon(Icons.receipt_long_outlined),title:Text(m.item+' • '+qtyText(m.qty)),subtitle:Text(m.date.toString()+' | '+m.warehouse+' | '+m.type),trailing:Text(cash(movementCost(m))))),
-        ListTile(dense:true,title:const Text('الفائض بعد تكلفة الخامات'),trailing:Text(cash(amount-cost),style:const TextStyle(fontWeight:FontWeight.bold,color:Colors.teal))),
+        ListTile(dense:true,title:Text(translateEnglish('الفائض بعد تكلفة الخامات')),trailing:Text(cash(amount-cost),style:TextStyle(fontWeight:FontWeight.bold,color:Colors.teal))),
       ],
     )));
   }
-  if(periodDays.isEmpty)rows.add(const Card(child:Padding(padding:EdgeInsets.all(16),child:Text('لا توجد وجبات مسجلة خلال الفترة المختارة للمواقع المسموح بها.'))));
+  if(periodDays.isEmpty)rows.add(Card(child:Padding(padding:EdgeInsets.all(16),child:Text(translateEnglish('لا توجد وجبات مسجلة خلال الفترة المختارة للمواقع المسموح بها.')))));
   return ListView(padding:const EdgeInsets.all(14),children:rows);
 }
-Widget listPage(String title,List<Widget> rows,VoidCallback add,String label)=>ListView(padding:const EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text(title,style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton(onPressed:add,child:Text(label))]),if(rows.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('لا توجد بيانات بعد'))),...rows]);
+Widget listPage(String title,List<Widget> rows,VoidCallback add,String label)=>ListView(padding:EdgeInsets.all(12),children:[Row(children:[Expanded(child:Text(title,style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),FilledButton(onPressed:add,child:Text(label))]),if(rows.isEmpty)Card(child:Padding(padding:EdgeInsets.all(20),child:Text(translateEnglish('لا توجد بيانات بعد')))),...rows]);
 Future<void> warehouseDialog({Warehouse? existing}) async {
   final name = TextEditingController(text: existing?.name ?? '');
   final manager = TextEditingController(text: existing?.manager ?? '');
@@ -924,32 +976,32 @@ Future<void> warehouseDialog({Warehouse? existing}) async {
         title: Text(existing == null ? 'إضافة مخزن' : 'تعديل المخزن'),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            field(name, 'اسم المخزن'),
+            field(name, translateEnglish('اسم المخزن')),
             DropdownButtonFormField<String>(
               value: selectedSite,
-              decoration: const InputDecoration(labelText: 'الموقع / نطاق المخزن'),
+              decoration: InputDecoration(labelText: translateEnglish('الموقع / نطاق المخزن')),
               items: siteOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (v) { if (v != null) setDialogState(() => selectedSite = v); },
             ),
-            field(manager, 'المسؤول'),
+            field(manager, translateEnglish('المسؤول')),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('مخزن رئيسي'),
+              title: Text(translateEnglish('مخزن رئيسي')),
               value: isMain,
               onChanged: (v) => setDialogState(() => isMain = v ?? false),
             ),
           ]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(translateEnglish('إلغاء'))),
           FilledButton(
             onPressed: () {
               if (name.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اكتب اسم المخزن')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translateEnglish('اكتب اسم المخزن'))));
                 return;
               }
               if (isMain && warehouses.any((w) => w.main && w != existing)) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يوجد مخزن رئيسي بالفعل')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translateEnglish('يوجد مخزن رئيسي بالفعل'))));
                 return;
               }
               final updated = Warehouse(name.text.trim(), selectedSite, manager.text.trim(), isMain);
@@ -966,21 +1018,21 @@ Future<void> warehouseDialog({Warehouse? existing}) async {
               setState(() {});
               Navigator.pop(dialogContext);
             },
-            child: const Text('حفظ'),
+            child: Text(translateEnglish('حفظ')),
           ),
         ],
       ),
     ),
   );
 }
-Future<void> siteDialog({Site? existing})async{final n=TextEditingController(text:existing?.name??''),c=TextEditingController(text:existing?.client??''),b=TextEditingController(text:(existing?.b??0).toString()),l=TextEditingController(text:(existing?.l??0).toString()),d=TextEditingController(text:(existing?.d??0).toString());await showDialog(context:context,builder:(x)=>AlertDialog(title:Text(existing==null?'إضافة موقع / عقد':'تعديل الموقع / العقد'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم الموقع'),field(c,'العميل'),field(b,'سعر الإفطار',numeric:true),field(l,'سعر الغداء',numeric:true),field(d,'سعر العشاء',numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final name=n.text.trim();final vb=double.tryParse(b.text.trim().replaceAll(',','.')),vl=double.tryParse(l.text.trim().replaceAll(',','.')),vd=double.tryParse(d.text.trim().replaceAll(',','.'));if(name.isEmpty||vb==null||vl==null||vd==null||vb<0||vl<0||vd<0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل اسم الموقع وأسعارًا صحيحة غير سالبة')));return;}if(sites.any((s)=>s.name==name&&s!=existing)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اسم الموقع موجود بالفعل')));return;}if(existing==null){sites.add(Site(name,c.text.trim(),vb,vl,vd));addAudit('إضافة','موقع',name+' • '+c.text.trim());}else{final oldName=existing.name;if(oldName!=name){for(final day in days){if(day.site==oldName)day.site=name;}for(final wh in warehouses){if(wh.site==oldName)wh.site=name;}for(final expense in expenses){if(expense.site==oldName)expense.site=name;}for(final user in users){if(user.sites.remove(oldName))user.sites.add(name);}}existing.name=name;existing.client=c.text.trim();existing.b=vb;existing.l=vl;existing.d=vd;addAudit('تعديل','موقع / عقد',oldName+' ← '+name+' • أسعار الوجبات تم تحديثها');}save();setState((){});Navigator.pop(x);},child:const Text('حفظ'))]));}
+Future<void> siteDialog({Site? existing})async{final n=TextEditingController(text:existing?.name??''),c=TextEditingController(text:existing?.client??''),b=TextEditingController(text:(existing?.b??0).toString()),l=TextEditingController(text:(existing?.l??0).toString()),d=TextEditingController(text:(existing?.d??0).toString());await showDialog(context:context,builder:(x)=>AlertDialog(title:Text(existing==null?'إضافة موقع / عقد':'تعديل الموقع / العقد'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n, translateEnglish('اسم الموقع')),field(c, translateEnglish('العميل')),field(b, translateEnglish('سعر الإفطار'),numeric:true),field(l, translateEnglish('سعر الغداء'),numeric:true),field(d, translateEnglish('سعر العشاء'),numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:(){final name=n.text.trim();final vb=double.tryParse(b.text.trim().replaceAll(',','.')),vl=double.tryParse(l.text.trim().replaceAll(',','.')),vd=double.tryParse(d.text.trim().replaceAll(',','.'));if(name.isEmpty||vb==null||vl==null||vd==null||vb<0||vl<0||vd<0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أدخل اسم الموقع وأسعارًا صحيحة غير سالبة'))));return;}if(sites.any((s)=>s.name==name&&s!=existing)){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('اسم الموقع موجود بالفعل'))));return;}if(existing==null){sites.add(Site(name,c.text.trim(),vb,vl,vd));addAudit('إضافة','موقع',name+' • '+c.text.trim());}else{final oldName=existing.name;if(oldName!=name){for(final day in days){if(day.site==oldName)day.site=name;}for(final wh in warehouses){if(wh.site==oldName)wh.site=name;}for(final expense in expenses){if(expense.site==oldName)expense.site=name;}for(final user in users){if(user.sites.remove(oldName))user.sites.add(name);}}existing.name=name;existing.client=c.text.trim();existing.b=vb;existing.l=vl;existing.d=vd;addAudit('تعديل','موقع / عقد',oldName+' ← '+name+' • أسعار الوجبات تم تحديثها');}save();setState((){});Navigator.pop(x);},child:Text(translateEnglish('حفظ')))]));}
 Future<void> deleteDay(Day record)async{
   final linked=movements.where((m)=>m.ref.isNotEmpty&&m.ref==record.id).toList();
   if(record.id.isEmpty&&movements.any((m)=>m.type=='استهلاك وجبات')){
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لا يمكن حذف سجل قديم غير مرتبط بحركات الاستهلاك؛ حفاظاً على دقة أرصدة المخازن.')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('لا يمكن حذف سجل قديم غير مرتبط بحركات الاستهلاك؛ حفاظاً على دقة أرصدة المخازن.'))));
     return;
   }
-  final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف سجل الوجبات'),content:Text('هل تريد حذف تسجيل وجبات موقع ${record.site}؟ سيتم إرجاع الخامات التي استهلكها هذا التسجيل إلى المخزن.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));
+  final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('حذف سجل الوجبات')),content:Text(translateEnglish('هل تريد حذف تسجيل وجبات موقع ${record.site}؟ سيتم إرجاع الخامات التي استهلكها هذا التسجيل إلى المخزن.')),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:Text(translateEnglish('حذف')))]));
   if(ok!=true)return;
   for(final m in linked){final item=items.where((i)=>i.n==m.item);if(item.isNotEmpty)setBalance(item.first,m.warehouse,balance(item.first,m.warehouse)+m.qty);}
   movements.removeWhere((m)=>m.ref.isNotEmpty&&m.ref==record.id);
@@ -989,9 +1041,9 @@ Future<void> deleteDay(Day record)async{
   if(mounted)setState((){});
 }
 Future<void> dayDialog({Day? existing})async{
-  if(visibleSites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سجل موقع وعقد أولاً')));return;}
+  if(visibleSites.isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('سجل موقع وعقد أولاً'))));return;}
   if(existing!=null&&existing.id.isEmpty&&movements.any((m)=>m.type=='استهلاك وجبات')){
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('هذا سجل قديم غير مرتبط بحركات الاستهلاك؛ لا يمكن تعديله بأمان. السجلات الجديدة تدعم التعديل والحذف.')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('هذا سجل قديم غير مرتبط بحركات الاستهلاك؛ لا يمكن تعديله بأمان. السجلات الجديدة تدعم التعديل والحذف.'))));
     return;
   }
   Site chosen=visibleSites.firstWhere((s)=>s.name==existing?.site,orElse:()=>visibleSites.first);
@@ -999,13 +1051,13 @@ Future<void> dayDialog({Day? existing})async{
   final linked=existing==null? <Movement>[]:movements.where((m)=>m.ref.isNotEmpty&&m.ref==existing.id).toList();
   await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:Text(existing==null?'تسجيل الوجبات اليومية':'تعديل تسجيل الوجبات'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
     DropdownButtonFormField<Site>(value:chosen,items:visibleSites.map((site)=>DropdownMenuItem(value:site,child:Text(site.name))).toList(),onChanged:(v){if(v!=null)set(()=>chosen=v);}),
-    field(b,'عدد الإفطار',numeric:true,decimal:false),field(l,'عدد الغداء',numeric:true,decimal:false),field(d,'عدد العشاء',numeric:true,decimal:false),field(e,'وجبات إضافية غير مسعرة',numeric:true,decimal:false),
+    field(b, translateEnglish('عدد الإفطار'),numeric:true,decimal:false),field(l, translateEnglish('عدد الغداء'),numeric:true,decimal:false),field(d, translateEnglish('عدد العشاء'),numeric:true,decimal:false),field(e, translateEnglish('وجبات إضافية غير مسعرة'),numeric:true,decimal:false),
     Text('أسعار العقد: '+cash(chosen.b)+' / '+cash(chosen.l)+' / '+cash(chosen.d))
   ])),actions:[
-    TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),
+    TextButton(onPressed:()=>Navigator.pop(x),child:Text(translateEnglish('إلغاء'))),
     FilledButton(onPressed:(){
       final nb=int.tryParse(b.text)??-1,nl=int.tryParse(l.text)??-1,nd=int.tryParse(d.text)??-1,ne=int.tryParse(e.text)??-1;
-      if([nb,nl,nd,ne].any((v)=>v<0)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل أعداداً صحيحة غير سالبة')));return;}
+      if([nb,nl,nd,ne].any((v)=>v<0)){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أدخل أعداداً صحيحة غير سالبة'))));return;}
       final need=<Item,double>{};
       for(final recipe in recipes){
         final count=recipe.meal=='إفطار'?nb:recipe.meal=='غداء'?nl:recipe.meal=='عشاء'?nd:0;
@@ -1032,52 +1084,73 @@ Future<void> dayDialog({Day? existing})async{
   ])));
 }
 Future<void> movementDialog(String type) async {
-if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامة أولاً')));return;}
+if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أضف خامة أولاً'))));return;}
 Item selected=items.first;final movementWarehouses=type=='صرف للموقع'?visibleWarehouses.where((w)=>!w.main&&visibleSites.any((s)=>s.name==w.site)).toList():visibleWarehouses;if(movementWarehouses.isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(type=='صرف للموقع'?'لا يوجد مخزن موقع مسموح بالصرف منه':'لا يوجد مخزن مسموح لك بالتعامل معه')));return;}Warehouse wh=movementWarehouses.first;final qty=TextEditingController(),note=TextEditingController();
-await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:Text('$type خامات'),content:Column(mainAxisSize:MainAxisSize.min,children:[
+await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:Text(translateEnglish('$type خامات')),content:Column(mainAxisSize:MainAxisSize.min,children:[
 DropdownButtonFormField<Warehouse>(value:wh,items:movementWarehouses.map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null)upd(()=>wh=v);}),
 DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)upd(()=>selected=v);}),
-field(qty,'الكمية بوحدة '+selected.unit,numeric:true),field(note,'ملاحظات'),Text('الرصيد الحالي: '+qtyText(balance(selected,wh.name))+' '+selected.unit)
-]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
-final amount=double.tryParse(qty.text.trim().replaceAll(',','.'));if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أدخل كمية صحيحة')));return;}
-final current=balance(selected,wh.name);if((type=='صرف'||type=='صرف للموقع')&&amount>current){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('رصيد غير كافٍ بالمخزن')));return;}
+field(qty, translateEnglish('الكمية بوحدة ')+selected.unit,numeric:true),field(note, translateEnglish('ملاحظات')),Text('الرصيد الحالي: '+qtyText(balance(selected,wh.name))+' '+selected.unit)
+]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:(){
+final amount=double.tryParse(qty.text.trim().replaceAll(',','.'));if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أدخل كمية صحيحة'))));return;}
+final current=balance(selected,wh.name);if((type=='صرف'||type=='صرف للموقع')&&amount>current){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('رصيد غير كافٍ بالمخزن'))));return;}
 setBalance(selected,wh.name,current+(type=='استلام'?amount:-amount));final movementNote=type=='صرف للموقع'?'موقع: '+wh.site+(note.text.trim().isEmpty?'':' • '+note.text.trim()):note.text.trim();movements.add(Movement(selected.n,type,amount,movementNote,DateTime.now(),wh.name,'',selected.cost));addAudit(type,'حركة مخزون',selected.n+' • '+qtyText(amount)+' '+selected.unit+' • '+wh.name+' • '+movementNote);save();setState(()=>{});Navigator.pop(dc);
-},child:const Text('تأكيد'))])));
+},child:Text(translateEnglish('تأكيد')))])));
 }
 Future<void> transferDialog()async{
 final available=visibleWarehouses;
-if(available.length<2){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لازم يكون عندك مخزنان على الأقل لإجراء التحويل')));return;}
-if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامة أولاً')));return;}
+if(available.length<2){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('لازم يكون عندك مخزنان على الأقل لإجراء التحويل'))));return;}
+if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أضف خامة أولاً'))));return;}
 Warehouse source=available.firstWhere((w)=>w.main,orElse:()=>available.first);
 Warehouse target=available.firstWhere((w)=>w!=source);
 Item selected=items.first;final q=TextEditingController(),note=TextEditingController();
-await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:const Text('إذن تحويل مخزني'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+await showDialog(context:context,builder:(dc)=>StatefulBuilder(builder:(dc,upd)=>AlertDialog(title:Text(translateEnglish('إذن تحويل مخزني')),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
 DropdownButtonFormField<Warehouse>(value:source,decoration:const InputDecoration(labelText:'من المخزن'),items:available.map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null){upd(()=>source=v);if(target==source)upd(()=>target=available.firstWhere((w)=>w!=source));}}),
 DropdownButtonFormField<Warehouse>(value:target,decoration:const InputDecoration(labelText:'إلى المخزن'),items:available.where((w)=>w!=source).map((w)=>DropdownMenuItem(value:w,child:Text(w.name))).toList(),onChanged:(v){if(v!=null)upd(()=>target=v);}),
 DropdownButtonFormField<Item>(value:selected,decoration:const InputDecoration(labelText:'الخامة'),items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)upd(()=>selected=v);}),
-Text('رصيد المصدر: '+qtyText(balance(selected,source.name))+' '+selected.unit),Text('رصيد الوجهة: '+qtyText(balance(selected,target.name))+' '+selected.unit),field(q,'الكمية للتحويل',numeric:true),field(note,'ملاحظات / رقم الإذن')
-])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:const Text('إلغاء')),FilledButton(onPressed:(){
+Text('رصيد المصدر: '+qtyText(balance(selected,source.name))+' '+selected.unit),Text('رصيد الوجهة: '+qtyText(balance(selected,target.name))+' '+selected.unit),field(q, translateEnglish('الكمية للتحويل'),numeric:true),field(note, translateEnglish('ملاحظات / رقم الإذن'))
+])),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:(){
 final amount=double.tryParse(q.text.trim().replaceAll(',','.'));
-if(source==target){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اختار مخزنين مختلفين')));return;}
-if(amount==null||amount<=0||amount>balance(selected,source.name)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الكمية غير صحيحة أو رصيد المصدر غير كافٍ')));return;}
+if(source==target){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('اختار مخزنين مختلفين'))));return;}
+if(amount==null||amount<=0||amount>balance(selected,source.name)){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('الكمية غير صحيحة أو رصيد المصدر غير كافٍ'))));return;}
 final stamp=DateTime.now();final transferNo='TR-${stamp.year}${stamp.month.toString().padLeft(2,'0')}${stamp.day.toString().padLeft(2,'0')}-${stamp.hour.toString().padLeft(2,'0')}${stamp.minute.toString().padLeft(2,'0')}${stamp.second.toString().padLeft(2,'0')}';
 final memo=(note.text.trim().isEmpty?'':note.text.trim()+' | ')+'رقم التحويل: '+transferNo;
 setBalance(selected,source.name,balance(selected,source.name)-amount);setBalance(selected,target.name,balance(selected,target.name)+amount);
 movements.add(Movement(selected.n,'تحويل صادر',amount,'إلى '+target.name+' | '+memo,stamp,source.name,'',selected.cost));movements.add(Movement(selected.n,'تحويل وارد',amount,'من '+source.name+' | '+memo,stamp,target.name,'',selected.cost));
 addAudit('تحويل','مخزون',selected.n+' • '+qtyText(amount)+' '+selected.unit+' • '+source.name+' ← '+target.name+' • '+transferNo);save();setState(()=>{});Navigator.pop(dc);
-},child:const Text('اعتماد التحويل'))])));
+},child:Text(translateEnglish('اعتماد التحويل')))])));
+}
+Future<void> editMovement(Movement m)async{
+  if(!canEditManualStockMovement(m))return;
+  if(!current.admin&&!current.warehouses.contains(m.warehouse))return;
+  final qty=TextEditingController(text:qtyText(m.qty));
+  final note=TextEditingController(text:m.note);
+  await showDialog<void>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('تعديل حركة المخزون')),content:Column(mainAxisSize:MainAxisSize.min,children:[Text(translateEnglish(m.type)+' • '+m.item+' • '+m.warehouse),field(qty,translateEnglish('الكمية'),numeric:true),field(note,translateEnglish('ملاحظات'))]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()async{final amount=double.tryParse(qty.text.trim().replaceAll(',','.'));if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أدخل كمية صحيحة'))));return;}final old=m.qty;final currentBalance=balance(items.firstWhere((i)=>i.n==m.item),m.warehouse);final next=m.type=='استلام'?currentBalance+(amount-old):currentBalance+(old-amount);if(next< -0.000001){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('الرصيد غير كافٍ لتعديل الحركة'))));return;}final item=items.firstWhere((i)=>i.n==m.item);setBalance(item,m.warehouse,next<0?0:next);m.qty=amount;m.note=note.text.trim();addAudit('تعديل','حركة مخزون',m.item+' • '+m.type+' • '+qtyText(old)+' → '+qtyText(amount)+' • '+m.warehouse);await save();if(mounted)setState((){});if(dc.mounted)Navigator.pop(dc);},child:Text(translateEnglish('حفظ التعديلات')))]));
+}
+Future<void> deleteMovement(Movement m)async{
+  if(!canEditManualStockMovement(m))return;
+  if(!current.admin&&!current.warehouses.contains(m.warehouse))return;
+  final confirm=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('حذف حركة المخزون')),content:Text(translateEnglish('سيتم عكس أثر الحركة على الرصيد. هل تريد الحذف؟')+'\n'+m.item+' • '+m.type+' • '+qtyText(m.qty)+' • '+m.warehouse),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:Text(translateEnglish('حذف')))]));
+  if(confirm!=true)return;
+  final item=items.firstWhere((i)=>i.n==m.item);
+  final currentBalance=balance(item,m.warehouse);
+  final next=m.type=='استلام'?currentBalance-m.qty:currentBalance+m.qty;
+  if(next< -0.000001){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('لا يمكن حذف الاستلام لأن الرصيد الحالي لا يسمح بعكس الحركة'))));return;}
+  setBalance(item,m.warehouse,next<0?0:next);
+  movements.remove(m);
+  addAudit('حذف','حركة مخزون',m.item+' • '+m.type+' • '+qtyText(m.qty)+' • '+m.warehouse);
+  await save();if(mounted)setState((){});
 }
 Future<void> movementHistoryDialog() async {
   final list = visibleMovements.reversed.toList();
   await showDialog(
     context: context,
     builder: (dc) => AlertDialog(
-      title: const Text('سجل حركات المخزون'),
+      title: Text(translateEnglish('سجل حركات المخزون')),
       content: SizedBox(
         width: 450,
         height: 450,
         child: list.isEmpty
-          ? const Center(child: Text('لا توجد حركات'))
+          ? Center(child: Text(translateEnglish('لا توجد حركات')))
           : ListView(
               children: list.map((m) => ListTile(
                 leading: Icon(
@@ -1087,19 +1160,20 @@ Future<void> movementHistoryDialog() async {
                       ? Icons.arrow_upward
                       : Icons.swap_horiz,
                 ),
-                title: Text('${m.item} • ${m.type} • ${qtyText(m.qty)}'),
+                title: Text(translateEnglish('${m.item} • ${m.type} • ${qtyText(m.qty)}')),
                 subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\n'+m.note}'),
+                trailing: canEditManualStockMovement(m) ? Wrap(spacing:0,children:[IconButton(tooltip:translateEnglish('تعديل'),icon:const Icon(Icons.edit_outlined),onPressed:()=>editMovement(m)),IconButton(tooltip:translateEnglish('حذف'),icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteMovement(m))]) : null,
               )).toList(),
             ),
       ),
       actions: [
-        TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) showDialog<void>(context: context, builder: (x) => AlertDialog(title: const Text('فحص الكلاود'), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: const Text('تمام'))])); }, child: const Text('فحص الاتصال')),
-        TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إغلاق')),
+        TextButton(onPressed: () async { Navigator.pop(dc); final result = await CloudConnection.checkDatabase(); if (mounted) showDialog<void>(context: context, builder: (x) => AlertDialog(title: Text(translateEnglish('فحص الكلاود')), content: Text(result), actions: [TextButton(onPressed: () => Navigator.pop(x), child: Text(translateEnglish('تمام')))])); }, child: Text(translateEnglish('فحص الاتصال'))),
+        TextButton(onPressed: () => Navigator.pop(dc), child: Text(translateEnglish('إغلاق'))),
       ],
     ),
   );
 }
-Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('أضف خامات أولاً')));return;}Item selected=items.first;String meal='إفطار';final q=TextEditingController(text:'1');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('تحديد استهلاك الخامة لكل وجبة'),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)set(()=>selected=v);}),DropdownButtonFormField<String>(value:meal,items:['إفطار','غداء','عشاء'].map((m)=>DropdownMenuItem(value:m,child:Text(m))).toList(),onChanged:(v){if(v!=null)set(()=>meal=v);}),field(q,'الكمية لكل وجبة بوحدة المخزون',numeric:true),const Text('عند تسجيل الوجبات سيتم خصم الاستهلاك تلقائيًا.')]),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){final qty=double.tryParse(q.text.trim().replaceAll(',', '.'));if(qty==null||qty<=0)return;final old=recipes.where((r)=>r.item==selected.n&&r.meal==meal);if(old.isNotEmpty){old.first.qty=qty;}else{recipes.add(Recipe(selected.n,meal,qty));}save();setState(()=>{});Navigator.pop(x);},child:const Text('حفظ الوصفة'))])));}
+Future<void> recipeDialog()async{if(items.isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أضف خامات أولاً'))));return;}Item selected=items.first;String meal='إفطار';final q=TextEditingController(text:'1');await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:Text(translateEnglish('تحديد استهلاك الخامة لكل وجبة')),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<Item>(value:selected,items:items.map((i)=>DropdownMenuItem(value:i,child:Text(i.n))).toList(),onChanged:(v){if(v!=null)set(()=>selected=v);}),DropdownButtonFormField<String>(value:meal,items:['إفطار','غداء','عشاء'].map((m)=>DropdownMenuItem(value:m,child:Text(m))).toList(),onChanged:(v){if(v!=null)set(()=>meal=v);}),field(q, translateEnglish('الكمية لكل وجبة بوحدة المخزون'),numeric:true),Text(translateEnglish('عند تسجيل الوجبات سيتم خصم الاستهلاك تلقائيًا.'))]),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:(){final qty=double.tryParse(q.text.trim().replaceAll(',', '.'));if(qty==null||qty<=0)return;final old=recipes.where((r)=>r.item==selected.n&&r.meal==meal);if(old.isNotEmpty){old.first.qty=qty;}else{recipes.add(Recipe(selected.n,meal,qty));}save();setState(()=>{});Navigator.pop(x);},child:Text(translateEnglish('حفظ الوصفة')))])));}
 Future<void> exportImportTemplate() async {
  try {
   final book=Excel.createExcel();
@@ -1119,14 +1193,14 @@ Future<void> exportImportTemplate() async {
   final name='StockPro_Import_Template.xlsx';
   final saved=await FilePicker.platform.saveFile(fileName:name,bytes:Uint8List.fromList(encoded),type:FileType.custom,allowedExtensions:['xlsx']);
   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(saved==null?'تم إلغاء حفظ القالب':'تم حفظ قالب استيراد المخزون بنجاح')));
- }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل إنشاء القالب: $e')));}
+ }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('فشل إنشاء القالب: $e'))));}
 }
 Future<void> importExcel() async {
  try {
   final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['xlsx'],withData:true);
   if(picked==null)return;
   final bytes=picked.files.single.bytes;
-  if(bytes==null||bytes.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أستطع قراءة الملف. احفظه بصيغة Excel .xlsx وحاول مرة أخرى.')));return;}
+  if(bytes==null||bytes.isEmpty){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('لم أستطع قراءة الملف. احفظه بصيغة Excel .xlsx وحاول مرة أخرى.'))));return;}
   // Normalize OpenXML workbook relationship targets before decoding.
   // Some valid XLSX writers (including OpenPyXL) use absolute /xl/... targets.
   // excel 4.0.6 prefixes every target with "xl/" and crashes on those paths.
@@ -1197,7 +1271,7 @@ Future<void> importExcel() async {
    if(dataRows!=null)break;
   }
   if(dataRows==null){
-   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro وتأكد من وجود أعمدة كود الصنف واسم الصنف ووحدة القياس والمخزن.')));
+   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('لم أجد ورقة بيانات بعناوين صحيحة. استخدم قالب StockPro وتأكد من وجود أعمدة كود الصنف واسم الصنف ووحدة القياس والمخزن.'))));
    return;
   }
   String number(String value){
@@ -1249,16 +1323,16 @@ Future<void> importExcel() async {
   if(duplicateCodes.isNotEmpty)details.add('أكواد مكررة: '+duplicateCodes.take(3).join('، '));
   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:Text(details.join(' | '))));
  }catch(e){
-  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:Text('فشل الاستيراد: $e')));
+  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:Duration(seconds:8),content:Text(translateEnglish('فشل الاستيراد: $e'))));
  }
 }
 Future<void> itemDialog({Item? existing})async{
   final n=TextEditingController(text:existing?.n??''),code=TextEditingController(text:existing?.code??''),u=TextEditingController(text:existing?.unit??'كجم'),cost=TextEditingController(text:(existing?.cost??0).toString()),q=TextEditingController(text:(existing?.q??0).toString()),min=TextEditingController(text:(existing?.min??0).toString());
-  await showDialog(context:context,builder:(x)=>AlertDialog(title:Text(existing==null?'إضافة خامة':'تعديل بيانات الخامة'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'اسم المادة'),field(code,'كود/باركود'),field(u,'وحدة القياس'),field(cost,'تكلفة الوحدة',numeric:true),if(existing==null)field(q,'الرصيد الافتتاحي بالمخزن الرئيسي',numeric:true),field(min,'حد التنبيه',numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('إلغاء')),FilledButton(onPressed:(){
+  await showDialog(context:context,builder:(x)=>AlertDialog(title:Text(existing==null?'إضافة خامة':'تعديل بيانات الخامة'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[field(n, translateEnglish('اسم المادة')),field(code, translateEnglish('كود/باركود')),field(u, translateEnglish('وحدة القياس')),field(cost, translateEnglish('تكلفة الوحدة'),numeric:true),if(existing==null)field(q, translateEnglish('الرصيد الافتتاحي بالمخزن الرئيسي'),numeric:true),field(min, translateEnglish('حد التنبيه'),numeric:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:(){
     final name=n.text.trim(),itemCode=code.text.trim(),unit=u.text.trim();final unitCost=double.tryParse(cost.text.trim().replaceAll(',','.')),opening=double.tryParse(q.text.trim().replaceAll(',','.'))??0,minimum=double.tryParse(min.text.trim().replaceAll(',','.'));
-    if(name.isEmpty||unit.isEmpty||unitCost==null||unitCost<0||minimum==null||minimum<0||(existing==null&&opening<0)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('راجع البيانات وأدخل أرقامًا صحيحة غير سالبة')));return;}
-    if(items.any((i)=>i!=existing&&i.n.toLowerCase()==name.toLowerCase())){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اسم الخامة موجود بالفعل')));return;}
-    if(itemCode.isNotEmpty&&items.any((i)=>i!=existing&&i.code.trim().toLowerCase()==itemCode.toLowerCase())){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الكود مستخدم بالفعل')));return;}
+    if(name.isEmpty||unit.isEmpty||unitCost==null||unitCost<0||minimum==null||minimum<0||(existing==null&&opening<0)){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('راجع البيانات وأدخل أرقامًا صحيحة غير سالبة'))));return;}
+    if(items.any((i)=>i!=existing&&i.n.toLowerCase()==name.toLowerCase())){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('اسم الخامة موجود بالفعل'))));return;}
+    if(itemCode.isNotEmpty&&items.any((i)=>i!=existing&&i.code.trim().toLowerCase()==itemCode.toLowerCase())){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('الكود مستخدم بالفعل'))));return;}
     if(existing==null){itemAdd(Item(name,itemCode,unit,unitCost,opening,minimum));addAudit('إضافة','خامة',name+' • كود '+itemCode);}
     else{
       final oldName=existing.n;
@@ -1267,11 +1341,11 @@ Future<void> itemDialog({Item? existing})async{
       addAudit('تعديل','خامة',oldName+' ← '+name+' • الكود '+itemCode+' • تكلفة '+cash(unitCost));
     }
     save();setState((){});Navigator.pop(x);
-  },child:const Text('حفظ'))]));}
+  },child:Text(translateEnglish('حفظ')))]));}
 Future<void> deleteItem(Item item)async{
   final hasMovement=movements.any((m)=>m.item==item.n),hasRecipe=recipes.any((r)=>r.item==item.n);
-  if(hasMovement||hasRecipe){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('لا يمكن حذف خامة مرتبطة بحركات مخزون أو وصفات. يمكنك تعديل بياناتها بدلاً من ذلك.')));return;}
-  final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('حذف خامة'),content:Text('حذف '+item.n+'؟ سيتم حذف أرصدتها من المخازن.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('حذف'))]));
+  if(hasMovement||hasRecipe){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('لا يمكن حذف خامة مرتبطة بحركات مخزون أو وصفات. يمكنك تعديل بياناتها بدلاً من ذلك.'))));return;}
+  final ok=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('حذف خامة')),content:Text('حذف '+item.n+'؟ سيتم حذف أرصدتها من المخازن.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:Text(translateEnglish('حذف')))]));
   if(ok!=true)return;items.remove(item);for(final balances in stockBalances.values){balances.remove(item.n);}addAudit('حذف','خامة',item.n);await save();if(mounted)setState((){});
 }
 String cash(double n)=>n.toStringAsFixed(2)+' ج.م';
@@ -1293,10 +1367,10 @@ Future<void> exportBackup() async {
     final name='StockPro_Backup_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}.json';
     final path=await FilePicker.platform.saveFile(fileName:name,bytes:bytes,type:FileType.custom,allowedExtensions:['json']);
     if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(path==null?'تم إلغاء حفظ النسخة':'تم إنشاء النسخة الاحتياطية بنجاح')));
-  }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('فشل إنشاء النسخة الاحتياطية: $e')));}
+  }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('فشل إنشاء النسخة الاحتياطية: $e'))));}
 }
 Future<void> restoreBackup() async {
-  if(!current.admin){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('الاستعادة متاحة للمدير فقط')));return;}
+  if(!current.admin){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('الاستعادة متاحة للمدير فقط'))));return;}
   try{
     final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['json'],withData:true);
     if(picked==null)return;
@@ -1310,19 +1384,19 @@ Future<void> restoreBackup() async {
     }
     if(parsed['stockBalances']!=null&&parsed['stockBalances'] is! Map)throw Exception('أرصدة المخازن غير سليمة');
     if(parsed['wasteAlertReviews']!=null&&parsed['wasteAlertReviews'] is! Map)throw Exception('مراجعات تنبيهات الهالك غير سليمة');
-    final confirm=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:const Text('استعادة نسخة احتياطية'),content:Text('سيتم استبدال البيانات الحالية بالنسخة من ${parsed['createdAt']??'تاريخ غير معروف'}. يفضل تصدير نسخة من بياناتك الحالية أولاً.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:const Text('استعادة'))]));
+    final confirm=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('استعادة نسخة احتياطية')),content:Text('سيتم استبدال البيانات الحالية بالنسخة من ${parsed['createdAt']??'تاريخ غير معروف'}. يفضل تصدير نسخة من بياناتك الحالية أولاً.'),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:Text(translateEnglish('استعادة')))]));
     if(confirm!=true)return;
     final p=await SharedPreferences.getInstance();
     for(final key in keys){if(parsed.containsKey(key)){final value=parsed[key];if(value is String)await p.setString(key,value);else await p.setString(key,jsonEncode(value));}}
     if(!mounted)return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تمت الاستعادة. سيتم إعادة فتح البرنامج بالبيانات المستعادة.')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('تمت الاستعادة. سيتم إعادة فتح البرنامج بالبيانات المستعادة.'))));
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder:(_)=>const Hub()),(route)=>false);
-  }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:const Duration(seconds:8),content:Text('تعذر استعادة النسخة: $e')));}
+  }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(duration:Duration(seconds:8),content:Text(translateEnglish('تعذر استعادة النسخة: $e'))));}
 }
 
 Future<void> stockCountDialog() async {
   if (items.isEmpty || visibleWarehouses.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا توجد خامات أو مخازن متاحة')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translateEnglish('لا توجد خامات أو مخازن متاحة'))));
     return;
   }
   Warehouse wh = visibleWarehouses.first;
@@ -1333,35 +1407,35 @@ Future<void> stockCountDialog() async {
     context: context,
     builder: (dc) => StatefulBuilder(
       builder: (dc, upd) => AlertDialog(
-        title: const Text('جرد وتسوية مخزنية'),
+        title: Text(translateEnglish('جرد وتسوية مخزنية')),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             DropdownButtonFormField<Warehouse>(
-              value: wh, decoration: const InputDecoration(labelText: 'المخزن'),
+              value: wh, decoration: InputDecoration(labelText: translateEnglish('المخزن')),
               items: visibleWarehouses.map((w) => DropdownMenuItem(value: w, child: Text(w.name))).toList(),
               onChanged: (v) { if (v != null) { upd(() => wh = v); actual.text = qtyText(balance(item, wh.name)); } },
             ),
             DropdownButtonFormField<Item>(
-              value: item, decoration: const InputDecoration(labelText: 'الخامة'),
+              value: item, decoration: InputDecoration(labelText: translateEnglish('الخامة')),
               items: items.map((i) => DropdownMenuItem(value: i, child: Text(i.n))).toList(),
               onChanged: (v) { if (v != null) { upd(() => item = v); actual.text = qtyText(balance(item, wh.name)); } },
             ),
-            Text('الرصيد الدفتري: ${qtyText(balance(item, wh.name))} ${item.unit}'),
-            field(actual, 'الرصيد الفعلي بعد الجرد', numeric: true),
-            field(note, 'ملاحظات / رقم محضر الجرد'),
+            Text(translateEnglish('الرصيد الدفتري: ${qtyText(balance(item, wh.name))} ${item.unit}')),
+            field(actual, translateEnglish('الرصيد الفعلي بعد الجرد'), numeric: true),
+            field(note, translateEnglish('ملاحظات / رقم محضر الجرد')),
           ]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dc), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dc), child: Text(translateEnglish('إلغاء'))),
           FilledButton(onPressed: () {
             final counted = double.tryParse(actual.text.trim().replaceAll(',', '.'));
             if (counted == null || counted < 0) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل رصيدًا فعليًا صحيحًا')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translateEnglish('أدخل رصيدًا فعليًا صحيحًا'))));
               return;
             }
             final book = balance(item, wh.name), delta = counted - book;
             if (delta.abs() < 0.000001) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الرصيد الفعلي مطابق للرصيد الدفتري')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translateEnglish('الرصيد الفعلي مطابق للرصيد الدفتري'))));
               return;
             }
             final type = delta > 0 ? 'تسوية زيادة' : 'تسوية عجز';
@@ -1371,7 +1445,7 @@ Future<void> stockCountDialog() async {
               DateTime.now(), wh.name));
             addAudit('جرد', 'تسوية مخزون', item.n + ' • ' + wh.name + ' • ' + type + ' ' + qtyText(delta.abs()) + ' ' + item.unit);
             save(); setState(() {}); Navigator.pop(dc);
-          }, child: const Text('اعتماد الجرد')),
+          }, child: Text(translateEnglish('اعتماد الجرد'))),
         ],
       ),
     ),
