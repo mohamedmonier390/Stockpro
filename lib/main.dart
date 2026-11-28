@@ -1119,14 +1119,14 @@ addAudit('تحويل','مخزون',selected.n+' • '+qtyText(amount)+' '+select
 },child:Text(translateEnglish('اعتماد التحويل')))])));
 }
 Future<void> editMovement(Movement m)async{
-  if(!['استلام','صرف','صرف للموقع'].contains(m.type))return;
+  if(m.ref.isNotEmpty||!['استلام','صرف','صرف للموقع'].contains(m.type))return;
   if(!current.admin&&!current.warehouses.contains(m.warehouse))return;
   final qty=TextEditingController(text:qtyText(m.qty));
   final note=TextEditingController(text:m.note);
   await showDialog<void>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('تعديل حركة المخزون')),content:Column(mainAxisSize:MainAxisSize.min,children:[Text(translateEnglish(m.type)+' • '+m.item+' • '+m.warehouse),field(qty,translateEnglish('الكمية'),numeric:true),field(note,translateEnglish('ملاحظات'))]),actions:[TextButton(onPressed:()=>Navigator.pop(dc),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()async{final amount=double.tryParse(qty.text.trim().replaceAll(',','.'));if(amount==null||amount<=0){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('أدخل كمية صحيحة'))));return;}final old=m.qty;final currentBalance=balance(items.firstWhere((i)=>i.n==m.item),m.warehouse);final next=m.type=='استلام'?currentBalance+(amount-old):currentBalance+(old-amount);if(next< -0.000001){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('الرصيد غير كافٍ لتعديل الحركة'))));return;}final item=items.firstWhere((i)=>i.n==m.item);setBalance(item,m.warehouse,next<0?0:next);m.qty=amount;m.note=note.text.trim();addAudit('تعديل','حركة مخزون',m.item+' • '+m.type+' • '+qtyText(old)+' → '+qtyText(amount)+' • '+m.warehouse);await save();if(mounted)setState((){});if(dc.mounted)Navigator.pop(dc);},child:Text(translateEnglish('حفظ التعديلات')))]));
 }
 Future<void> deleteMovement(Movement m)async{
-  if(!['استلام','صرف','صرف للموقع'].contains(m.type))return;
+  if(m.ref.isNotEmpty||!['استلام','صرف','صرف للموقع'].contains(m.type))return;
   if(!current.admin&&!current.warehouses.contains(m.warehouse))return;
   final confirm=await showDialog<bool>(context:context,builder:(dc)=>AlertDialog(title:Text(translateEnglish('حذف حركة المخزون')),content:Text(translateEnglish('سيتم عكس أثر الحركة على الرصيد. هل تريد الحذف؟')+'\n'+m.item+' • '+m.type+' • '+qtyText(m.qty)+' • '+m.warehouse),actions:[TextButton(onPressed:()=>Navigator.pop(dc,false),child:Text(translateEnglish('إلغاء'))),FilledButton(onPressed:()=>Navigator.pop(dc,true),child:Text(translateEnglish('حذف')))]));
   if(confirm!=true)return;
@@ -1161,7 +1161,7 @@ Future<void> movementHistoryDialog() async {
                 ),
                 title: Text(translateEnglish('${m.item} • ${m.type} • ${qtyText(m.qty)}')),
                 subtitle: Text('${m.warehouse} | ${m.date.toString()}${m.note.isEmpty ? '' : '\n'+m.note}'),
-                trailing: ['استلام','صرف','صرف للموقع'].contains(m.type) ? Wrap(spacing:0,children:[IconButton(tooltip:translateEnglish('تعديل'),icon:const Icon(Icons.edit_outlined),onPressed:()=>editMovement(m)),IconButton(tooltip:translateEnglish('حذف'),icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteMovement(m))]) : null,
+                trailing: m.ref.isEmpty&&['استلام','صرف','صرف للموقع'].contains(m.type) ? Wrap(spacing:0,children:[IconButton(tooltip:translateEnglish('تعديل'),icon:const Icon(Icons.edit_outlined),onPressed:()=>editMovement(m)),IconButton(tooltip:translateEnglish('حذف'),icon:const Icon(Icons.delete_outline,color:Colors.red),onPressed:()=>deleteMovement(m))]) : null,
               )).toList(),
             ),
       ),
