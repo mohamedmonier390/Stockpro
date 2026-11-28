@@ -429,7 +429,7 @@ Future<void> expenseDialog({Expense? existing}) async {
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (dialogContext, refresh) => AlertDialog(
-        title: Text(existing == null ? 'إضافة مصروف' : 'تعديل مصروف'),
+        title: Text(translateEnglish(existing == null ? 'إضافة مصروف' : 'تعديل مصروف')), 
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             DropdownButtonFormField<Site>(
@@ -494,7 +494,7 @@ Future<void> userDialog({AppUser? existing})async{
   final name=TextEditingController(text:existing?.name??'');final pin=TextEditingController(text:existing?.pin??'');bool admin=existing?.admin??false;
   final perms=Set<String>.from(existing?.permissions??{});final siteScope=Set<String>.from(existing?.sites??{});final warehouseScope=Set<String>.from(existing?.warehouses??{});
   await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(
-    title:Text(existing==null?'إضافة مستخدم':'تعديل المستخدم'),
+    title:Text(translateEnglish(existing==null?'إضافة مستخدم':'تعديل المستخدم')), 
     content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       field(name, translateEnglish('اسم المستخدم')),field(pin, translateEnglish('رقم PIN (إجباري)'),numeric:true,decimal:false),
       CheckboxListTile(value:admin,title:Text(translateEnglish('مدير — صلاحيات كاملة')),onChanged:(v)=>set(()=>admin=v??false)),
@@ -705,7 +705,7 @@ Widget dashboard() {
         color: wasteAlerts.isEmpty ? const Color(0xffeaf7ef) : const Color(0xfffff3e5),
         child: ExpansionTile(
           leading: Icon(wasteAlerts.isEmpty?Icons.check_circle:Icons.warning_amber_rounded,color:wasteAlerts.isEmpty?Colors.green:Colors.deepOrange),
-          title: Text(wasteAlerts.isEmpty?'متابعة الهالك والانحراف':'تنبيهات الهالك والانحراف (${wasteAlerts.length})',style:const TextStyle(fontWeight:FontWeight.bold)),
+          title: Text(translateEnglish(wasteAlerts.isEmpty?'متابعة الهالك والانحراف':'تنبيهات الهالك والانحراف (${wasteAlerts.length})')),style:const TextStyle(fontWeight:FontWeight.bold)),
           subtitle: Text(wasteAlerts.isEmpty?'لا توجد تجاوزات بنسبة ${wasteAlertThreshold.toStringAsFixed(0)}% أو صرف خامات بلا وصفة هذا الشهر':'هالك زائد مرصود: ${cash(alertCost)} • ${wasteAlerts.where((a)=>wasteReviewFor(a,DateTime.now())['reviewed']!=true).length} تنبيه لم يُراجع • الشهر الحالي'),
           children: [
             ListTile(leading:Icon(Icons.tune),title:Text(translateEnglish('تغيير نسبة التنبيه الحالية: ${wasteAlertThreshold.toStringAsFixed(0)}%')),subtitle:Text(translateEnglish('اختيار الحد الذي يبدأ عنده التنبيه')),trailing:Icon(Icons.chevron_left),onTap:showWasteThresholdDialog),
@@ -814,39 +814,39 @@ Future<void> pickReportDate(bool start)async{
 Future<void> exportReportExcel(List<Day> periodDays,DateTime from,DateTime to)async{
  try{
   final book=Excel.createExcel();
-  book.rename('Sheet1','ملخص التقرير');
-  final summary=book['ملخص التقرير'];
-  summary.appendRow([TextCellValue('تقرير StockPro'),TextCellValue('من'),TextCellValue(reportDateText(from)),TextCellValue('إلى'),TextCellValue(reportDateText(to))]);
-  summary.appendRow([TextCellValue('المؤشر'),TextCellValue('القيمة')]);
+  book.rename('Sheet1',languageText('ملخص التقرير','Report summary'));
+  final summary=book[languageText('ملخص التقرير','Report summary')];
+  summary.appendRow([TextCellValue(languageText('تقرير StockPro','StockPro report')),TextCellValue(languageText('من','From')),TextCellValue(reportDateText(from)),TextCellValue(languageText('إلى','To')),TextCellValue(reportDateText(to))]);
+  summary.appendRow([TextCellValue(languageText('المؤشر','Metric')),TextCellValue(languageText('القيمة','Value'))]);
   int breakfast=0,lunch=0,dinner=0,extra=0;double revenue=0,rawCost=0;final periodExpenses=expenses.where((x){final date=DateTime(x.date.year,x.date.month,x.date.day);return !date.isBefore(DateTime(from.year,from.month,from.day))&&!date.isAfter(DateTime(to.year,to.month,to.day))&&(current.admin||current.sites.contains(x.site));}).toList();final expensesTotal=periodExpenses.fold<double>(0.0,(double sum,Expense x)=>sum+x.amount);
   for(final entry in periodDays){breakfast+=entry.b;lunch+=entry.l;dinner+=entry.d;extra+=entry.e;revenue+=rev(entry);}rawCost=visibleSites.fold<double>(0,(sum,site)=>sum+siteMaterialCost(site.name,from,to));
-  summary.appendRow([TextCellValue('إفطار'),IntCellValue(breakfast)]);
-  summary.appendRow([TextCellValue('غداء'),IntCellValue(lunch)]);
-  summary.appendRow([TextCellValue('عشاء'),IntCellValue(dinner)]);
-  summary.appendRow([TextCellValue('وجبات إضافية'),IntCellValue(extra)]);
-  summary.appendRow([TextCellValue('إجمالي الوجبات'),IntCellValue(breakfast+lunch+dinner+extra)]);
-  summary.appendRow([TextCellValue('إيراد الوجبات المسعّرة'),DoubleCellValue(revenue)]);
-  summary.appendRow([TextCellValue('تكلفة الخامات المصروفة فعليًا للمواقع'),DoubleCellValue(rawCost)]);
-  summary.appendRow([TextCellValue('الفائض بعد تكلفة الخامات'),DoubleCellValue(revenue-rawCost)]);summary.appendRow([TextCellValue('مصروفات المواقع'),DoubleCellValue(expensesTotal)]);summary.appendRow([TextCellValue('صافي الربح بعد المصروفات'),DoubleCellValue(revenue-rawCost-expensesTotal)]);final expenseSheet=book['المصروفات'];expenseSheet.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('التصنيف'),TextCellValue('المبلغ'),TextCellValue('ملاحظات')]);for(final x in periodExpenses){expenseSheet.appendRow([TextCellValue(reportDateText(x.date)),TextCellValue(x.site),TextCellValue(x.category),DoubleCellValue(x.amount),TextCellValue(x.note)]);}
-  final bySite=book['تفصيل المواقع'];
-  bySite.appendRow([TextCellValue('الموقع'),TextCellValue('إفطار'),TextCellValue('غداء'),TextCellValue('عشاء'),TextCellValue('إضافية'),TextCellValue('الإجمالي'),TextCellValue('الإيراد'),TextCellValue('تكلفة الخامات'),TextCellValue('الفائض'),TextCellValue('مصروفات'),TextCellValue('صافي الربح')]);
+  summary.appendRow([TextCellValue(languageText('إفطار','Breakfast')),IntCellValue(breakfast)]);
+  summary.appendRow([TextCellValue(languageText('غداء','Lunch')),IntCellValue(lunch)]);
+  summary.appendRow([TextCellValue(languageText('عشاء','Dinner')),IntCellValue(dinner)]);
+  summary.appendRow([TextCellValue(languageText('وجبات إضافية','Extra meals')),IntCellValue(extra)]);
+  summary.appendRow([TextCellValue(languageText('إجمالي الوجبات','Total meals')),IntCellValue(breakfast+lunch+dinner+extra)]);
+  summary.appendRow([TextCellValue(languageText('إيراد الوجبات المسعّرة','Revenue from priced meals')),DoubleCellValue(revenue)]);
+  summary.appendRow([TextCellValue(languageText('تكلفة الخامات المصروفة فعليًا للمواقع','Actual materials cost issued to sites')),DoubleCellValue(rawCost)]);
+  summary.appendRow([TextCellValue(languageText('الفائض بعد تكلفة الخامات','Surplus after material cost')),DoubleCellValue(revenue-rawCost)]);summary.appendRow([TextCellValue(languageText('مصروفات المواقع','Site expenses')),DoubleCellValue(expensesTotal)]);summary.appendRow([TextCellValue(languageText('صافي الربح بعد المصروفات','Net profit after expenses')),DoubleCellValue(revenue-rawCost-expensesTotal)]);final expenseSheet=book[languageText('المصروفات','Expenses')];expenseSheet.appendRow([TextCellValue(languageText('التاريخ','Date')),TextCellValue(languageText('الموقع','Site')),TextCellValue(languageText('التصنيف','Category')),TextCellValue(languageText('المبلغ','Amount')),TextCellValue(languageText('ملاحظات','Notes'))]);for(final x in periodExpenses){expenseSheet.appendRow([TextCellValue(reportDateText(x.date)),TextCellValue(x.site),TextCellValue(x.category),DoubleCellValue(x.amount),TextCellValue(x.note)]);}
+  final bySite=book[languageText('تفصيل المواقع','Site details')];
+  bySite.appendRow([TextCellValue(languageText('الموقع','Site')),TextCellValue(languageText('إفطار','Breakfast')),TextCellValue(languageText('غداء','Lunch')),TextCellValue(languageText('عشاء','Dinner')),TextCellValue(languageText('إضافية','إضافية')),TextCellValue(languageText('الإجمالي','الإجمالي')),TextCellValue(languageText('الإيراد','الإيراد')),TextCellValue(languageText('تكلفة الخامات','تكلفة الخامات')),TextCellValue(languageText('الفائض','الفائض')),TextCellValue(languageText('مصروفات','مصروفات')),TextCellValue(languageText('صافي الربح','Net profit'))]);
   for(final site in visibleSites){
    int b=0,l=0,d=0,e=0;double amount=0,cost=0;
    for(final entry in periodDays){if(entry.site==site.name){b+=entry.b;l+=entry.l;d+=entry.d;e+=entry.e;amount+=rev(entry);}}cost=siteMaterialCost(site.name,from,to);
    final siteExpenses=periodExpenses.where((x)=>x.site==site.name).fold<double>(0.0,(double sum,Expense x)=>sum+x.amount);bySite.appendRow([TextCellValue(site.name),IntCellValue(b),IntCellValue(l),IntCellValue(d),IntCellValue(e),IntCellValue(b+l+d+e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost),DoubleCellValue(siteExpenses),DoubleCellValue(amount-cost-siteExpenses)]);
   }
   final daily=book['تفصيل التسجيلات'];
-  daily.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('إفطار'),TextCellValue('غداء'),TextCellValue('عشاء'),TextCellValue('إضافية'),TextCellValue('الإجمالي'),TextCellValue('الإيراد'),TextCellValue('تكلفة الخامات'),TextCellValue('الفائض')]);
+  daily.appendRow([TextCellValue(languageText('التاريخ','Date')),TextCellValue(languageText('الموقع','Site')),TextCellValue(languageText('إفطار','Breakfast')),TextCellValue(languageText('غداء','Lunch')),TextCellValue(languageText('عشاء','Dinner')),TextCellValue(languageText('إضافية','إضافية')),TextCellValue(languageText('الإجمالي','الإجمالي')),TextCellValue(languageText('الإيراد','الإيراد')),TextCellValue(languageText('تكلفة الخامات','تكلفة الخامات')),TextCellValue(languageText('الفائض','الفائض'))]);
   final ordered=List<Day>.from(periodDays)..sort((a,b)=>a.date.compareTo(b.date));
   for(final entry in ordered){final amount=rev(entry),cost=linkedDayMaterialCost(entry.id);daily.appendRow([TextCellValue(reportDateText(entry.date)),TextCellValue(entry.site),IntCellValue(entry.b),IntCellValue(entry.l),IntCellValue(entry.d),IntCellValue(entry.e),IntCellValue(entry.b+entry.l+entry.d+entry.e),DoubleCellValue(amount),DoubleCellValue(cost),DoubleCellValue(amount-cost)]);}
-  final siteIssues=book['صرف الخامات للمواقع'];siteIssues.appendRow([TextCellValue('التاريخ'),TextCellValue('الموقع'),TextCellValue('المخزن'),TextCellValue('الصنف'),TextCellValue('الكمية'),TextCellValue('تكلفة الوحدة'),TextCellValue('إجمالي التكلفة'),TextCellValue('نوع الحركة'),TextCellValue('ملاحظات')]);for(final m in movements.where((m)=>isSiteConsumption(m)&&visibleSites.any((s)=>s.name==movementSite(m))&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(from.year,from.month,from.day))>=0&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(to.year,to.month,to.day))<=0)){final it=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));siteIssues.appendRow([TextCellValue(reportDateText(m.date)),TextCellValue(movementSite(m)??''),TextCellValue(m.warehouse),TextCellValue(m.item),DoubleCellValue(m.qty),DoubleCellValue(m.unitCost??it.cost),DoubleCellValue(movementCost(m)),TextCellValue(m.type),TextCellValue(m.note)]);}
-  final varianceSheet=book['تحليل الانحراف والهالك'];varianceSheet.appendRow([TextCellValue('الموقع'),TextCellValue('الصنف'),TextCellValue('الوحدة'),TextCellValue('الاستهلاك النظري'),TextCellValue('الصرف الفعلي اليدوي'),TextCellValue('الزيادة / العجز'),TextCellValue('نسبة الانحراف %'),TextCellValue('تكلفة الانحراف')]);for(final site in visibleSites){final expected=expectedSiteConsumption(site.name,from,to),actual=actualSiteIssues(site.name,from,to);final allItems={...expected.keys,...actual.keys};for(final item in allItems){final e=expected[item]??0.0,a=actual[item]??0.0,d=a-e;final pct=e>0?d/e*100:null;varianceSheet.appendRow([TextCellValue(site.name),TextCellValue(item.n),TextCellValue(item.unit),DoubleCellValue(e),DoubleCellValue(a),DoubleCellValue(d),pct==null?TextCellValue('لا توجد وصفة'):DoubleCellValue(pct),DoubleCellValue(d*item.cost)]);}}
+  final siteIssues=book[languageText('صرف الخامات للمواقع','Material issues to sites')];siteIssues.appendRow([TextCellValue(languageText('التاريخ','Date')),TextCellValue(languageText('الموقع','Site')),TextCellValue(languageText('المخزن','Warehouse')),TextCellValue(languageText('الصنف','Item')),TextCellValue(languageText('الكمية','Quantity')),TextCellValue(languageText('تكلفة الوحدة','Unit cost')),TextCellValue(languageText('إجمالي التكلفة','Total cost')),TextCellValue(languageText('نوع الحركة','Movement type')),TextCellValue(languageText('ملاحظات','Notes'))]);for(final m in movements.where((m)=>isSiteConsumption(m)&&visibleSites.any((s)=>s.name==movementSite(m))&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(from.year,from.month,from.day))>=0&&DateTime(m.date.year,m.date.month,m.date.day).compareTo(DateTime(to.year,to.month,to.day))<=0)){final it=items.firstWhere((i)=>i.n==m.item,orElse:()=>Item(m.item,'','',0,0,0));siteIssues.appendRow([TextCellValue(reportDateText(m.date)),TextCellValue(movementSite(m)??''),TextCellValue(m.warehouse),TextCellValue(m.item),DoubleCellValue(m.qty),DoubleCellValue(m.unitCost??it.cost),DoubleCellValue(movementCost(m)),TextCellValue(m.type),TextCellValue(m.note)]);}
+  final varianceSheet=book['تحليل الانحراف والهالك'];varianceSheet.appendRow([TextCellValue(languageText('الموقع','Site')),TextCellValue(languageText('الصنف','Item')),TextCellValue(languageText('الوحدة','الوحدة')),TextCellValue(languageText('الاستهلاك النظري','الاستهلاك النظري')),TextCellValue(languageText('الصرف الفعلي اليدوي','الصرف الفعلي اليدوي')),TextCellValue(languageText('الزيادة / العجز','الزيادة / العجز')),TextCellValue(languageText('نسبة الانحراف %','نسبة الانحراف %')),TextCellValue(languageText('تكلفة الانحراف','تكلفة الانحراف'))]);for(final site in visibleSites){final expected=expectedSiteConsumption(site.name,from,to),actual=actualSiteIssues(site.name,from,to);final allItems={...expected.keys,...actual.keys};for(final item in allItems){final e=expected[item]??0.0,a=actual[item]??0.0,d=a-e;final pct=e>0?d/e*100:null;varianceSheet.appendRow([TextCellValue(site.name),TextCellValue(item.n),TextCellValue(item.unit),DoubleCellValue(e),DoubleCellValue(a),DoubleCellValue(d),pct==null?TextCellValue(languageText('لا توجد وصفة','لا توجد وصفة')):DoubleCellValue(pct),DoubleCellValue(d*item.cost)]);}}
    final encoded=book.encode();
   if(encoded==null)throw Exception('تعذر إنشاء ملف Excel');
   final fileName='StockPro_Report_${from.year}${from.month.toString().padLeft(2,'0')}${from.day.toString().padLeft(2,'0')}_to_${to.year}${to.month.toString().padLeft(2,'0')}${to.day.toString().padLeft(2,'0')}.xlsx';
   final saved=await FilePicker.platform.saveFile(fileName:fileName,bytes:Uint8List.fromList(encoded),type:FileType.custom,allowedExtensions:['xlsx']);
   if(!mounted)return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(saved==null?'تم إلغاء حفظ التقرير':'تم تصدير التقرير بنجاح')));
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish(saved==null?'تم إلغاء حفظ التقرير':'تم تصدير التقرير بنجاح'))));
  }catch(e){
   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('فشل تصدير التقرير: $e'))));
  }
@@ -972,7 +972,7 @@ Future<void> warehouseDialog({Warehouse? existing}) async {
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (dialogContext, setDialogState) => AlertDialog(
-        title: Text(existing == null ? 'إضافة مخزن' : 'تعديل المخزن'),
+        title: Text(translateEnglish(existing == null ? 'إضافة مخزن' : 'تعديل المخزن')), 
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             field(name, translateEnglish('اسم المخزن')),
@@ -1048,7 +1048,7 @@ Future<void> dayDialog({Day? existing})async{
   Site chosen=visibleSites.firstWhere((s)=>s.name==existing?.site,orElse:()=>visibleSites.first);
   final b=TextEditingController(text:(existing?.b??0).toString()),l=TextEditingController(text:(existing?.l??0).toString()),d=TextEditingController(text:(existing?.d??0).toString()),e=TextEditingController(text:(existing?.e??0).toString());
   final linked=existing==null? <Movement>[]:movements.where((m)=>m.ref.isNotEmpty&&m.ref==existing.id).toList();
-  await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:Text(existing==null?'تسجيل الوجبات اليومية':'تعديل تسجيل الوجبات'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+  await showDialog(context:context,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:Text(translateEnglish(existing==null?'تسجيل الوجبات اليومية':'تعديل تسجيل الوجبات')), content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
     DropdownButtonFormField<Site>(value:chosen,items:visibleSites.map((site)=>DropdownMenuItem(value:site,child:Text(site.name))).toList(),onChanged:(v){if(v!=null)set(()=>chosen=v);}),
     field(b, translateEnglish('عدد الإفطار'),numeric:true,decimal:false),field(l, translateEnglish('عدد الغداء'),numeric:true,decimal:false),field(d, translateEnglish('عدد العشاء'),numeric:true,decimal:false),field(e, translateEnglish('وجبات إضافية غير مسعرة'),numeric:true,decimal:false),
     Text(translateEnglish('أسعار العقد: ')+cash(chosen.b)+' / '+cash(chosen.l)+' / '+cash(chosen.d))
@@ -1079,7 +1079,7 @@ Future<void> dayDialog({Day? existing})async{
         for(final entry in need.entries){setBalance(entry.key,consumeWh.name,balance(entry.key,consumeWh.name)-entry.value);movements.add(Movement(entry.key.n,'استهلاك وجبات',entry.value,'موقع: '+chosen.name,DateTime.now(),consumeWh.name,existing.id,entry.key.cost));}
       }
       addAudit(existing==null?'إضافة':'تعديل','تسجيل وجبات',chosen.name+' • إفطار '+nb.toString()+' / غداء '+nl.toString()+' / عشاء '+nd.toString());save();setState((){});Navigator.pop(x);
-    },child:Text(existing==null?'حفظ':'حفظ التعديلات'))
+    },child:Text(translateEnglish(existing==null?'حفظ':'حفظ التعديلات')))
   ])));
 }
 Future<void> movementDialog(String type) async {
@@ -1156,20 +1156,20 @@ Future<void> exportImportTemplate() async {
   final book=Excel.createExcel();
   book.rename('Sheet1','بيانات المخزون');
   final sheet=book['بيانات المخزون'];
-  sheet.appendRow([TextCellValue('كود الصنف'),TextCellValue('اسم الصنف'),TextCellValue('وحدة القياس'),TextCellValue('المخزن'),TextCellValue('الرصيد الافتتاحي'),TextCellValue('حد التنبيه'),TextCellValue('متوسط التكلفة'),TextCellValue('ملاحظات')]);
-  sheet.appendRow([TextCellValue('ITM-001'),TextCellValue('مثال: أرز'),TextCellValue('كجم'),TextCellValue('المخزن الرئيسي'),DoubleCellValue(0),DoubleCellValue(5),DoubleCellValue(0),TextCellValue('مثال - احذف الصف قبل الاستيراد')]);
+  sheet.appendRow([TextCellValue(languageText('كود الصنف','كود الصنف')),TextCellValue(languageText('اسم الصنف','اسم الصنف')),TextCellValue(languageText('وحدة القياس','وحدة القياس')),TextCellValue(languageText('المخزن','Warehouse')),TextCellValue(languageText('الرصيد الافتتاحي','الرصيد الافتتاحي')),TextCellValue(languageText('حد التنبيه','حد التنبيه')),TextCellValue(languageText('متوسط التكلفة','متوسط التكلفة')),TextCellValue(languageText('ملاحظات','Notes'))]);
+  sheet.appendRow([TextCellValue('ITM-001'),TextCellValue(languageText('مثال: أرز','مثال: أرز')),TextCellValue(languageText('كجم','كجم')),TextCellValue(languageText('المخزن الرئيسي','المخزن الرئيسي')),DoubleCellValue(0),DoubleCellValue(5),DoubleCellValue(0),TextCellValue(languageText('مثال - احذف الصف قبل الاستيراد','مثال - احذف الصف قبل الاستيراد'))]);
   final guide=book['تعليمات'];
-  guide.appendRow([TextCellValue('StockPro Business - قالب استيراد المخزون')]);
-  guide.appendRow([TextCellValue('1'),TextCellValue('الأعمدة الأساسية المطلوبة: كود الصنف، اسم الصنف، وحدة القياس، المخزن. ويمكن استخدام الأسماء الإنجليزية البديلة أيضاً.')]);
-  guide.appendRow([TextCellValue('2'),TextCellValue('كل صنف يجب أن يكون له كود فريد واسم ووحدة قياس ومخزن موجود داخل البرنامج.')]);
-  guide.appendRow([TextCellValue('3'),TextCellValue('الأعمدة الاختيارية: الرصيد الافتتاحي، حد التنبيه، متوسط التكلفة، ملاحظات. إذا تركتها فارغة فسيتم اعتبار الأرقام صفرًا.')]);
-  guide.appendRow([TextCellValue('4'),TextCellValue('استخدم أسماء المخازن المطابقة تماماً للمخازن المسجلة. يمكنك استخدام المخزن الرئيسي.')]);
-  guide.appendRow([TextCellValue('5'),TextCellValue('احذف صف المثال، ثم احفظ الملف بصيغة Excel .xlsx واستورده من شاشة المخزون.')]);
+  guide.appendRow([TextCellValue(languageText('StockPro Business - قالب استيراد المخزون','StockPro Business - قالب استيراد المخزون'))]);
+  guide.appendRow([TextCellValue('1'),TextCellValue(languageText('الأعمدة الأساسية المطلوبة: كود الصنف، اسم الصنف، وحدة القياس، المخزن. ويمكن استخدام الأسماء الإنجليزية البديلة أيضاً.','الأعمدة الأساسية المطلوبة: كود الصنف، اسم الصنف، وحدة القياس، المخزن. ويمكن استخدام الأسماء الإنجليزية البديلة أيضاً.'))]);
+  guide.appendRow([TextCellValue('2'),TextCellValue(languageText('كل صنف يجب أن يكون له كود فريد واسم ووحدة قياس ومخزن موجود داخل البرنامج.','كل صنف يجب أن يكون له كود فريد واسم ووحدة قياس ومخزن موجود داخل البرنامج.'))]);
+  guide.appendRow([TextCellValue('3'),TextCellValue(languageText('الأعمدة الاختيارية: الرصيد الافتتاحي، حد التنبيه، متوسط التكلفة، ملاحظات. إذا تركتها فارغة فسيتم اعتبار الأرقام صفرًا.','الأعمدة الاختيارية: الرصيد الافتتاحي، حد التنبيه، متوسط التكلفة، ملاحظات. إذا تركتها فارغة فسيتم اعتبار الأرقام صفرًا.'))]);
+  guide.appendRow([TextCellValue('4'),TextCellValue(languageText('استخدم أسماء المخازن المطابقة تماماً للمخازن المسجلة. يمكنك استخدام المخزن الرئيسي.','استخدم أسماء المخازن المطابقة تماماً للمخازن المسجلة. يمكنك استخدام المخزن الرئيسي.'))]);
+  guide.appendRow([TextCellValue('5'),TextCellValue(languageText('احذف صف المثال، ثم احفظ الملف بصيغة Excel .xlsx واستورده من شاشة المخزون.','احذف صف المثال، ثم احفظ الملف بصيغة Excel .xlsx واستورده من شاشة المخزون.'))]);
   final encoded=book.encode();
   if(encoded==null)throw Exception('تعذر إنشاء قالب Excel');
   final name='StockPro_Import_Template.xlsx';
   final saved=await FilePicker.platform.saveFile(fileName:name,bytes:Uint8List.fromList(encoded),type:FileType.custom,allowedExtensions:['xlsx']);
-  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(saved==null?'تم إلغاء حفظ القالب':'تم حفظ قالب استيراد المخزون بنجاح')));
+  if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish(saved==null?'تم إلغاء حفظ القالب':'تم حفظ قالب استيراد المخزون بنجاح'))));
  }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('فشل إنشاء القالب: $e'))));}
 }
 Future<void> importExcel() async {
@@ -1343,7 +1343,7 @@ Future<void> exportBackup() async {
     final bytes=Uint8List.fromList(utf8.encode(jsonEncode(data)));
     final name='StockPro_Backup_${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}.json';
     final path=await FilePicker.platform.saveFile(fileName:name,bytes:bytes,type:FileType.custom,allowedExtensions:['json']);
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(path==null?'تم إلغاء حفظ النسخة':'تم إنشاء النسخة الاحتياطية بنجاح')));
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish(path==null?'تم إلغاء حفظ النسخة':'تم إنشاء النسخة الاحتياطية بنجاح'))));
   }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(translateEnglish('فشل إنشاء النسخة الاحتياطية: $e'))));}
 }
 Future<void> restoreBackup() async {
